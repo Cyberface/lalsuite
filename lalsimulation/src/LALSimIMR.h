@@ -89,6 +89,9 @@ double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const RE
 
 /* in module LALSimIMRPhenomD_HM.c */
 void XLALSimIMRPhenomDHMTEST(void);
+double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf, const UINT4 ell, const UINT4 m, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const UINT4 AmpFlag);
+double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 m );
+double XLALSimIMRPhenomDHMfring(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const UINT4 ell, const UINT4 mm);
 
 int XLALSimIMRPhenomP(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);
 int XLALSimIMRPhenomPFrequencySequence(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8Sequence *freqs, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);

@@ -17,4 +17,4 @@
  *  MA  02111-1307  USA
  */
 
-void XLALSimIMRPhenomDHMTEST(void);
+// void XLALSimIMRPhenomDHMTEST(void);
