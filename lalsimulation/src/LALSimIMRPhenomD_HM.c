@@ -187,7 +187,108 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
        }
    }
 
+  /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
+  // Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+
     return Mf_22;
+}
+
+/*
+ * For a given waveform frequency and ell and m spherical harmonic mode
+ * return the waveform frequency scaled to give the leading order PN
+ * amplitude for the given ell and m modes.
+ * Calcuated from mathematica function: FrequencyPower[f, {ell, m}] / FrequencyPower[f, {2, 2}]
+ * FrequencyPower function just returns the leading order PN term in the amplitude.
+ */
+double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf,
+                                        UINT4 ell,
+                                        UINT4 mm ) {
+
+    /*FIXME: Precompute these powers*/
+
+    /*initialise answer*/
+    REAL8 ans = 0.0;
+
+    if ( ell==2 && mm==2 ) {
+        ans = 1.0;
+    } else if ( ell==2 && mm==1 ) {
+        ans = pow(Mf_wf, 1.0/3.0);
+    } else if ( ell==3 && mm==3 ) {
+        ans = pow(Mf_wf, 1.0/3.0);
+    } else if ( ell==3 && mm==2 ) {
+        ans = pow(Mf_wf, 2.0/3.0);
+    } else if ( ell==4 && mm==4 ) {
+        ans = pow(Mf_wf, 2.0/3.0);
+    } else if ( ell==4 && mm==3 ) {
+        ans = Mf_wf;
+    } else if ( ell==5 && mm==5 ) {
+        ans = Mf_wf;
+    } else if ( ell==5 && mm==4 ) {
+        ans = pow(Mf_wf, 4.0/3.0);
+    } else if ( ell==6 && mm==6 ) {
+        ans = pow(Mf_wf, 4.0/3.0);
+    } else if ( ell==6 && mm==5 ) {
+        ans = pow(Mf_wf, 5.0/3.0);
+    } else {
+        XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
+        XLAL_ERROR(XLAL_EDOM);
+    }
+
+    return ans;
+
+}
+
+/* FIXME: returns leading order PN amplitude for given ell and m mode.
+ * This is from mma notebook 'leadingPNamp.nb' in /work/projects/PhenomHM
+ */
+double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
+                                                REAL8 eta,
+                                                UINT4 ell,
+                                                UINT4 mm ) {
+
+    /*initialise answer*/
+    REAL8 ans = 0.0;
+
+    REAL8 dummy = 0.5;
+
+    if ( ell==2 && mm==2 ) {
+        // ans = 0.150862 * pow(Mf_wf, -7.0/6.0);
+        ans = 1.0;
+    } else if ( ell==2 && mm==1 ) {
+        // ans = 0.0658751 * pow(Mf_wf, -5.0/6.0);
+        ans = dummy;
+    } else if ( ell==3 && mm==3 ) {
+        // there is something wrong with this line, it returns 0 or -0...
+        // ans = (1.5342126289155218*sqrt((1. - 1.*sqrt(1. - 4.*eta))*(1. + 1.*sqrt(1. - 4.*eta)))*sqrt(1 - 4*eta)*eta);
+                        // (pow(Mf_wf,0.8333333333333334)*(1. - 1.*sqrt(1. - 4.*eta))*(1. + 1.*sqrt(1. - 4.*eta)));
+        ans = dummy;
+    } else if ( ell==3 && mm==2 ) {
+        // ans = 0.0774904 * pow(Mf_wf, -1.0/2.0);
+        ans = dummy;
+    } else if ( ell==4 && mm==4 ) {
+        // ans = 0.206641 * pow(Mf_wf, -1.0/2.0);
+        ans = dummy;
+    } else if ( ell==4 && mm==3 ) {
+        // ans = 0.102601 * pow(Mf_wf, -1.0/6.0);
+        ans = dummy;
+    } else if ( ell==5 && mm==5 ) {
+        // ans = 0.305742 * pow(Mf_wf, -1.0/6.0);
+        ans = dummy;
+    } else if ( ell==5 && mm==4 ) {
+        // ans = 0.146505 * pow(Mf_wf, 1.0/6.0);
+        ans = dummy;
+    } else if ( ell==6 && mm==6 ) {
+        // ans = 0.478017 * pow(Mf_wf, 1.0/6.0);
+        ans = dummy;
+    } else if ( ell==6 && mm==5 ) {
+        // ans = 0.219808 * pow(Mf_wf, 1.0/2.0);
+        ans = dummy;
+    } else {
+        XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
+        XLAL_ERROR(XLAL_EDOM);
+    }
+
+    return ans;
 }
 
 // double XLALSimIMRPhenomDHMAmplitude(
@@ -233,14 +334,26 @@ double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double c
     errcode = init_useful_powers(&powers_of_f, Mf_wf);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_wf");
 
-    const int AmpFlag = 0;
+    const int AmpFlag = 1;
 
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
 
-    double amp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_f, &amp_prefactors);
+    double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_f, &amp_prefactors);
+
+    /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
+    double fAtScale_wf = 0.001;
+    double fAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( fAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
+    // double aa = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( fAtScale_wf, eta, ell, mm );
+    // double bb = IMRPhenDAmplitude(fAtScale_22, pAmp, &powers_of_f, &amp_prefactors) * XLALSimIMRPhenomDHMPNFrequencyScale(fAtScale_22, ell, mm);
+    // double bb = IMRPhenDAmplitude(fAtScale_22, pAmp, &powers_of_f, &amp_prefactors);
+    // double ampRatio = aa/bb;
+
+    // double HMamp = PhenDamp * ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+    // double HMamp = PhenDamp * aa * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+    double HMamp = PhenDamp * XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( fAtScale_22, eta, ell, mm ) * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
 
     LALFree(pAmp);
 
     // return XLAL_SUCCESS;
-    return amp;
+    return HMamp;
 }
