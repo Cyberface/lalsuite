@@ -165,9 +165,8 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
     REAL8 Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD */
     REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2);
 
-    REAL8 Mf_1_lm  = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_1_22, mm );
+    REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does*/
     REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm);
-
 
     /* from technical notes: if AmpFlag is True */
    if ( Mf_wf < Mf_1_lm ) {
@@ -187,20 +186,20 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
        }
    }
 
-  /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
-  // Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+   /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
+    // Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
 
     return Mf_22;
 }
 
 /*
- * For a given waveform frequency and ell and m spherical harmonic mode
- * return the waveform frequency scaled to give the leading order PN
+ * For a given frequency and ell and m spherical harmonic mode
+ * return the frequency scaled to give the leading order PN
  * amplitude for the given ell and m modes.
  * Calcuated from mathematica function: FrequencyPower[f, {ell, m}] / FrequencyPower[f, {2, 2}]
  * FrequencyPower function just returns the leading order PN term in the amplitude.
  */
-double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf,
+double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf,
                                         UINT4 ell,
                                         UINT4 mm ) {
 
@@ -212,23 +211,23 @@ double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf,
     if ( ell==2 && mm==2 ) {
         ans = 1.0;
     } else if ( ell==2 && mm==1 ) {
-        ans = pow(Mf_wf, 1.0/3.0);
+        ans = pow(Mf, 1.0/3.0);
     } else if ( ell==3 && mm==3 ) {
-        ans = pow(Mf_wf, 1.0/3.0);
+        ans = pow(Mf, 1.0/3.0);
     } else if ( ell==3 && mm==2 ) {
-        ans = pow(Mf_wf, 2.0/3.0);
+        ans = pow(Mf, 2.0/3.0);
     } else if ( ell==4 && mm==4 ) {
-        ans = pow(Mf_wf, 2.0/3.0);
+        ans = pow(Mf, 2.0/3.0);
     } else if ( ell==4 && mm==3 ) {
-        ans = Mf_wf;
+        ans = Mf;
     } else if ( ell==5 && mm==5 ) {
-        ans = Mf_wf;
+        ans = Mf;
     } else if ( ell==5 && mm==4 ) {
-        ans = pow(Mf_wf, 4.0/3.0);
+        ans = pow(Mf, 4.0/3.0);
     } else if ( ell==6 && mm==6 ) {
-        ans = pow(Mf_wf, 4.0/3.0);
+        ans = pow(Mf, 4.0/3.0);
     } else if ( ell==6 && mm==5 ) {
-        ans = pow(Mf_wf, 5.0/3.0);
+        ans = pow(Mf, 5.0/3.0);
     } else {
         XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
@@ -320,27 +319,42 @@ double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double c
     // errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors() failed.");
 
-    UsefulPowers powers_of_f;
-    errcode = init_useful_powers(&powers_of_f, Mf_wf);
-    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_wf");
 
     const int AmpFlag = 1;
 
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
 
-    double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_f, &amp_prefactors);
+    UsefulPowers powers_of_Mf_22;
+    errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
+
+
+    double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
 
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
-    double fAtScale_wf = 0.001;
-    double fAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( fAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
-    // double aa = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( fAtScale_wf, eta, ell, mm );
-    // double bb = IMRPhenDAmplitude(fAtScale_22, pAmp, &powers_of_f, &amp_prefactors) * XLALSimIMRPhenomDHMPNFrequencyScale(fAtScale_22, ell, mm);
-    // double bb = IMRPhenDAmplitude(fAtScale_22, pAmp, &powers_of_f, &amp_prefactors);
+    double MfAtScale_wf = 0.0001;
+    double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
+
+    UsefulPowers powers_of_MfAtScale_22;
+    errcode = init_useful_powers(&powers_of_MfAtScale_22, MfAtScale_22);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22");
+
+    // double aa = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
+    // double bb = IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_f, &amp_prefactors) * XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm);
     // double ampRatio = aa/bb;
 
     // double HMamp = PhenDamp * ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+    // double HMamp = PhenDamp;
+    // double HMamp = PhenDamp * ampRatio;
     // double HMamp = PhenDamp * aa * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
-    double HMamp = PhenDamp * XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( fAtScale_22, eta, ell, mm ) * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+    // double HMamp = PhenDamp * XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_22, eta, ell, mm ) * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+
+    double A_R_num = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
+    double A_R_den = XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm) * IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_MfAtScale_22, &amp_prefactors);
+    double ampRatio = A_R_num/A_R_den;
+    double R = ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+
+    double HMamp = PhenDamp * R;
 
     LALFree(pAmp);
 
