@@ -90,10 +90,12 @@ double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const RE
 /* in module LALSimIMRPhenomD_HM.c */
 void XLALSimIMRPhenomDHMTEST(void);
 double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf, const UINT4 ell, const UINT4 m, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const UINT4 AmpFlag);
-double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 m );
+double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 mm );
 double XLALSimIMRPhenomDHMfring(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const UINT4 ell, const UINT4 mm);
 double XLALSimIMRPhenomDHMfdamp(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const UINT4 ell, const UINT4 mm);
 double XLALSimIMRPhenomDHMfmaxCalc(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const UINT4 ell, const UINT4 mm);
+double XLALSimIMRPhenomDHMAmplitude( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
+double XLALSimIMRPhenomDHMPhase( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
 double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, UINT4 ell, UINT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, UINT4 ell, UINT4 mm );

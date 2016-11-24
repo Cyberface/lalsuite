@@ -130,9 +130,15 @@ double XLALSimIMRPhenomDHMfmaxCalc(
         return fabs(fRD + (fDM*(-1)*gamma3)/gamma2);
 }
 
-double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 m )
+/*
+ * XLALSimIMRPhenomDHMInspiralFreqScale
+ * This function takes as input the frequency 'f' at a given 'm'
+ * spherical harmonic mode and returns a scaled frequency,
+ * scaled to the m=2 mode assuming a PN, inspiral only like scaling.
+ */
+double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 mm )
 {
-    return 2.0 * f / m;
+    return 2.0 * f / mm;
 }
 
 /**
@@ -157,17 +163,18 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
     REAL8 Seta = sqrt(1.0 - 4.0*eta);
     REAL8 m1 = 0.5 * (1.0 + Seta);
     REAL8 m2 = 0.5 * (1.0 - Seta);
-    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
     if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
     // initialise
     REAL8 Mf_22   = 0.; /* the geometric frequency scaled to the 22 mode, NOTE: called f_map in notes */
-    REAL8 Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD */
-    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2);
+    REAL8 Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD, for the 22 mode */
+    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
 
-    REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does*/
-    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm);
+    REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does */
+    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm); /* (ell, mm) ringdown frequency, geometric units */
 
+    /* The following if ladder determines which frequencies get scaled in which way */
     /* from technical notes: if AmpFlag is True */
    if ( Mf_wf < Mf_1_lm ) {
        /* inspiral */
@@ -179,14 +186,16 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
    } else if ( Mf_RD_lm <= Mf_wf ) {
        /* ringdown */
        if ( AmpFlag==1 ) {
+           /* For amplitude */
            Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
        } else if ( AmpFlag==0 ) {
+           /* For phase */
            const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
            Mf_22 = rho_lm * Mf_wf;
        }
    }
 
-   /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
+    /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
     // Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
 
     return Mf_22;
@@ -229,7 +238,7 @@ double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf,
     } else if ( ell==6 && mm==5 ) {
         ans = pow(Mf, 5.0/3.0);
     } else {
-        XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
+        XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
     }
 
@@ -273,38 +282,27 @@ double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
     } else if ( ell==6 && mm==5 ) {
         ans = 1.36104 * sqrt( 1.0 - 4.0 * eta ) * sqrt(eta) * pow(Mf_wf, 1.0/2.0);
     } else {
-        XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
+        XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
     }
 
     return ans;
 }
 
-// double XLALSimIMRPhenomDHMAmplitude(
-//                                     double Mf_wf,
-//                                     IMRPhenomDAmplitudeCoefficients *p,
-//                                     UsefulPowers *powers_of_f,
-//                                     AmpInsPrefactors * prefactors
-//                                 )
-// {
-//
-// }
-
-// int XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z )
-double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm )
+double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
+                                    double eta,
+                                    double chi1z,
+                                    double chi2z,
+                                    int ell,
+                                    int mm
+                                )
 {
 
-    // IMRPhenomDAmplitudeCoefficients *pAmp = NULL;
-    // IMRPhenomDPhaseCoefficients *pPhi = NULL;
-    // PNPhasingSeries *pn = NULL;
     int errcode = XLAL_SUCCESS;
     errcode = init_useful_powers(&powers_of_pi, LAL_PI);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
-
-
-
     // Calculate phenomenological parameters
-    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
+    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); // dimensionless final spin used in PhenomD
 
     if (finspin < MIN_FINAL_SPIN)
             XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
@@ -313,42 +311,27 @@ double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double c
     IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
-    // PhiInsPrefactors phi_prefactors;
     errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
-    // errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
-    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors() failed.");
 
-
-    const int AmpFlag = 1;
-
-    double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
+    const int AmpFlagTrue = 1;
+    double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_Mf_22;
     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
 
-
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
 
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
     double MfAtScale_wf = 0.0001;
-    double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlag );
+    double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_MfAtScale_22;
     errcode = init_useful_powers(&powers_of_MfAtScale_22, MfAtScale_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22");
 
-    // double aa = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
-    // double bb = IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_f, &amp_prefactors) * XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm);
-    // double ampRatio = aa/bb;
-
-    // double HMamp = PhenDamp * ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
-    // double HMamp = PhenDamp;
-    // double HMamp = PhenDamp * ampRatio;
-    // double HMamp = PhenDamp * aa * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
-    // double HMamp = PhenDamp * XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_22, eta, ell, mm ) * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
-
+    /* see technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
     double A_R_den = XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm) * IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_MfAtScale_22, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
@@ -357,6 +340,137 @@ double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double c
     double HMamp = PhenDamp * R;
 
     LALFree(pAmp);
+
+    return HMamp;
+}
+
+double XLALSimIMRPhenomDHMPhase( double Mf_wf,
+                                    double eta,
+                                    double chi1z,
+                                    double chi2z,
+                                    int ell,
+                                    int mm
+                                )
+{
+
+    LALDict *extraParams = NULL;
+
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 M = m1 + m2;
+
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+    // Calculate phenomenological parameters
+    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); // dimensionless final spin used in PhenomD
+
+    if (finspin < MIN_FINAL_SPIN)
+            XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
+                            the model might misbehave here.", finspin);
+
+    if (extraParams==NULL)
+      extraParams=XLALCreateDict();
+    XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams,LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
+    IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
+    if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
+    PNPhasingSeries *pn = NULL;
+    XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1z, chi2z, extraParams);
+    if (!pn) XLAL_ERROR(XLAL_EFUNC);
+
+    // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
+    // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
+    REAL8 testGRcor=1.0;
+    testGRcor += XLALSimInspiralWaveformParamsLookupNonGRDChi6(extraParams);
+
+    // was not available when PhenomD was tuned.
+    pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1z, chi2z) * pn->v[0])* testGRcor;
+
+    PhiInsPrefactors phi_prefactors;
+    int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+    XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
+
+    const int AmpFlagFalse = 0;
+    double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
+
+    UsefulPowers powers_of_Mf_22;
+    errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
+
+    double PhenDphase = IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors);
+
+    LALFree(pPhi);
+    LALFree(pn);
+
+    return PhenDphase;
+}
+
+double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm )
+{
+
+
+    double HMamp = XLALSimIMRPhenomDHMAmplitude( Mf_wf, eta, chi1z, chi2z, ell, mm );
+    double HMphase = XLALSimIMRPhenomDHMPhase( Mf_wf, eta, chi1z, chi2z, ell, mm );
+
+    /**/
+    /**/
+
+    // // IMRPhenomDAmplitudeCoefficients *pAmp = NULL;
+    // // IMRPhenomDPhaseCoefficients *pPhi = NULL;
+    // // PNPhasingSeries *pn = NULL;
+    // int errcode = XLAL_SUCCESS;
+    // errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+    //
+    //
+    //
+    // // Calculate phenomenological parameters
+    // const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
+    //
+    // if (finspin < MIN_FINAL_SPIN)
+    //         XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
+    //                         the model might misbehave here.", finspin);
+    //
+    // IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
+    // if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+    // AmpInsPrefactors amp_prefactors;
+    // // PhiInsPrefactors phi_prefactors;
+    // errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+    // // errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+    // // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors() failed.");
+    //
+    //
+    // const int AmpFlagTrue = 1;
+    // double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
+    //
+    // UsefulPowers powers_of_Mf_22;
+    // errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    // XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
+    //
+    //
+    // double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
+    //
+    // /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
+    // double MfAtScale_wf = 0.0001;
+    // double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
+    //
+    // UsefulPowers powers_of_MfAtScale_22;
+    // errcode = init_useful_powers(&powers_of_MfAtScale_22, MfAtScale_22);
+    // XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22");
+    //
+    // /* see technical document for description of below lines with A_R and R */
+    // double A_R_num = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
+    // double A_R_den = XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm) * IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_MfAtScale_22, &amp_prefactors);
+    // double ampRatio = A_R_num/A_R_den;
+    // double R = ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
+    //
+    // double HMamp = PhenDamp * R;
+    //
+    // LALFree(pAmp);
 
     // return XLAL_SUCCESS;
     return HMamp;
