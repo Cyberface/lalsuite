@@ -246,43 +246,33 @@ double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
                                                 UINT4 ell,
                                                 UINT4 mm ) {
 
+    //taking the absolute value of complex terms
+
     /*initialise answer*/
     REAL8 ans = 0.0;
 
     REAL8 dummy = 0.5;
 
     if ( ell==2 && mm==2 ) {
-        // ans = 0.150862 * pow(Mf_wf, -7.0/6.0);
-        ans = 1.0;
+        ans = 0.674677 * sqrt(eta) * pow(Mf_wf, -7.0/6.0);
     } else if ( ell==2 && mm==1 ) {
-        // ans = 0.0658751 * pow(Mf_wf, -5.0/6.0);
-        ans = dummy;
+        ans = 0.329376 * sqrt( 1.0 - 4.0 * eta ) * sqrt( eta ) * pow(Mf_wf, -5.0/6.0);
     } else if ( ell==3 && mm==3 ) {
-        // there is something wrong with this line, it returns 0 or -0...
-        // ans = (1.5342126289155218*sqrt((1. - 1.*sqrt(1. - 4.*eta))*(1. + 1.*sqrt(1. - 4.*eta)))*sqrt(1 - 4*eta)*eta);
-                        // (pow(Mf_wf,0.8333333333333334)*(1. - 1.*sqrt(1. - 4.*eta))*(1. + 1.*sqrt(1. - 4.*eta)));
-        ans = dummy;
+        ans = 0.767106 * sqrt( 1.0 - 4.0 * eta ) * sqrt( eta ) * pow(Mf_wf, -5.0/6.0);
     } else if ( ell==3 && mm==2 ) {
-        // ans = 0.0774904 * pow(Mf_wf, -1.0/2.0);
-        ans = dummy;
+        ans = 0.407703 * sqrt( eta ) * pow( Mf_wf, -1.0/2.0);
     } else if ( ell==4 && mm==4 ) {
-        // ans = 0.206641 * pow(Mf_wf, -1.0/2.0);
-        ans = dummy;
+        ans = ( 1.08721 - 3.26162*eta ) * sqrt( eta ) * pow( Mf_wf, -1.0/2.0);
     } else if ( ell==4 && mm==3 ) {
-        // ans = 0.102601 * pow(Mf_wf, -1.0/6.0);
-        ans = dummy;
+        ans =  ( 0.570006 - 1.14001*eta ) * sqrt( 1.0 - 4.0 * eta ) * sqrt( eta ) * pow( Mf_wf, -1.0/6.0 );
     } else if ( ell==5 && mm==5 ) {
-        // ans = 0.305742 * pow(Mf_wf, -1.0/6.0);
-        ans = dummy;
+        ans = 3.39713 * (0.5 - eta) * sqrt( 1.0 - 4.0 * eta ) * sqrt( eta ) * pow(Mf_wf, -1.0/6.0);
     } else if ( ell==5 && mm==4 ) {
-        // ans = 0.146505 * pow(Mf_wf, 1.0/6.0);
-        ans = dummy;
+        ans = 0.859267 * sqrt(eta) * pow(Mf_wf, 1.0/6.0);
     } else if ( ell==6 && mm==6 ) {
-        // ans = 0.478017 * pow(Mf_wf, 1.0/6.0);
-        ans = dummy;
+        ans = 2.80361 * sqrt(eta) * pow(Mf_wf, 1.0/6.0);
     } else if ( ell==6 && mm==5 ) {
-        // ans = 0.219808 * pow(Mf_wf, 1.0/2.0);
-        ans = dummy;
+        ans = 1.36104 * sqrt( 1.0 - 4.0 * eta ) * sqrt(eta) * pow(Mf_wf, 1.0/2.0);
     } else {
         XLALPrintError("XLAL Error - requested ell = %g and m = %g mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
