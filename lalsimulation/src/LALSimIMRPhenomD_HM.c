@@ -353,8 +353,6 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
                                 )
 {
 
-    LALDict *extraParams = NULL;
-
     // Convention m1 >= m2
     // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
     REAL8 Seta = sqrt(1.0 - 4.0*eta);
@@ -362,18 +360,21 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     REAL8 m2 = 0.5 * (1.0 - Seta);
     REAL8 M = m1 + m2;
 
-    int errcode = XLAL_SUCCESS;
-    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
-    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+    LALDict *extraParams = NULL;
+
+    int status = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == status, status, "Failed to initiate useful powers of pi.");
+
+
     // Calculate phenomenological parameters
-    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); // dimensionless final spin used in PhenomD
+    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
 
     if (finspin < MIN_FINAL_SPIN)
-            XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
-                            the model might misbehave here.", finspin);
+          XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
+                          the model might misbehave here.", finspin);
 
     if (extraParams==NULL)
-      extraParams=XLALCreateDict();
+    extraParams=XLALCreateDict();
     XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams,LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
     IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
@@ -383,22 +384,22 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
 
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
-    REAL8 testGRcor=1.0;
-    testGRcor += XLALSimInspiralWaveformParamsLookupNonGRDChi6(extraParams);
-
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
-    int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+    status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
 
-    const int AmpFlagFalse = 0;
+    // Compute coefficients to make phase C^1 continuous (phase and first derivative)
+    ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
+
+    const int AmpFlagFalse = 1;
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
 
     UsefulPowers powers_of_Mf_22;
-    errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
-    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
+    status = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf_22 failed");
 
     double PhenDphase = IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors);
 
