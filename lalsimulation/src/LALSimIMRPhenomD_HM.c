@@ -394,7 +394,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     // Compute coefficients to make phase C^1 continuous (phase and first derivative)
     ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
 
-    const int AmpFlagFalse = 1;
+    const int AmpFlagFalse = 0;
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
 
     UsefulPowers powers_of_Mf_22;
