@@ -401,7 +401,8 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     status = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf_22 failed");
 
-    double PhenDphase = IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors);
+    /* phi_lm(f) = m * phi_22(f_22) / 2.0 */
+    double PhenDphase = mm * IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors) / 2.0;
 
     LALFree(pPhi);
     LALFree(pn);
