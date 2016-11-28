@@ -180,7 +180,7 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
     /* FIXME: added this fudge factor so that the discontinuity in the phase derivative occurs after the peak of the phase derivative. */
     /* FIXME PLEASE :) */
     REAL8 FUDGE_FACTOR = 1.3;
-    
+
     REAL8 Mf_RD_22 = FUDGE_FACTOR * XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
 
     REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does */
@@ -422,70 +422,111 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     return PhenDphase;
 }
 
-double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm )
-{
+int XLALSimIMRPhenomDHMCoreOneMode(
+    COMPLEX16FrequencySeries **hptilde,
+    COMPLEX16FrequencySeries **hctilde,
+    const REAL8 deltaF,                /**< frequency resolution */
+    const REAL8 f_min,                 /**< start frequency */
+    const REAL8 f_max,                 /**< end frequency */
+    const REAL8 m1_in,                 /**< Mass of companion 1 (kg) */
+    const REAL8 m2_in,                 /**< Mass of companion 2 (kg) */
+    double chi1z_in,
+    double chi2z_in,
+    int ell,
+    int mm
+)   {
+
+    LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* sanity checks on input parameters */
+    XLAL_CHECK(0 != hptilde, XLAL_EFAULT, "hptilde is null");
+    XLAL_CHECK(0 != hctilde, XLAL_EFAULT, "hctilde is null");
+    if (*hptilde) XLAL_ERROR(XLAL_EFAULT);
+    if (*hctilde) XLAL_ERROR(XLAL_EFAULT);
+
+    if (m1_in <= 0) XLAL_ERROR(XLAL_EDOM, "m1_in must be positive\n");
+    if (m2_in <= 0) XLAL_ERROR(XLAL_EDOM, "m2_in must be positive\n");
+
+    if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
+    if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
+    if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
+
+    /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
+    REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
+    if (m1_in>m2_in) {
+       chi1z = chi1z_in;
+       chi2z = chi2z_in;
+       m1_tmp   = m1_in;
+       m2_tmp   = m2_in;
+   } else { /* swap spins and masses */
+       chi1z = chi2z_in;
+       chi2z = chi1z_in;
+       m1_tmp   = m2_in;
+       m2_tmp   = m1_in;
+    }
+
+    /* external: SI; internal: solar masses */
+    const REAL8 m1 = m1_tmp / LAL_MSUN_SI;
+    const REAL8 m2 = m2_tmp / LAL_MSUN_SI;
+
+    const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
+
+    if (q > MAX_ALLOWED_MASS_RATIO)
+      XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
+
+    const REAL8 M = m1 + m2;
+    const REAL8 M_sec = M * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
+    const REAL8 eta = m1 * m2 / (M * M);
+
+    if (eta > 0.25 || eta < 0.0)
+        XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
+
+    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+        XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
+
+    /* Coalesce at t=0 */
+    // shift by overall length in time
+    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
+
+    /* Allocate htilde */
+    size_t n = NextPow2(f_max / deltaF) + 1;
+
+    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    XLAL_CHECK ( *hptilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+
+    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    XLAL_CHECK ( *hctilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
 
 
-    double HMamp = XLALSimIMRPhenomDHMAmplitude( Mf_wf, eta, chi1z, chi2z, ell, mm );
-    double HMphase = XLALSimIMRPhenomDHMPhase( Mf_wf, eta, chi1z, chi2z, ell, mm );
+    memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitMultiply(&((*hptilde)->sampleUnits), &((*hptilde)->sampleUnits), &lalSecondUnit);
 
-    /**/
-    /**/
+    memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitMultiply(&((*hctilde)->sampleUnits), &((*hctilde)->sampleUnits), &lalSecondUnit);
 
-    // // IMRPhenomDAmplitudeCoefficients *pAmp = NULL;
-    // // IMRPhenomDPhaseCoefficients *pPhi = NULL;
-    // // PNPhasingSeries *pn = NULL;
-    // int errcode = XLAL_SUCCESS;
-    // errcode = init_useful_powers(&powers_of_pi, LAL_PI);
-    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
-    //
-    //
-    //
-    // // Calculate phenomenological parameters
-    // const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
-    //
-    // if (finspin < MIN_FINAL_SPIN)
-    //         XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
-    //                         the model might misbehave here.", finspin);
-    //
-    // IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
-    // if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
-    // AmpInsPrefactors amp_prefactors;
-    // // PhiInsPrefactors phi_prefactors;
-    // errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
-    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
-    // // errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
-    // // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors() failed.");
-    //
-    //
-    // const int AmpFlagTrue = 1;
-    // double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
-    //
-    // UsefulPowers powers_of_Mf_22;
-    // errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
-    // XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
-    //
-    //
-    // double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
-    //
-    // /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
-    // double MfAtScale_wf = 0.0001;
-    // double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
-    //
-    // UsefulPowers powers_of_MfAtScale_22;
-    // errcode = init_useful_powers(&powers_of_MfAtScale_22, MfAtScale_22);
-    // XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22");
-    //
-    // /* see technical document for description of below lines with A_R and R */
-    // double A_R_num = XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( MfAtScale_wf, eta, ell, mm );
-    // double A_R_den = XLALSimIMRPhenomDHMPNFrequencyScale(MfAtScale_22, ell, mm) * IMRPhenDAmplitude(MfAtScale_22, pAmp, &powers_of_MfAtScale_22, &amp_prefactors);
-    // double ampRatio = A_R_num/A_R_den;
-    // double R = ampRatio * XLALSimIMRPhenomDHMPNFrequencyScale(Mf_22, ell, mm);
-    //
-    // double HMamp = PhenDamp * R;
-    //
-    // LALFree(pAmp);
+    /* range that will have actual non-zero waveform values generated */
+    size_t ind_min = (size_t) (f_min / deltaF);
+    size_t ind_max = (size_t) (f_max / deltaF);
+    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=htilde->data>length=%zu.", ind_min, ind_max, n);
 
-    // return XLAL_SUCCESS;
-    return HMamp;
+
+    /* Now generate the waveform */
+    #pragma omp parallel for
+    for (size_t i = ind_min; i < ind_max; i++)
+    {
+      REAL8 Mf_wf = M_sec * i * deltaF; // geometric frequency
+
+    //   REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
+    //   REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
+      double HMamp = XLALSimIMRPhenomDHMAmplitude( Mf_wf, eta, chi1z, chi2z, ell, mm );
+      double HMphase = XLALSimIMRPhenomDHMPhase( Mf_wf, eta, chi1z, chi2z, ell, mm );
+
+      // phi -= t0*(Mf-MfRef) + phi_precalc;
+      // ((*htilde)->data->data)[i] = amp0 * amp * cexp(-I * phi);
+      ((*hptilde)->data->data)[i] = HMamp * cexp(-I * HMphase);
+      ((*hctilde)->data->data)[i] = ((*hptilde)->data->data)[i];
+
+    }
+
+    return XLAL_SUCCESS;
 }

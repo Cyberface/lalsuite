@@ -96,7 +96,7 @@ double XLALSimIMRPhenomDHMfdamp(const REAL8 eta, const REAL8 chi1z, const REAL8 
 double XLALSimIMRPhenomDHMfmaxCalc(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const INT4 ell, const INT4 mm);
 double XLALSimIMRPhenomDHMAmplitude( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
 double XLALSimIMRPhenomDHMPhase( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
-double XLALSimIMRPhenomDHMCore( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
+int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, int ell, int mm);
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
 
