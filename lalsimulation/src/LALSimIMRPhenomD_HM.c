@@ -54,8 +54,8 @@ double XLALSimIMRPhenomDHMfring(const REAL8 eta,     /**< symmetric mass-ratio *
                                 const REAL8 chi1z,   /**< aligned-spin on larger BH */
                                 const REAL8 chi2z,   /**< aligned-spin on smaller BH */
                                 const REAL8 finspin, /**< dimensionless final spin */
-                                const UINT4 ell,     /**< ell mode */
-                                const UINT4 mm       /**< m mode */
+                                const INT4 ell,     /**< ell mode */
+                                const INT4 mm       /**< m mode */
                             )
 {
 
@@ -75,8 +75,8 @@ double XLALSimIMRPhenomDHMfdamp(const REAL8 eta,     /**< symmetric mass-ratio *
                                 const REAL8 chi1z,   /**< aligned-spin on larger BH */
                                 const REAL8 chi2z,   /**< aligned-spin on smaller BH */
                                 const REAL8 finspin, /**< dimensionless final spin */
-                                const UINT4 ell,     /**< ell mode */
-                                const UINT4 mm       /**< m mode */
+                                const INT4 ell,     /**< ell mode */
+                                const INT4 mm       /**< m mode */
                             )
 {
 
@@ -102,8 +102,8 @@ double XLALSimIMRPhenomDHMfmaxCalc(
                                    const REAL8 eta,
                                    const REAL8 chi1z,
                                    const REAL8 chi2z,
-                                   const UINT4 ell,
-                                   const UINT4 mm
+                                   const INT4 ell,
+                                   const INT4 mm
                                )
 {
     const REAL8 chi = chiPN(eta, chi1z, chi2z);
@@ -136,7 +136,7 @@ double XLALSimIMRPhenomDHMfmaxCalc(
  * spherical harmonic mode and returns a scaled frequency,
  * scaled to the m=2 mode assuming a PN, inspiral only like scaling.
  */
-double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 mm )
+double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const INT4 mm )
 {
     return 2.0 * f / mm;
 }
@@ -148,12 +148,12 @@ double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const UINT4 mm )
  * to scaled to the 22 mode.
  */
 double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
-                                           const UINT4 ell,
-                                           const UINT4 mm,
+                                           const INT4 ell,
+                                           const INT4 mm,
                                            const REAL8 eta,
                                            const REAL8 chi1z,
                                            const REAL8 chi2z,
-                                           const UINT4 AmpFlag
+                                           const INT4 AmpFlag
                               )
 {
 
@@ -168,7 +168,15 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
 
     // initialise
     REAL8 Mf_22   = 0.; /* the geometric frequency scaled to the 22 mode, NOTE: called f_map in notes */
-    REAL8 Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD, for the 22 mode */
+    REAL8 Mf_1_22  = 0.; /* initalise variable */
+    if ( AmpFlag==1 ) {
+        /* For amplitude */
+        Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD [amplitude model], for the 22 mode */
+    } else if ( AmpFlag==0 ) {
+        /* For phase */
+        Mf_1_22  = PHI_fJoin_INS; /* inspiral joining frequency from PhenomD [phase model], for the 22 mode */
+    }
+
     REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
 
     REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does */
@@ -209,8 +217,8 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
  * FrequencyPower function just returns the leading order PN term in the amplitude.
  */
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf,
-                                        UINT4 ell,
-                                        UINT4 mm ) {
+                                        INT4 ell,
+                                        INT4 mm ) {
 
     /*FIXME: Precompute these powers*/
 
@@ -251,8 +259,8 @@ double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf,
  */
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
                                                 REAL8 eta,
-                                                UINT4 ell,
-                                                UINT4 mm ) {
+                                                INT4 ell,
+                                                INT4 mm ) {
 
     //taking the absolute value of complex terms
 
@@ -314,7 +322,7 @@ double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
     errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
 
-    const int AmpFlagTrue = 1;
+    const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_Mf_22;
@@ -324,7 +332,7 @@ double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
 
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
-    double MfAtScale_wf = 0.0001;
+    double MfAtScale_wf = 0.0001; /* FIXME: This should be made a global variable in header. */
     double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_MfAtScale_22;
@@ -394,7 +402,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     // Compute coefficients to make phase C^1 continuous (phase and first derivative)
     ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
 
-    const int AmpFlagFalse = 0;
+    const INT4 AmpFlagFalse = 0; /* FIXME: Could make this a global variable too */
     double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
 
     UsefulPowers powers_of_Mf_22;
