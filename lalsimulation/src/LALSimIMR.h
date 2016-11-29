@@ -99,6 +99,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf, double eta, double chi1z, double 
 int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, int ell, int mm);
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
+double XLALSimIMRPhenomDHMChinmayCubic(const REAL8 Mf_wf, const REAL8 Mf_1_lm, const REAL8 Mf_RD_lm, const REAL8 Mf_RD_22, const INT4 mm);
 
 int XLALSimIMRPhenomP(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);
 int XLALSimIMRPhenomPFrequencySequence(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8Sequence *freqs, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);

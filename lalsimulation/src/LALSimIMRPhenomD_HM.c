@@ -142,6 +142,26 @@ double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const INT4 mm )
 }
 
 /**
+ * XLALSimIMRPhenomDHMChinmayCubic
+ */
+double XLALSimIMRPhenomDHMChinmayCubic(
+    const REAL8 Mf_wf,
+    const REAL8 Mf_1_lm,
+    const REAL8 Mf_RD_lm,
+    const REAL8 Mf_RD_22,
+    const INT4 mm
+) {
+    const REAL8 c1 = (2.*pow(Mf_1_lm,2.)*Mf_RD_lm*(2.*Mf_RD_lm - Mf_RD_22*mm))/(pow(Mf_1_lm - Mf_RD_lm,3.)*mm);
+    const REAL8 c2 = (-2.*pow(Mf_RD_lm,4.) + pow(Mf_1_lm,3.)*Mf_RD_22*mm - 2.*Mf_1_lm*pow(Mf_RD_lm,2.)*(Mf_RD_lm - 2.*Mf_RD_22*mm) + pow(Mf_1_lm,2.)*Mf_RD_lm*(-8.*Mf_RD_lm + Mf_RD_22*mm))/
+   (pow(Mf_1_lm - Mf_RD_lm,3.)*Mf_RD_lm*mm);
+    const REAL8 c3 = (2.*(pow(Mf_1_lm,2.) + Mf_1_lm*Mf_RD_lm + pow(Mf_RD_lm,2.))*(2.*Mf_RD_lm - Mf_RD_22*mm))/(pow(Mf_1_lm - Mf_RD_lm,3.)*Mf_RD_lm*mm);
+    const REAL8 c4 = ((Mf_1_lm + Mf_RD_lm)*(-2.*Mf_RD_lm + Mf_RD_22*mm))/(pow(Mf_1_lm - Mf_RD_lm,3.)*Mf_RD_lm*mm);
+
+    double ans = c1 + c2 * Mf_wf + c3 * pow(Mf_wf, 2.) + c4 * pow(Mf_wf, 3.);
+    return ans;
+}
+
+/**
  * XLALSimIMRPhenomDHMFreqDomainMapHM
  * Input waveform frequency in Geometric units (Mf_wf)
  * and computes what frequency this corresponds
@@ -179,7 +199,11 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
 
     /* FIXME: added this fudge factor so that the discontinuity in the phase derivative occurs after the peak of the phase derivative. */
     /* FIXME PLEASE :) */
-    REAL8 FUDGE_FACTOR = 1.3;
+    // REAL8 FUDGE_FACTOR = 1.3;
+    REAL8 FUDGE_FACTOR = 1.;
+    // REAL8 FUDGE_FACTOR = 0.5; /* this looks a bit better but not best */
+    // REAL8 FUDGE_FACTOR = 0.3;
+    // REAL8 FUDGE_FACTOR = 0.1;
 
     REAL8 Mf_RD_22 = FUDGE_FACTOR * XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
 
@@ -193,8 +217,16 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
        Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
    } else if ( Mf_1_lm <= Mf_wf && Mf_wf < Mf_RD_lm  ) {
        /* intermediate */
-       const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
-       Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+       if ( AmpFlag==1 ) {
+           /* For amplitude */
+           const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+           Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+       } else if ( AmpFlag==0 ) {
+           /* For phase */
+           Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
+            // const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+            // Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+       }
    } else if ( Mf_RD_lm <= Mf_wf ) {
        /* ringdown */
        if ( AmpFlag==1 ) {
@@ -204,6 +236,7 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
            /* For phase */
            const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
            Mf_22 = rho_lm * Mf_wf;
+        //    Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
        }
    }
 
@@ -270,8 +303,6 @@ double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
 
     /*initialise answer*/
     REAL8 ans = 0.0;
-
-    REAL8 dummy = 0.5;
 
     if ( ell==2 && mm==2 ) {
         ans = 0.674677 * sqrt(eta) * pow(Mf_wf, -7.0/6.0);
