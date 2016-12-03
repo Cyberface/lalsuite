@@ -694,8 +694,7 @@ int XLALSimIMRPhenomDHMExampleAddMode(
 
         int ret;
         ret = XLALSimIMRPhenomDHMCoreOneMode(&hlm, deltaF, f_min, f_max, m1_in, m2_in, chi1z_in, chi2z_in, ell, mm);
-        /* This check seems to make the code fail with an error in python saying it cannot loop over int or something */
-        // XLAL_CHECK ( ret, XLAL_SUCCESS, "Failed to successfully execute XLALSimIMRPhenomDHMCoreOneMode for l=%d, m=%d.", ell, mm);
+        if( ret != XLAL_SUCCESS ) XLAL_ERROR(XLAL_EFUNC);
 
         /* Add the computed mode to the SphHarmFrequencySeries structure */
         *hlmsphharmfreqseries = XLALSphHarmFrequencySeriesAddMode(*hlmsphharmfreqseries, hlm, ell, mm);
