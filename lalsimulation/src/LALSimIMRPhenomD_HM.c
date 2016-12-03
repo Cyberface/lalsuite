@@ -632,22 +632,25 @@ int XLALSimIMRPhenomDHMExampleAddMode(
     // static int NMODES = 2;
     // static int listmode[2][2] = { {2,2}, {2,1} };
 
+    // static int NMODES = 4;
+    // static int listmode[4][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
+
     static int NMODES = 6;
     static int listmode[6][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
 
-
-    if (LMAX == 2) {
-        /* code */
-        static int NMODES = 2;
-        static int listmode[2][2] = { {2,2}, {2,1} };
-    } else if (LMAX==3) {
-        static int NMODES = 4;
-        static int listmode[4][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
-    } else if (LMAX==4) {
-        /* code */
-        static int NMODES = 6;
-        static int listmode[6][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
-    }
+    //
+    // if (LMAX == 2) {
+    //     /* code */
+    //     static int NMODES = 2;
+    //     static int listmode[2][2] = { {2,2}, {2,1} };
+    // } else if (LMAX==3) {
+    //     static int NMODES = 4;
+    //     static int listmode[4][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
+    // } else if (LMAX==4) {
+    //     /* code */
+    //     static int NMODES = 6;
+    //     static int listmode[6][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+    // }
 
 
 
@@ -679,14 +682,11 @@ int XLALSimIMRPhenomDHMExampleAddMode(
     SphHarmFrequencySeries **hlmsphharmfreqseries = XLALMalloc(sizeof(SphHarmFrequencySeries));
     *hlmsphharmfreqseries = NULL;
 
-    /* init loop counter */
-    int i = 0;
-    for( i=0; i<NMODES; i++ ){
-
+    for( int i=0; i<NMODES; i++ ){
 
         INT4 ell = listmode[i][0];
         INT4 mm = listmode[i][1];
-        printf("computing hlm for mode l=%d, m=%d\n", ell, mm);
+        // printf("computing hlm for mode l=%d, m=%d\n", ell, mm);
 
         COMPLEX16FrequencySeries *hlm = NULL;
         hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
@@ -700,13 +700,6 @@ int XLALSimIMRPhenomDHMExampleAddMode(
         *hlmsphharmfreqseries = XLALSphHarmFrequencySeriesAddMode(*hlmsphharmfreqseries, hlm, ell, mm);
 
         XLALDestroyCOMPLEX16FrequencySeries(hlm);
-
-        if (!hlm){
-            printf("B: hlm is null\n");
-        }
-        else {
-            printf("B: hlm is not null\n");
-        }
 
     }
 
@@ -724,10 +717,12 @@ int XLALSimIMRPhenomDHMExampleAddMode(
     /* Adding the modes to form hplus, hcross
      * - use of a function that copies XLALSimAddMode but for Fourier domain structures */
     INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
-    for( i=0; i<NMODES; i++){
+    for( int i=0; i<NMODES; i++){
       INT4 ell = listmode[i][0];
       INT4 mm = listmode[i][1];
+      printf("computing hlm for mode l=%d, m=%d\n", ell, mm);
       COMPLEX16FrequencySeries* mode = XLALSphHarmFrequencySeriesGetMode(*hlmsphharmfreqseries, ell, mm);
+      if (!(mode)) XLAL_ERROR(XLAL_EFUNC);
       if ( mm==0 ) sym = 0; /* We test for hypothetical m=0 modes */
       else sym = 1;
       FDAddMode( *hptilde, *hctilde, mode, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
