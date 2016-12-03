@@ -28,6 +28,7 @@
 #include <stdio.h>
 
 #include <lal/LALSimIMR.h>
+// #include <lal/LALSimSphHarmSeries.h>
 
 /* This allows us to reuse internal IMRPhenomD functions without making those functions XLAL */
 #include "LALSimIMRPhenomD_internals.c"
@@ -223,9 +224,9 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
            Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
        } else if ( AmpFlag==0 ) {
            /* For phase */
-           Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
-            // const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
-            // Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+        //    Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
+            const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+            Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
        }
    } else if ( Mf_RD_lm <= Mf_wf ) {
        /* ringdown */
@@ -454,8 +455,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
 }
 
 int XLALSimIMRPhenomDHMCoreOneMode(
-    COMPLEX16FrequencySeries **hptilde,
-    COMPLEX16FrequencySeries **hctilde,
+    COMPLEX16FrequencySeries **hlm,   /**< [OUT] represents any (l,m) mode */
     const REAL8 deltaF,                /**< frequency resolution */
     const REAL8 f_min,                 /**< start frequency */
     const REAL8 f_max,                 /**< end frequency */
@@ -470,10 +470,6 @@ int XLALSimIMRPhenomDHMCoreOneMode(
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
 
     /* sanity checks on input parameters */
-    XLAL_CHECK(0 != hptilde, XLAL_EFAULT, "hptilde is null");
-    XLAL_CHECK(0 != hctilde, XLAL_EFAULT, "hctilde is null");
-    if (*hptilde) XLAL_ERROR(XLAL_EFAULT);
-    if (*hctilde) XLAL_ERROR(XLAL_EFAULT);
 
     if (m1_in <= 0) XLAL_ERROR(XLAL_EDOM, "m1_in must be positive\n");
     if (m2_in <= 0) XLAL_ERROR(XLAL_EDOM, "m2_in must be positive\n");
@@ -522,24 +518,18 @@ int XLALSimIMRPhenomDHMCoreOneMode(
     /* Allocate htilde */
     size_t n = NextPow2(f_max / deltaF) + 1;
 
-    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
-    XLAL_CHECK ( *hptilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+    *hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    XLAL_CHECK ( *hlm, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
 
-    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
-    XLAL_CHECK ( *hctilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+    memset((*hlm)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitMultiply(&((*hlm)->sampleUnits), &((*hlm)->sampleUnits), &lalSecondUnit);
 
 
-    memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
-    XLALUnitMultiply(&((*hptilde)->sampleUnits), &((*hptilde)->sampleUnits), &lalSecondUnit);
-
-    memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
-    XLALUnitMultiply(&((*hctilde)->sampleUnits), &((*hctilde)->sampleUnits), &lalSecondUnit);
 
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min / deltaF);
     size_t ind_max = (size_t) (f_max / deltaF);
     XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=htilde->data>length=%zu.", ind_min, ind_max, n);
-
 
     /* Now generate the waveform */
     #pragma omp parallel for
@@ -554,10 +544,289 @@ int XLALSimIMRPhenomDHMCoreOneMode(
 
       // phi -= t0*(Mf-MfRef) + phi_precalc;
       // ((*htilde)->data->data)[i] = amp0 * amp * cexp(-I * phi);
-      ((*hptilde)->data->data)[i] = HMamp * cexp(-I * HMphase);
-      ((*hctilde)->data->data)[i] = ((*hptilde)->data->data)[i];
+      ((*hlm)->data->data)[i] = HMamp * cexp(-I * HMphase);
 
     }
 
     return XLAL_SUCCESS;
 }
+
+/* Function to add modes for frequency-domain structures */
+static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym);
+
+/********************* Function to add modes for frequency-domain structures ********************/
+
+/* Helper function to add a mode to hplus, hcross in Fourier domain
+ * - copies the function XLALSimAddMode, which was done only for TD structures */
+static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym) {
+  /* Deleted the definition of the string 'func': usage ? */
+  COMPLEX16 Y;
+  UINT4 j;
+  COMPLEX16 hlmtildevalue;
+
+  /* Checks LAL_CHECK_VALID_SERIES and LAL_CHECK_CONSISTENT_TIME_SERIES removed
+   * - they do not seem available for frequency series ? */
+
+  INT4 minus1l; /* (-1)^l */
+  if ( l%2 ) minus1l = -1;
+  else minus1l = 1;
+  if ( sym ) { /* equatorial symmetry: add in -m mode */
+    Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
+    COMPLEX16 Ymstar = conj(XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, -m));
+    COMPLEX16 factorp = 1./2*(Y + minus1l*Ymstar);
+    COMPLEX16 factorc = I/2*(Y - minus1l*Ymstar);
+    COMPLEX16* datap = hptilde->data->data;
+    COMPLEX16* datac = hctilde->data->data;
+    for ( j = 0; j < hlmtilde->data->length; ++j ) {
+      hlmtildevalue = (hlmtilde->data->data[j]);
+      datap[j] += factorp*hlmtildevalue;
+      datac[j] += factorc*hlmtildevalue;
+    }
+  }
+  else { /* not adding in the -m mode */
+    Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
+    COMPLEX16 factorp = 1./2*Y;
+    COMPLEX16 factorc = I/2*Y;
+    COMPLEX16* datap = hptilde->data->data;
+    COMPLEX16* datac = hctilde->data->data;
+    for ( j = 0; j < hlmtilde->data->length; ++j ) {
+      hlmtildevalue = (hlmtilde->data->data[j]);
+      datap[j] += factorp*hlmtildevalue;
+      datac[j] += factorc*hlmtildevalue;
+    }
+  }
+
+  return 0;
+}
+
+// int XLALSimIMRPhenomDHMExampleAddMode(
+//     COMPLEX16FrequencySeries **hptilde,
+//     COMPLEX16FrequencySeries **hctilde
+// )
+
+int XLALSimIMRPhenomDHMExampleAddMode(
+    COMPLEX16FrequencySeries **hptilde,
+    COMPLEX16FrequencySeries **hctilde,
+    const REAL8 deltaF,                /**< frequency resolution */
+    const REAL8 f_min,                 /**< start frequency */
+    const REAL8 f_max,                 /**< end frequency */
+    const REAL8 m1_in,                 /**< Mass of companion 1 (kg) */
+    const REAL8 m2_in,                 /**< Mass of companion 2 (kg) */
+    double chi1z_in,
+    double chi2z_in,
+    double inclination,
+    int LMAX
+)   {
+    /* This is just a test function to figure out how to add modes to a data structure */
+    /* number of (l,m) mode pairs */
+    // #define PHEN_NMODES_MAX 2
+    // static int NMODES = PHEN_NMODES_MAX;
+    /* explicit list of modes in model */
+    // static const int listmode[PHEN_NMODES_MAX][2] = { {2,2}, {2,1} };
+
+    // #define PHEN_NMODES_MAX 1
+    // static int NMODES = PHEN_NMODES_MAX;
+    // /* explicit list of modes in model */
+    // static const int listmode[PHEN_NMODES_MAX][2] = { {2,2} };
+
+    // static int NMODES = 2;
+    // static int listmode[2][2] = { {2,2}, {2,1} };
+
+    static int NMODES = 6;
+    static int listmode[6][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+
+
+    if (LMAX == 2) {
+        /* code */
+        static int NMODES = 2;
+        static int listmode[2][2] = { {2,2}, {2,1} };
+    } else if (LMAX==3) {
+        static int NMODES = 4;
+        static int listmode[4][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
+    } else if (LMAX==4) {
+        /* code */
+        static int NMODES = 6;
+        static int listmode[6][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+    }
+
+
+
+
+    /* default fixed values for testing */
+    // REAL8 f_min = 1.;
+    // REAL8 f_max = 10.;
+    // REAL8 deltaF = 1.;
+    //
+    // REAL8 m1_in = 300. * LAL_MSUN_SI;
+    // REAL8 m2_in = 30. * LAL_MSUN_SI;
+    // REAL8 chi1z_in = 0.;
+    // REAL8 chi2z_in = 0.;
+    // REAL8 inclination = 1.57;
+
+
+
+
+    LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+    size_t n = NextPow2(f_max / deltaF) + 1;
+
+    /* do I have to do any memory management here? */
+    // COMPLEX16FrequencySeries* hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    // memset(hlm->data->data, 0, n * sizeof(COMPLEX16));
+    // memset((*hlm)->data->data, 0, n * sizeof(COMPLEX16));
+    // XLAL_CHECK ( *hlm, XLAL_ENOMEM, "Failed to allocated hlm COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+    // XLALUnitMultiply(&((*hlm)->sampleUnits), &((*hlm)->sampleUnits), &lalSecondUnit);
+
+    SphHarmFrequencySeries **hlmsphharmfreqseries = XLALMalloc(sizeof(SphHarmFrequencySeries));
+    *hlmsphharmfreqseries = NULL;
+
+    /* init loop counter */
+    int i = 0;
+    for( i=0; i<NMODES; i++ ){
+
+
+        INT4 ell = listmode[i][0];
+        INT4 mm = listmode[i][1];
+        printf("computing hlm for mode l=%d, m=%d\n", ell, mm);
+
+        COMPLEX16FrequencySeries *hlm = NULL;
+        hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+        memset(hlm->data->data, 0, n * sizeof(COMPLEX16));
+
+        int ret;
+        ret = XLALSimIMRPhenomDHMCoreOneMode(&hlm, deltaF, f_min, f_max, m1_in, m2_in, chi1z_in, chi2z_in, ell, mm);
+        /* This check seems to make the code fail with an error in python saying it cannot loop over int or something */
+        // XLAL_CHECK ( ret, XLAL_SUCCESS, "Failed to successfully execute XLALSimIMRPhenomDHMCoreOneMode for l=%d, m=%d.", ell, mm);
+
+        /* Add the computed mode to the SphHarmFrequencySeries structure */
+        *hlmsphharmfreqseries = XLALSphHarmFrequencySeriesAddMode(*hlmsphharmfreqseries, hlm, ell, mm);
+
+        XLALDestroyCOMPLEX16FrequencySeries(hlm);
+
+        if (!hlm){
+            printf("B: hlm is null\n");
+        }
+        else {
+            printf("B: hlm is not null\n");
+        }
+
+    }
+
+    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    if (!(hptilde) ) XLAL_ERROR(XLAL_EFUNC);
+    memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitDivide(&(*hptilde)->sampleUnits, &(*hptilde)->sampleUnits, &lalSecondUnit);
+
+    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    if (!(hctilde) ) XLAL_ERROR(XLAL_EFUNC);
+    memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitDivide(&(*hctilde)->sampleUnits, &(*hctilde)->sampleUnits, &lalSecondUnit);
+
+
+    /* Adding the modes to form hplus, hcross
+     * - use of a function that copies XLALSimAddMode but for Fourier domain structures */
+    INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
+    for( i=0; i<NMODES; i++){
+      INT4 ell = listmode[i][0];
+      INT4 mm = listmode[i][1];
+      COMPLEX16FrequencySeries* mode = XLALSphHarmFrequencySeriesGetMode(*hlmsphharmfreqseries, ell, mm);
+      if ( mm==0 ) sym = 0; /* We test for hypothetical m=0 modes */
+      else sym = 1;
+      FDAddMode( *hptilde, *hctilde, mode, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+    }
+
+    /* Destroying the list of frequency series for the modes, including the COMPLEX16FrequencySeries that it contains */
+    XLALDestroySphHarmFrequencySeries(*hlmsphharmfreqseries);
+    XLALFree(hlmsphharmfreqseries);
+
+
+    return XLAL_SUCCESS;
+
+}
+
+
+
+
+
+
+// int XLALSimIMRPhenomDHM(
+//     COMPLEX16FrequencySeries **hptilde,
+//     COMPLEX16FrequencySeries **hctilde,
+//     const REAL8 deltaF,                /**< frequency resolution */
+//     const REAL8 f_min,                 /**< start frequency */
+//     const REAL8 f_max,                 /**< end frequency */
+//     const REAL8 m1_in,                 /**< Mass of companion 1 (kg) */
+//     const REAL8 m2_in,                 /**< Mass of companion 2 (kg) */
+//     double chi1z_in,
+//     double chi2z_in,
+//     double inclination
+// )   {
+//
+//     /* number of (l,m) mode pairs */
+//     const INT4 NMODES = 8;
+//     /* explicit list of modes in model */
+//     static const INT4 listmode[NMODES][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5}, {5,4} };
+//
+//     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+//     size_t n = NextPow2(f_max / deltaF) + 1;
+//
+//     /* Create spherical harmonic frequency series that will contain the hlm's */
+//     SphHarmFrequencySeries **hlmsphharmfreqseries = XLALMalloc(sizeof(SphHarmFrequencySeries));
+//     *hlmsphharmfreqseries = NULL;
+//
+//     /* loop over LMAX: */
+//     for( int i=0; i<NMODES; i++ ){
+//
+//         /* set up FrequencySeries structures */
+//         /* we loop over this, activating and destroying at the beginning and end respectively */
+//         COMPLEX16FrequencySeries* hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+//         memset(hlm->data->data, 0, n * sizeof(COMPLEX16));
+//         // memset((*hlm)->data->data, 0, n * sizeof(COMPLEX16));
+//         XLAL_CHECK ( *hlm, XLAL_ENOMEM, "Failed to allocated hlm COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+//         // XLALUnitMultiply(&((*hlm)->sampleUnits), &((*hlm)->sampleUnits), &lalSecondUnit);
+//
+//
+//         INT4 ell = listmode[i][0];
+//         INT4 mm = listmode[i][1];
+//         int ret = XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hlm, deltaF, f_min, f_max, m1_in, m2_in, chi1z_in, chi2z_in, ell, mm);
+//         XLAL_CHECK ( ret, XLAL_SUCCESS, "Failed to successfully execture XLALSimIMRPhenomDHMCoreOneMode for l=%d, m=%d.", ell, mm);
+//
+//         /* Add the computed mode to the SphHarmFrequencySeries structure */
+//         *hlmsphharmfreqseries = XLALSphHarmFrequencySeriesAddMode(*hlmsphharmfreqseries, hlm, ell, mm);
+//
+//         XLALDestroyCOMPLEX16FrequencySeries(hlm);
+//     }
+//
+//
+//     /* combine modes, summation into hplus and hcross */
+//
+//     /* Initialize the complex series hplus, hcross */
+//     *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+//     *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+//
+//     if (!(hptilde) || !(*hctilde)) XLAL_ERROR(XLAL_EFUNC);
+//     memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
+//     memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
+//
+//     XLALUnitDivide(&(*hptilde)->sampleUnits, &(*hptilde)->sampleUnits, &lalSecondUnit);
+//     XLALUnitDivide(&(*hctilde)->sampleUnits, &(*hctilde)->sampleUnits, &lalSecondUnit);
+//
+//
+//     /* Adding the modes to form hplus, hcross
+//      * - use of a function that copies XLALSimAddMode but for Fourier domain structures */
+//     INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
+//     for( int i=0; i<NMODES; i++ ){
+//         INT4 ell = listmode[i][0];
+//         INT4 mm = listmode[i][1];
+//         COMPLEX16FrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlmsphharmfreqseries, ell, mm);
+//         if ( mm==0 ) sym = 0; /* We test for hypothetical m=0 modes */
+//         else sym = 1;
+//         FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+//     }
+//
+//     /* Destroying the list of frequency series for the modes, including the COMPLEX16FrequencySeries that it contains */
+//     XLALDestroySphHarmFrequencySeries(*hlmsphharmfreqseries);
+//     XLALFree(hlmsphharmfreqseries);
+//
+//
+//     return XLAL_SUCCESS;
+// }
