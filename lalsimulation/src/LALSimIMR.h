@@ -96,10 +96,13 @@ double XLALSimIMRPhenomDHMfdamp(const REAL8 eta, const REAL8 chi1z, const REAL8 
 double XLALSimIMRPhenomDHMfmaxCalc(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const INT4 ell, const INT4 mm);
 double XLALSimIMRPhenomDHMAmplitude( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
 double XLALSimIMRPhenomDHMPhase( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
-int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hlm, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, int ell, int mm);
+int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hlm, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, int ell, int mm, double distance);
 // int XLALSimIMRPhenomDHM(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination);
 // int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde);
-int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 m1_in, REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination, int LMAX);
+// SphHarmFrequencySeries* XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
+// int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
+int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(SphHarmFrequencySeries **hlmsphharmfreqseries);
+int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 m1_in, REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination, int LMAX, double distance);
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMChinmayCubic(const REAL8 Mf_wf, const REAL8 Mf_1_lm, const REAL8 Mf_RD_lm, const REAL8 Mf_RD_22, const INT4 mm);
