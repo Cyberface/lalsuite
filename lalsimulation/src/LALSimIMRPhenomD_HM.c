@@ -34,21 +34,11 @@
 #include "LALSimIMRPhenomD_internals.c"
 #include "LALSimRingdownCW.c"
 
-#include "LALSimIMRPhenomD_HM.h"
-
-
-
+// #include "LALSimIMRPhenomD_HM.h"
 
 #ifndef _OPENMP
 #define omp ignore
 #endif
-
-
-
-// THIS IS MY TESTING FUNCTION
-void XLALSimIMRPhenomDHMTEST(void) {
-   printf("Hi! I come from XLALSimInspiralPhenomDHMTEST!\n");
-}
 
 /**
  * Lionel's QNM higher mode fits

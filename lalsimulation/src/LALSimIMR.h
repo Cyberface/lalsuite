@@ -88,7 +88,6 @@ double XLALSimIMRPhenomDChirpTime(const REAL8 m1_in, const REAL8 m2_in, const RE
 double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const REAL8 chi1_in, const REAL8 chi2_in);
 
 /* in module LALSimIMRPhenomD_HM.c */
-void XLALSimIMRPhenomDHMTEST(void);
 double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf, const INT4 ell, const INT4 m, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const INT4 AmpFlag);
 double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const INT4 mm );
 double XLALSimIMRPhenomDHMfring(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const INT4 ell, const INT4 mm);
