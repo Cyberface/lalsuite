@@ -1359,12 +1359,9 @@ int XLALIMRPhenomDHMMultiModeStrain(
           sym = 1;
       }
       FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
-      LALFree(hlm);
 
     }
 
-    XLALDestroySphHarmFrequencySeries(hlms);
-    XLALFree(hlms);
 
     return XLAL_SUCCESS;
 }
