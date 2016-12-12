@@ -1310,18 +1310,18 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /* Allocate hptilde */
     /* TODO: Add hctilde */
-    size_t n = NextPow2(f_max / deltaF) + 1;
+    size_t n = NextPow2(f_max_prime / deltaF) + 1;
 
     // *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0,
     //   deltaF, &lalStrainUnit, n);
-    // XLAL_CHECK ( *hptilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max=%f, deltaF=%g.", n, f_max, deltaF);
+    // XLAL_CHECK ( *hptilde, XLAL_ENOMEM, "Failed to allocated waveform COMPLEX16FrequencySeries of length %zu for f_max_prime=%f, deltaF=%g.", n, f_max, deltaF);
     //
     // memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
     // XLALUnitMultiply(&((*hptilde)->sampleUnits), &((*hptilde)->sampleUnits), &lalSecondUnit);
 
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min / deltaF);
-    size_t ind_max = (size_t) (f_max / deltaF);
+    size_t ind_max = (size_t) (f_max_prime / deltaF);
     XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
 
