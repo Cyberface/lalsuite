@@ -101,10 +101,15 @@ int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hlm, const REAL8 d
 // SphHarmFrequencySeries* XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
 // int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
 int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(SphHarmFrequencySeries **hlmsphharmfreqseries);
-int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 m1_in, REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination, int LMAX, double distance);
+int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 m1_in, REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination, double distance);
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMChinmayCubic(const REAL8 Mf_wf, const REAL8 Mf_1_lm, const REAL8 Mf_RD_lm, const REAL8 Mf_RD_22, const INT4 mm);
+
+
+int XLALIMRPhenomDHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 eta, REAL8 M, REAL8 m1, REAL8 m2, REAL8 chi1z,REAL8 chi2z,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef,REAL8 phi0, REAL8 amp0);
+int XLALIMRPhenomDHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef,REAL8 phi0,REAL8 inclination,REAL8 distance);
+
 
 int XLALSimIMRPhenomP(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);
 int XLALSimIMRPhenomPFrequencySequence(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8Sequence *freqs, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);

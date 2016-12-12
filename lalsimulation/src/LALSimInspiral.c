@@ -138,6 +138,7 @@ static const char *lalSimulationApproximantNames[] = {
     INITIALIZE_NAME(IMRPhenomFB),
     INITIALIZE_NAME(IMRPhenomC),
     INITIALIZE_NAME(IMRPhenomD),
+	INITIALIZE_NAME(IMRPhenomDHM),
     INITIALIZE_NAME(IMRPhenomP),
     INITIALIZE_NAME(IMRPhenomPv2),
     INITIALIZE_NAME(IMRPhenomFC),
@@ -1185,6 +1186,20 @@ int XLALSimInspiralChooseFDWaveform(
                 (*hctilde)->data->data[j] = -I*cfac * (*hptilde)->data->data[j];
                 (*hptilde)->data->data[j] *= pfac;
             }
+            break;
+
+		case IMRPhenomDHM:
+            /* Waveform-specific sanity checks */
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALparams) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALparams);
+            if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALparams);
+            if( !checkTidesZero(lambda1, lambda2) )
+                ABORT_NONZERO_TIDES(LALparams);
+            /* Call the waveform driver routine */
+            ret = XLALIMRPhenomDHMMultiModeStrain(hptilde, hctilde, m1, m2,
+                  S1z, S2z, deltaF, f_min, f_max, f_ref, phiRef, inclination, distance);
+            if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             break;
 
         case EOBNRv2_ROM:
@@ -4379,6 +4394,7 @@ int XLALSimInspiralImplementedFDApproximants(
         case IMRPhenomB:
         case IMRPhenomC:
         case IMRPhenomD:
+		case IMRPhenomDHM:
         case IMRPhenomP:
         case IMRPhenomPv2:
         case EOBNRv2_ROM:
@@ -4797,6 +4813,7 @@ int XLALSimInspiralGetSpinSupportFromApproximant(Approximant approx){
     case IMRPhenomB:
     case IMRPhenomC:
     case IMRPhenomD:
+	case IMRPhenomDHM:
     case SEOBNRv1:
     case SEOBNRv2:
     case SEOBNRv4:
@@ -4915,6 +4932,7 @@ int XLALSimInspiralApproximantAcceptTestGRParams(Approximant approx){
     case EccentricTD:
     case IMRPhenomC:
     case IMRPhenomD:
+	case IMRPhenomDHM:
     case IMRPhenomP:
     case IMRPhenomPv2:
       testGR_accept=LAL_SIM_INSPIRAL_TESTGR_PARAMS;
@@ -5321,7 +5339,7 @@ double XLALSimInspiralGetFinalFreq(
             }
             freqFunc = fSEOBNRv4RD;
             break;
-            
+
         case IMRPhenomA:
             /* Check that spins are zero */
             if( !checkSpinsZero(S1x, S1y, S1z, S2x, S2y, S2z) )
@@ -5518,19 +5536,19 @@ int XLALSimInspiralTDConditionStage2(REAL8TimeSeries *hplus, REAL8TimeSeries *hc
 
 
 /**
- * @brief Function for determining the starting frequency 
+ * @brief Function for determining the starting frequency
  * of the (2,2) mode when the highest order contribution starts at fLow.
  * @details
- * Compute the minimum frequency for waveform generation 
- *  using amplitude orders above Newtonian.  The waveform 
- *  generator turns on all orders at the orbital          
- *  associated with fMin, so information from higher      
- *  orders is not included at fLow unless fMin is         
+ * Compute the minimum frequency for waveform generation
+ *  using amplitude orders above Newtonian.  The waveform
+ *  generator turns on all orders at the orbital
+ *  associated with fMin, so information from higher
+ *  orders is not included at fLow unless fMin is
  *  sufficiently low.
  *
  * @param fLow  Requested lower frequency.
  * @param ampOrder Requested amplitude order.
- * @param approximant LALApproximant 
+ * @param approximant LALApproximant
  * @retval fStart The lower frequency to use to include corrections.
  */
 REAL8 XLALSimInspiralfLow2fStart(REAL8 fLow, INT4 ampOrder, INT4 approximant)
