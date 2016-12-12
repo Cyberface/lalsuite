@@ -1363,7 +1363,8 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     }
 
-    LALFree(hlms);
+    XLALDestroySphHarmFrequencySeries(hlms);
+    XLALFree(hlms);
 
     return XLAL_SUCCESS;
 }
