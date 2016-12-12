@@ -1298,7 +1298,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     SphHarmFrequencySeries *hlms=NULL;
 
-    int ret = XLALIMRPhenomDHMMultiModehlm(&hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max, fRef, phi0, amp0);
+    int ret = XLALIMRPhenomDHMMultiModehlm(&hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, amp0);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
