@@ -1196,7 +1196,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     REAL8 deltaF,
     REAL8 f_min,
     REAL8 f_max,
-    REAL8 fRef,
+    REAL8 fRef_in,
     REAL8 phi0,
     REAL8 inclination,
     REAL8 distance
@@ -1235,6 +1235,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
     if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
 
+
     /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
     REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
     if (m1_in>m2_in) {
@@ -1269,6 +1270,27 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
+
+    // if no reference frequency given, set it to the starting GW frequency
+    REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
+
+    const REAL8 M_sec = (m1+m2) * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
+
+    const REAL8 f_CUT_HM = 0.4;
+
+    const REAL8 fCut = f_CUT_HM/M_sec; // convert Mf -> Hz
+    // Somewhat arbitrary end point for the waveform.
+    // Chosen so that the end of the waveform is well after the ringdown.
+    if (fCut <= f_min)
+      XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", fCut, f_min);
+
+      /* default f_max to Cut */
+    REAL8 f_max_prime = f_max;
+    f_max_prime = f_max ? f_max : fCut;
+    f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
+    if (f_max_prime <= f_min)
+      XLAL_ERROR(XLAL_EDOM, "f_max <= f_min\n");
+
 
 
 
