@@ -41,7 +41,8 @@
 #endif
 
 // #define NMODES_MAX 8
-#define NMODES_MAX 7
+// #define NMODES_MAX 7
+#define NMODES_MAX 4
 
 /**
  * Lionel's QNM higher mode fits
@@ -972,9 +973,11 @@ int XLALIMRPhenomDHMMultiModehlm(
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
 
-    int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
 
+    int NMODES = NMODES_MAX;
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
 
     /* This does not work :( */
     // #define NMODES_MAX LMAX
@@ -1206,8 +1209,11 @@ int XLALIMRPhenomDHMMultiModeStrain(
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
 
 
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
@@ -1353,9 +1359,11 @@ int XLALIMRPhenomDHMMultiModeStrain(
           sym = 1;
       }
       FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
-
+      LALFree(hlm);
 
     }
+
+    LALFree(hlms);
 
     return XLAL_SUCCESS;
 }
