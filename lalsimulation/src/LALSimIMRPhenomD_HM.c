@@ -41,8 +41,14 @@
 #endif
 
 // #define NMODES_MAX 8
-// #define NMODES_MAX 7
-#define NMODES_MAX 4
+#define NMODES_MAX 7
+// #define NMODES_MAX 4
+
+/* dimensionless frequency of last data point in waveform */
+#define Mf_CUT_HM 0.4
+
+
+
 
 /**
  * Lionel's QNM higher mode fits
@@ -915,6 +921,8 @@ static COMPLEX16 IMRPhenomDHMSingleModehlm(
     /* construct hlm at single frequency point and return */
 
     COMPLEX16 hlm = HMamp * cexp(-I * HMphi);
+    // COMPLEX16 hlm = HMamp * (cos(HMphi) - I*sin(HMphi));
+
 
     // printf(" Mf = %f      hlm  =  %f + i %f\n", Mf, creal(hlm), cimag(hlm));
 
@@ -944,6 +952,28 @@ static double ComputeAmpRatio(REAL8 eta, REAL8 chi1z, REAL8 chi2z, INT4 ell, INT
 }
 
 
+/* given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
+static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M);
+static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M){
+
+      const REAL8 M_sec = M * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
+
+      const REAL8 fCut = Mf/M_sec; // convert Mf -> Hz
+      // Somewhat arbitrary end point for the waveform.
+      // Chosen so that the end of the waveform is well after the ringdown.
+      if (fCut <= f_min)
+          XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", fCut, f_min);
+
+      /* default f_max to Cut */
+      REAL8 f_max_prime = f_max;
+      f_max_prime = f_max ? f_max : fCut;
+      f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
+      if (f_max_prime <= f_min)
+          XLAL_ERROR(XLAL_EDOM, "f_max <= f_min\n");
+
+      return f_max_prime;
+}
+
 
 /* the goal of this function is to compute hlm for a list of modes
  * and output them in the data type
@@ -956,28 +986,26 @@ static double ComputeAmpRatio(REAL8 eta, REAL8 chi1z, REAL8 chi2z, INT4 ell, INT
 
 int XLALIMRPhenomDHMMultiModehlm(
     SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes */
-    REAL8 eta,
-    REAL8 M,
-    REAL8 m1,
-    REAL8 m2,
-    REAL8 chi1z,
-    REAL8 chi2z,
+    REAL8 m1_in,                        /**< primary mass in SI*/
+    REAL8 m2_in,                        /**< secondary mass in SI*/
+    REAL8 chi1z_in,
+    REAL8 chi2z_in,
     REAL8 deltaF,
     REAL8 f_min,
     REAL8 f_max,
-    REAL8 fRef,
+    REAL8 fRef_in,
     UNUSED REAL8 phi0,
-    REAL8 amp0
+    REAL8 distance
 ) {
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
 
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
-
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
 
     /* This does not work :( */
     // #define NMODES_MAX LMAX
@@ -995,6 +1023,16 @@ int XLALIMRPhenomDHMMultiModehlm(
     //     XLAL_ERROR(XLAL_EDOM, "LMAX = %d not supported.\n", LMAX);
     // }
 
+    /* sanity checks on input parameters */
+
+    if (m1_in <= 0) XLAL_ERROR(XLAL_EDOM, "m1_in must be positive\n");
+    if (m2_in <= 0) XLAL_ERROR(XLAL_EDOM, "m2_in must be positive\n");
+
+    if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
+    if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
+    if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
+
+
     /* Test input parameters */
     // REAL8 m1, m2, chi1z, chi2z, deltaF, f_min, f_max, fRef, phi0;
     // m1 = 80.;
@@ -1007,12 +1045,53 @@ int XLALIMRPhenomDHMMultiModehlm(
     // fRef = f_min;
     // phi0 = 0.0;
 
+    /* FIXME: code duplication in XLALIMRPhenomDHMMultiModeStrain */
+    /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
+    REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
+    if (m1_in>m2_in) {
+       chi1z = chi1z_in;
+       chi2z = chi2z_in;
+       m1_tmp   = m1_in;
+       m2_tmp   = m2_in;
+   } else { /* swap spins and masses */
+       chi1z = chi2z_in;
+       chi2z = chi1z_in;
+       m1_tmp   = m2_in;
+       m2_tmp   = m1_in;
+    }
+
+    /* external: SI; internal: solar masses */
+    const REAL8 m1 = m1_tmp / LAL_MSUN_SI;
+    const REAL8 m2 = m2_tmp / LAL_MSUN_SI;
+
+    const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
+
+    if (q > MAX_ALLOWED_MASS_RATIO)
+      XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
+
+    const REAL8 M = m1 + m2;
+    const REAL8 eta = m1 * m2 / (M * M);
+
+    if (eta > 0.25 || eta < 0.0)
+        XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
+
+    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+        XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
+
+    // if no reference frequency given, set it to the starting GW frequency
+    REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
+
     LALDict *extraParams = NULL;
 
     int status = init_useful_powers(&powers_of_pi, LAL_PI);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "Failed to initiate useful powers of pi.");
 
     const REAL8 M_sec = M * LAL_MTSUN_SI;
+
+    /* Compute the amplitude pre-factor */
+    const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
+
+    REAL8 f_max_prime = ComputeIMRPhenomDHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
 
@@ -1023,7 +1102,7 @@ int XLALIMRPhenomDHMMultiModehlm(
 
     /* Allocate hptilde */
     /* TODO: Add hctilde */
-    size_t n = NextPow2(f_max / deltaF) + 1;
+    size_t n = NextPow2(f_max_prime / deltaF) + 1;
 
     // *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0,
     //   deltaF, &lalStrainUnit, n);
@@ -1034,7 +1113,7 @@ int XLALIMRPhenomDHMMultiModehlm(
 
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min / deltaF);
-    size_t ind_max = (size_t) (f_max / deltaF);
+    size_t ind_max = (size_t) (f_max_prime / deltaF);
     XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     /* BEGIN: calculate PhenomD model parameters */
@@ -1192,8 +1271,8 @@ int XLALIMRPhenomDHMMultiModehlm(
 int XLALIMRPhenomDHMMultiModeStrain(
     COMPLEX16FrequencySeries **hptilde, /**< [out] */
     COMPLEX16FrequencySeries **hctilde, /**< [out] */
-    REAL8 m1_in,
-    REAL8 m2_in,
+    REAL8 m1_in,                        /**< primary mass in SI*/
+    REAL8 m2_in,                        /**< secondary mass in SI*/
     REAL8 chi1z_in,
     REAL8 chi2z_in,
     REAL8 deltaF,
@@ -1209,11 +1288,11 @@ int XLALIMRPhenomDHMMultiModeStrain(
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
-
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
 
 
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
@@ -1231,74 +1310,9 @@ int XLALIMRPhenomDHMMultiModeStrain(
     // // inclination = 0.0;
     // inclination = LAL_PI/4.;
 
+    REAL8 M = (m1_in + m2_in) / LAL_MSUN_SI; // total mass in solar masses
 
-    /* sanity checks on input parameters */
-
-    if (m1_in <= 0) XLAL_ERROR(XLAL_EDOM, "m1_in must be positive\n");
-    if (m2_in <= 0) XLAL_ERROR(XLAL_EDOM, "m2_in must be positive\n");
-
-    if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
-    if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
-    if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
-
-
-    /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
-    REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
-    if (m1_in>m2_in) {
-       chi1z = chi1z_in;
-       chi2z = chi2z_in;
-       m1_tmp   = m1_in;
-       m2_tmp   = m2_in;
-   } else { /* swap spins and masses */
-       chi1z = chi2z_in;
-       chi2z = chi1z_in;
-       m1_tmp   = m2_in;
-       m2_tmp   = m1_in;
-    }
-
-    /* external: SI; internal: solar masses */
-    const REAL8 m1 = m1_tmp / LAL_MSUN_SI;
-    const REAL8 m2 = m2_tmp / LAL_MSUN_SI;
-
-    const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
-
-    if (q > MAX_ALLOWED_MASS_RATIO)
-      XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
-
-    const REAL8 M = m1 + m2;
-    const REAL8 eta = m1 * m2 / (M * M);
-
-    if (eta > 0.25 || eta < 0.0)
-        XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
-
-    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
-        XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
-
-    /* Compute the amplitude pre-factor */
-    const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
-
-    // if no reference frequency given, set it to the starting GW frequency
-    REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
-
-    const REAL8 M_sec = (m1+m2) * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
-
-    const REAL8 f_CUT_HM = 0.4;
-
-    const REAL8 fCut = f_CUT_HM/M_sec; // convert Mf -> Hz
-    // Somewhat arbitrary end point for the waveform.
-    // Chosen so that the end of the waveform is well after the ringdown.
-    if (fCut <= f_min)
-      XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", fCut, f_min);
-
-      /* default f_max to Cut */
-    REAL8 f_max_prime = f_max;
-    f_max_prime = f_max ? f_max : fCut;
-    f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
-    if (f_max_prime <= f_min)
-      XLAL_ERROR(XLAL_EDOM, "f_max <= f_min\n");
-
-
-
+    REAL8 f_max_prime = ComputeIMRPhenomDHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
     /* Step 1. evaluate XLALIMRPhenomDHMMultiModehlm */
 
@@ -1306,7 +1320,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     SphHarmFrequencySeries **hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
     *hlms=NULL;
 
-    int ret = XLALIMRPhenomDHMMultiModehlm(hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, amp0);
+    int ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1_in, m2_in, chi1z_in, chi2z_in, deltaF, f_min, f_max_prime, fRef_in, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
