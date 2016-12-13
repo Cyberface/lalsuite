@@ -41,7 +41,7 @@
 #endif
 
 // #define NMODES_MAX 8
-#define NMODES_MAX 7
+#define NMODES_MAX 5
 // #define NMODES_MAX 4
 
 /* dimensionless frequency of last data point in waveform */
@@ -983,9 +983,9 @@ static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M
 /* NOTE: I've change the name from hlmsphharmfreqseries to hlms */
 
 
-
+/* NOTE: The units of this are in Mf! */
 int XLALIMRPhenomDHMMultiModehlm(
-    SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes */
+    SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes with units of Mf */
     REAL8 m1_in,                        /**< primary mass in SI*/
     REAL8 m2_in,                        /**< secondary mass in SI*/
     REAL8 chi1z_in,
@@ -1001,8 +1001,12 @@ int XLALIMRPhenomDHMMultiModehlm(
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
 
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
@@ -1288,8 +1292,12 @@ int XLALIMRPhenomDHMMultiModeStrain(
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
