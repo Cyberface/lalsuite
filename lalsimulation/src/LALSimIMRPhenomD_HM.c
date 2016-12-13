@@ -1302,7 +1302,8 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /* Step 1. evaluate XLALIMRPhenomDHMMultiModehlm */
 
-    SphHarmFrequencySeries *hlms=NULL;
+    // SphHarmFrequencySeries *hlms=NULL;
+    SphHarmFrequencySeries *hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
 
     int ret = XLALIMRPhenomDHMMultiModehlm(&hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, amp0);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
@@ -1362,6 +1363,8 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     }
 
+    XLALDestroySphHarmFrequencySeries(hlms);
+    XLALFree(hlms);
 
     return XLAL_SUCCESS;
 }
