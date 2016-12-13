@@ -1002,7 +1002,7 @@ int XLALIMRPhenomDHMMultiModehlm(
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
 
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
@@ -1289,7 +1289,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3, 3}, {3, 2}, {4, 4}, {4, 3}, {5, 5}, {5, 4} };
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} }; /* FIXME:!!! Adding in {5,4} causes nans in phase...?!? */
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
