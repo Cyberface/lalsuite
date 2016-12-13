@@ -1303,9 +1303,10 @@ int XLALIMRPhenomDHMMultiModeStrain(
     /* Step 1. evaluate XLALIMRPhenomDHMMultiModehlm */
 
     // SphHarmFrequencySeries *hlms=NULL;
-    SphHarmFrequencySeries *hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
+    SphHarmFrequencySeries **hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
+    *hlms=NULL;
 
-    int ret = XLALIMRPhenomDHMMultiModehlm(&hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, amp0);
+    int ret = XLALIMRPhenomDHMMultiModehlm(hlms, eta, M, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, amp0);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
@@ -1351,7 +1352,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
       INT4 ell = ModeArray[i][0];
       INT4 mm = ModeArray[i][1];
     //   printf("computing hlm for mode l=%d, m=%d\n", ell, mm); /*NOTE: Remove this*/
-      COMPLEX16FrequencySeries* hlm = XLALSphHarmFrequencySeriesGetMode(hlms, ell, mm);
+      COMPLEX16FrequencySeries* hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
       if (!(hlm)) XLAL_ERROR(XLAL_EFUNC);
 
       if ( mm==0 ) {
@@ -1360,10 +1361,9 @@ int XLALIMRPhenomDHMMultiModeStrain(
           sym = 1;
       }
       FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
-
     }
 
-    XLALDestroySphHarmFrequencySeries(hlms);
+    XLALDestroySphHarmFrequencySeries(*hlms);
     XLALFree(hlms);
 
     return XLAL_SUCCESS;
