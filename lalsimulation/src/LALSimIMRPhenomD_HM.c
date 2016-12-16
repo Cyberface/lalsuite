@@ -41,8 +41,8 @@
 #endif
 
 // #define NMODES_MAX 8
-#define NMODES_MAX 5
-// #define NMODES_MAX 4
+// #define NMODES_MAX 5
+#define NMODES_MAX 4
 
 /* dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.4
@@ -216,36 +216,36 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
 
     /* The following if ladder determines which frequencies get scaled in which way */
     /* from technical notes: if AmpFlag is True */
-   if ( Mf_wf < Mf_1_lm ) {
-       /* inspiral */
-       Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
-   } else if ( Mf_1_lm <= Mf_wf && Mf_wf < Mf_RD_lm  ) {
-       /* intermediate */
-       if ( AmpFlag==1 ) {
-           /* For amplitude */
-           const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
-           Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
-       } else if ( AmpFlag==0 ) {
-           /* For phase */
-        //    Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
-            const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
-            Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
-       }
-   } else if ( Mf_RD_lm <= Mf_wf ) {
-       /* ringdown */
-       if ( AmpFlag==1 ) {
-           /* For amplitude */
-           Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
-       } else if ( AmpFlag==0 ) {
-           /* For phase */
-           const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
-           Mf_22 = rho_lm * Mf_wf;
-        //    Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
-       }
-   }
+   // if ( Mf_wf < Mf_1_lm ) {
+   //     /* inspiral */
+   //     Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+   // } else if ( Mf_1_lm <= Mf_wf && Mf_wf < Mf_RD_lm  ) {
+   //     /* intermediate */
+   //     if ( AmpFlag==1 ) {
+   //         /* For amplitude */
+   //         const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+   //         Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+   //     } else if ( AmpFlag==0 ) {
+   //         /* For phase */
+   //      //    Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
+   //          const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+   //          Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+   //     }
+   // } else if ( Mf_RD_lm <= Mf_wf ) {
+   //     /* ringdown */
+   //     if ( AmpFlag==1 ) {
+   //         /* For amplitude */
+   //         Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
+   //     } else if ( AmpFlag==0 ) {
+   //         /* For phase */
+   //         const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
+   //         Mf_22 = rho_lm * Mf_wf;
+   //      //    Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
+   //     }
+   // }
 
     /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
-    // Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+    Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
 
     return Mf_22;
 }
@@ -1004,9 +1004,11 @@ int XLALIMRPhenomDHMMultiModehlm(
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
 
-    int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
+    int NMODES = NMODES_MAX;
+    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
 
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4} };
@@ -1295,8 +1297,11 @@ int XLALIMRPhenomDHMMultiModeStrain(
     // int NMODES = NMODES_MAX;
     // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3}, {5,5} };
 
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
 
 
     // int NMODES = NMODES_MAX;
