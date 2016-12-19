@@ -245,7 +245,23 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
    // }
 
     /* This alternaitve to the above block of code just assumes inspiral PN frequency scaling throughout */
-    Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+    if ( AmpFlag==1 ) {
+        /* For amplitude */
+        if ( Mf_wf < Mf_1_lm ) {
+            /* inspiral */
+            Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+        } else if ( Mf_1_lm <= Mf_wf && Mf_wf < Mf_RD_lm  ) {
+            /* intermediate */
+            const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+            Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+        } else if ( Mf_RD_lm <= Mf_wf ) {
+            /* ringdown */
+            Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
+        }
+    } else if ( AmpFlag==0 ) {
+        /* For phase */
+        Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+    }
 
     return Mf_22;
 }
