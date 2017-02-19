@@ -369,7 +369,6 @@ int XLALIMRPhenomDHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr,
     return XLAL_SUCCESS;
 }
 
-
 int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
                                          REAL8 *b,/**< [Out]  */
                                          REAL8 *fi,/**< [Out]  */
@@ -404,7 +403,6 @@ int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
 
     // Account for different f1 definition between PhenomD Amplitude and Phase derivative models
     // initialise
-    REAL8 Mf_22   = 0.; /* the geometric frequency scaled to the 22 mode, NOTE: called f_map in notes */
     REAL8 Mf_1_22  = 0.; /* initalise variable */
     if ( AmpFlag==1 ) {
         /* For amplitude */
@@ -417,10 +415,10 @@ int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     *f1 = Mf_1_22;
 
     REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency (real part of ringdown), geometric units */
-    REAL8 Mf_DM_22 = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, 2, 2); /* (2, 2) damping time (complex part of ringdown), geometric units */
+    // REAL8 Mf_DM_22 = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, 2, 2); /* (2, 2) damping time (complex part of ringdown), geometric units */
 
     REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm);
-    REAL8 Mf_DM_lm = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, ell, mm);
+    // REAL8 Mf_DM_lm = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, ell, mm);
 
     // Define a ratio of QNM frequencies to be used for scaling various quantities
 	REAL8 Rholm = Mf_RD_22/Mf_RD_lm;
@@ -429,16 +427,16 @@ int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     REAL8 Mf_1_lm = Mf_1_22 / Rholm;
 
     // (* Handle cases for post-f3 mapping *)
-    REAL8 postfRDflm = XLALIMRPhenomDHMpostfRDflm(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    // REAL8 postfRDflm = XLALIMRPhenomDHMpostfRDflm(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
 
     /* Define transition frequencies */
 	*fi = Mf_1_lm;
 	*fr = Mf_RD_lm;
 
     // (* Define functions to be applied in each domain *)
-    REAL8 Ti = XLALIMRPhenomDHMTi(flm, mm);
-    REAL8 Trd = XLALIMRPhenomDHMTrd(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
-    REAL8 Tm = XLALIMRPhenomDHMTm(flm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    // REAL8 Ti = XLALIMRPhenomDHMTi(flm, mm);
+    // REAL8 Trd = XLALIMRPhenomDHMTrd(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    // REAL8 Tm = XLALIMRPhenomDHMTm(flm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
 
     /*Define the slope and intercepts of the linear transformation used*/
 	REAL8 Ai = 2.0/mm;
@@ -479,6 +477,39 @@ int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     // printf("*a = %g\n", *a);
 
     return XLAL_SUCCESS;
+}
+
+/**
+ * XLALSimIMRPhenomDHMFreqDomainMap
+ * Input waveform frequency in Geometric units (Mflm)
+ * and computes what frequency this corresponds
+ * to scaled to the 22 mode.
+ */
+double XLALSimIMRPhenomDHMFreqDomainMap(REAL8 Mflm,
+                                        const INT4 ell,
+                                        const INT4 mm,
+                                        const REAL8 eta,
+                                        const REAL8 chi1z,
+                                        const REAL8 chi2z,
+                                        const int AmpFlag)
+{
+
+    //Mflm here has the same meaning as Mf_wf in XLALSimIMRPhenomDHMFreqDomainMapHM.
+
+    REAL8 a = 0.;
+    REAL8 b = 0.;
+    /*following variables not used in this funciton but are returned in XLALIMRPhenomDHMFreqDomainMapParams*/
+    REAL8 fi = 0.;
+    REAL8 fr = 0.;
+    REAL8 f1 = 0.;
+    REAL8 f2lm = 0.;
+    int ret = XLALIMRPhenomDHMFreqDomainMapParams(&a, &b, &fi, &fr, &f1, &f2lm, Mflm, ell, mm, eta, chi1z, chi2z, AmpFlag);
+    if (ret != XLAL_SUCCESS){
+        XLALPrintError("XLAL Error - XLALIMRPhenomDHMFreqDomainMapParams failed in XLALSimIMRPhenomDHMFreqDomainMap\n");
+        XLAL_ERROR(XLAL_EDOM);
+    }
+    REAL8 Mf22 = a * Mflm + b;
+    return Mf22;
 }
 
 /* END: newer functions  */
