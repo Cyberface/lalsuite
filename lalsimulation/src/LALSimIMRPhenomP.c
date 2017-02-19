@@ -80,9 +80,9 @@ const double sqrt_6 = 2.44948974278317788;
  * Each IMRPhenomP version inherits its range of validity
  * over the parameter space from the respective aligned-spin waveform.
  *
- * @attention A time-domain implementation of IMRPhenomPv2 is available in XLALChooseTDWaveform(). 
+ * @attention A time-domain implementation of IMRPhenomPv2 is available in XLALChooseTDWaveform().
  * This is based on a straight-forward inverse Fourier transformation via XLALSimInspiralTDfromFD(),
- * but it was not included in the IMRPhenomPv2 review. Use it at your own risk. 
+ * but it was not included in the IMRPhenomPv2 review. Use it at your own risk.
  */
 
 /**
@@ -529,7 +529,7 @@ static int PhenomPCore(
       errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
       XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors failed");
 
-      ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
+      ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, 1.0, 1.0);
       // This should be the same as the ending frequency in PhenomD
       fCut = f_CUT / m_sec;
       f_final = pAmp->fRD / m_sec;
@@ -880,7 +880,7 @@ static int PhenomPCoreOneFrequency(
       errcode = init_useful_powers(&powers_of_f, f);
       XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for f");
       aPhenom = IMRPhenDAmplitude(f, pAmp, &powers_of_f, amp_prefactors);
-      phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
+      phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors, 1.0, 1.0);
       SL = chi1_l*m1*m1 + chi2_l*m2*m2;        /* Dimensionfull aligned spin. */
       break;
     default:
@@ -1220,7 +1220,7 @@ static REAL8 FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(
   else {
     q_factor = m2/M;
     af_parallel = FinalSpin0815(eta, chi2_l, chi1_l);
-  }  
+  }
 
   REAL8 Sperp = chip * q_factor*q_factor;
   REAL8 af = copysign(1.0, af_parallel) * sqrt(Sperp*Sperp + af_parallel*af_parallel);
@@ -1396,4 +1396,3 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
       *x = X;
   }
 }
-

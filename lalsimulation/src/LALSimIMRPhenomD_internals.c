@@ -940,8 +940,13 @@ static double alpha5Fit(double eta, double chi) {
 
 /**
  * Ansatz for the merger-ringdown phase Equation 14 arXiv:1508.07253
+ * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
+ * to 1. and PhenomD is recovered.
+ * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p)
+static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
 {
   double sqrootf = sqrt(f);
   double fpow1_5 = f * sqrootf;
@@ -951,14 +956,20 @@ static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p)
   return -(p->alpha2/f)
 		 + (4.0/3.0) * (p->alpha3 * fpow0_75)
 		 + p->alpha1 * f
-		 + p->alpha4 * atan((f - p->alpha5 * p->fRD) / p->fDM);
+		 + p->alpha4 * Rholm * atan((f - p->alpha5 * p->fRD) / (Rholm * p->fDM * Taulm));
 }
 
 /**
  * First frequency derivative of PhiMRDAnsatzInt
+ * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
+ * to 1. and PhenomD is recovered.
+ * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p) {
-  return (p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25) + p->alpha4/(p->fDM*(1 + pow_2_of(f - p->alpha5 * p->fRD)/pow_2_of(p->fDM)))) / p->eta;
+static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm) {
+  // return (p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25) + p->alpha4/(p->fDM*(1 + pow_2_of(f - p->alpha5 * p->fRD)/pow_2_of(p->fDM)))) / p->eta;
+  return ( p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25)+ p->alpha4/(p->fDM * Taulm * (1 + pow_2_of(f - p->alpha5 * p->fRD)/(pow_2_of(p->fDM * Taulm * Rholm)))) ) / p->eta;
 }
 
 ///////////////////////////// Phase: Intermediate functions /////////////////////////////
@@ -1278,8 +1289,13 @@ static IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double et
  * This function aligns the three phase parts (inspiral, intermediate and merger-rindown)
  * such that they are c^1 continuous at the transition frequencies
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
+ * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
+ * to 1. and PhenomD is recovered.
+ * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors)
+static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
 {
   double eta = p->eta;
 
@@ -1313,16 +1329,21 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
   // temporary Intermediate Phase function to Join up the Merger-Ringdown
   double PhiIntTempVal = 1.0/eta * PhiIntAnsatz(p->fMRDJoin, p) + p->C1Int + p->C2Int*p->fMRDJoin;
   double DPhiIntTempVal = DPhiIntTemp(p->fMRDJoin, p);
-  double DPhiMRDVal = DPhiMRD(p->fMRDJoin, p);
+  double DPhiMRDVal = DPhiMRD(p->fMRDJoin, p, Rholm, Taulm);
   p->C2MRD = DPhiIntTempVal - DPhiMRDVal;
-  p->C1MRD = PhiIntTempVal - 1.0/eta * PhiMRDAnsatzInt(p->fMRDJoin, p) - p->C2MRD*p->fMRDJoin;
+  p->C1MRD = PhiIntTempVal - 1.0/eta * PhiMRDAnsatzInt(p->fMRDJoin, p, Rholm, Taulm) - p->C2MRD*p->fMRDJoin;
 }
 
 /**
  * This function computes the IMR phase given phenom coefficients.
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
+ * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
+ * to 1. and PhenomD is recovered.
+ * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors)
+static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
   // The inspiral, intermendiate and merger-ringdown phase parts
@@ -1337,7 +1358,7 @@ static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingS
 
   if (StepFunc_boolean(f, p->fMRDJoin))	// MRD range
   {
-	  double PhiMRD = 1.0/p->eta * PhiMRDAnsatzInt(f, p) + p->C1MRD + p->C2MRD * f;
+	  double PhiMRD = 1.0/p->eta * PhiMRDAnsatzInt(f, p, Rholm, Taulm) + p->C1MRD + p->C2MRD * f;
 	  return PhiMRD;
   }
 
