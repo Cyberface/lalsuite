@@ -302,6 +302,189 @@ double XLALSimIMRPhenomDHMU3(double Mf_wf, double eta, double chi1z, double chi2
   * END: similarity transformation T and U functions
   */
 
+/* START: newer functions  */
+
+//mathematica function postfRDflm
+double XLALIMRPhenomDHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){
+    double ans = 0.0;
+    if ( AmpFlag==1 ) {
+        /* For amplitude */
+        ans = Mf-Mf_RD_lm+Mf_RD_22; /*Used for the Amplitude as an approx fix for post merger powerlaw slope */
+    } else if ( AmpFlag==0 ) {
+        /* For phase */
+        REAL8 Rholm = Mf_RD_22/Mf_RD_lm;
+        ans = Rholm * Mf;          /* Used for the Phase */
+    }
+
+    return ans;
+}
+
+// mathematica function Ti
+// domain mapping function - inspiral
+double XLALIMRPhenomDHMTi(REAL8 Mf, const INT4 mm){
+    return 2.0 * Mf / mm;
+}
+
+// mathematica function Trd
+// domain mapping function - ringdown
+double XLALIMRPhenomDHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){
+    return XLALIMRPhenomDHMpostfRDflm(Mf, Mf_RD_22, Mf_RD_lm, AmpFlag);
+}
+
+// mathematica function Tm
+// domain mapping function - intermediate
+double XLALIMRPhenomDHMTm(REAL8 Mf, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){
+    REAL8 Trd = XLALIMRPhenomDHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    REAL8 Ti = XLALIMRPhenomDHMTi(fi, mm);
+    return (Mf - fi) * ( Trd - Ti )/( fr - fi ) + Ti;
+}
+
+double XLALIMRPhenomDHMSlopeAm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){
+    //Am = ( Trd[fr]-Ti[fi] )/( fr - fi );
+    REAL8 Trd = XLALIMRPhenomDHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    REAL8 Ti = XLALIMRPhenomDHMTi(fi, mm);
+
+    return ( Trd-Ti )/( fr - fi );
+}
+
+double XLALIMRPhenomDHMSlopeBm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){
+    //Bm = Ti[fi] - fi*Am;
+    REAL8 Ti = XLALIMRPhenomDHMTi(fi, mm);
+    REAL8 Am = XLALIMRPhenomDHMSlopeAm(mm, fi, fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    return Ti - fi*Am;
+}
+
+int XLALIMRPhenomDHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, REAL8 Ai, REAL8 Bi, REAL8 Am, REAL8 Bm, REAL8 Ar, REAL8 Br){
+    // Defne function to output map params used depending on
+    if ( flm <= fi ){
+        *a = Ai;
+        *b = Bi;
+    } else if ( fi < flm && flm <= fr ){
+        *a = Am;
+        *b = Bm;
+    } else if ( fr < flm ){
+        *a = Ar;
+        *b = Br;
+    };
+    return XLAL_SUCCESS;
+}
+
+
+int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
+                                         REAL8 *b,/**< [Out]  */
+                                         REAL8 *fi,/**< [Out]  */
+                                         REAL8 *fr,/**< [Out]  */
+                                         REAL8 *f1,/**< [Out]  */
+                                         REAL8 *f2lm,/**< [Out]  */
+                                         const REAL8 flm, /**< input waveform frequency */
+                                         const INT4 ell, /**< spherical harmonics ell mode */
+                                         const INT4 mm, /**< spherical harmonics m mode */
+                                         const REAL8 eta, /**< symmetric mass ratio */
+                                         const REAL8 chi1z, /**< aligned spin on larger body */
+                                         const REAL8 chi2z, /**< aligned spin on smaller body */
+                                         const int AmpFlag /**< is ==1 then computes for amplitude, if ==0 then computes for phase */)
+{
+
+    /*check output points are NULL*/
+    XLAL_CHECK(a != NULL, XLAL_EFAULT);
+    XLAL_CHECK(b != NULL, XLAL_EFAULT);
+    XLAL_CHECK(fi != NULL, XLAL_EFAULT);
+    XLAL_CHECK(fr != NULL, XLAL_EFAULT);
+    XLAL_CHECK(f1 != NULL, XLAL_EFAULT);
+    XLAL_CHECK(f2lm != NULL, XLAL_EFAULT);
+
+    /* compute predicted final spin */
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    // Account for different f1 definition between PhenomD Amplitude and Phase derivative models
+    // initialise
+    REAL8 Mf_22   = 0.; /* the geometric frequency scaled to the 22 mode, NOTE: called f_map in notes */
+    REAL8 Mf_1_22  = 0.; /* initalise variable */
+    if ( AmpFlag==1 ) {
+        /* For amplitude */
+        Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD [amplitude model], for the 22 mode */
+    } else if ( AmpFlag==0 ) {
+        /* For phase */
+        Mf_1_22  = PHI_fJoin_INS; /* inspiral joining frequency from PhenomD [phase model], for the 22 mode */
+    }
+
+    *f1 = Mf_1_22;
+
+    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency (real part of ringdown), geometric units */
+    REAL8 Mf_DM_22 = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, 2, 2); /* (2, 2) damping time (complex part of ringdown), geometric units */
+
+    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm);
+    REAL8 Mf_DM_lm = XLALSimIMRPhenomDHMfdamp(eta, chi1z, chi2z, finspin, ell, mm);
+
+    // Define a ratio of QNM frequencies to be used for scaling various quantities
+	REAL8 Rholm = Mf_RD_22/Mf_RD_lm;
+
+    // Given experiments with the l!=m modes, it appears that the QNM scaling rather than the PN scaling may be optimal for mapping f1
+    REAL8 Mf_1_lm = Mf_1_22 / Rholm;
+
+    // (* Handle cases for post-f3 mapping *)
+    REAL8 postfRDflm = XLALIMRPhenomDHMpostfRDflm(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
+
+    /* Define transition frequencies */
+	*fi = Mf_1_lm;
+	*fr = Mf_RD_lm;
+
+    // (* Define functions to be applied in each domain *)
+    REAL8 Ti = XLALIMRPhenomDHMTi(flm, mm);
+    REAL8 Trd = XLALIMRPhenomDHMTrd(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    REAL8 Tm = XLALIMRPhenomDHMTm(flm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+
+    /*Define the slope and intercepts of the linear transformation used*/
+	REAL8 Ai = 2.0/mm;
+    REAL8 Bi = 0.0;
+	REAL8 Am = XLALIMRPhenomDHMSlopeAm(mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+    REAL8 Bm = XLALIMRPhenomDHMSlopeBm(mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
+
+
+    REAL8 Ar = 0.0;
+    REAL8 Br = 0.0;
+    if ( AmpFlag==1 ) {
+        /* For amplitude */
+        Ar = 1.0;
+        Br = -Mf_RD_lm+Mf_RD_22;
+    } else if ( AmpFlag==0 ) {
+        /* For phase */
+        Ar = Rholm;
+        Br = 0.0;
+    }
+
+    // Defne function to output map params used depending on
+    // *a = 0.0;
+    // *b = 0.0;
+    XLALIMRPhenomDHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+
+    REAL8 a2 = 0.0;
+    REAL8 b2 = 0.0;
+    REAL8 frfi = ( *fr + *fi ) / 2.0;
+    XLALIMRPhenomDHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    *f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
+
+
+    // *b=0.;
+    // *fi=0.;
+    // *fr=0.;
+    // *f1=0.;
+    // *f2lm=0.;
+    // printf("*a = %g\n", *a);
+
+    return XLAL_SUCCESS;
+}
+
+/* END: newer functions  */
+
+
+
 
 
 /**
