@@ -165,6 +165,145 @@ double XLALSimIMRPhenomDHMChinmayCubic(
     return ans;
 }
 
+/*
+ * BEGIN: similarity transformation T and U functions
+ */
+
+/**
+ * maps/transforms the input frequency (Mf_wf) in to
+ * Mf_22 frequency which is used to evaluate the amp_22/phi_22 functions.
+ */
+double XLALSimIMRPhenomDHMT1(double Mf_wf, INT4 mm){
+    double T1 = 2.0 * Mf_wf / mm;
+    return T1;
+}
+
+
+/**
+ * maps/transforms the input frequency (Mf_wf) in to
+ * Mf_22 frequency which is used to evaluate the amp_22/phi_22 functions.
+ */
+double XLALSimIMRPhenomDHMT2(double Mf_wf, double Mf_1_22, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm){
+
+    /* compute predicted final spin */
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
+    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm); /* (ell, mm) ringdown frequency, geometric units */
+
+    double Mf_1_lm = Mf_1_22 * mm / 2.0; /* convert from 22 to lm using PN inspiral scaling */
+
+    double a = ( Mf_RD_22 - Mf_1_22 ) / ( Mf_RD_lm - Mf_1_lm ) ;
+    double b = 2.0 * Mf_1_lm / mm - ( a * Mf_1_lm );
+
+    double T2 = a * Mf_wf + b;
+
+    return T2;
+}
+
+/**
+ * maps/transforms the input frequency (Mf_wf) in to
+ * Mf_22 frequency which is used to evaluate the amp_22/phi_22 functions.
+ */
+double XLALSimIMRPhenomDHMT3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm){
+
+    /* compute predicted final spin */
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
+    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm); /* (ell, mm) ringdown frequency, geometric units */
+
+    double rho_lm = Mf_RD_22 / Mf_RD_lm;
+
+    double T3 = rho_lm * Mf_wf;
+    return T3;
+}
+
+/**
+ * this Ui functions multiplies the phi_22( T(flm) )
+ * as part of the similarity transformation.
+ * i.e. Ui * phi_22( Ti(f_lm )
+ */
+double XLALSimIMRPhenomDHMU1(INT4 mm){
+    double U1 = mm / 2.0;
+    return U1;
+}
+
+
+/**
+ * this Ui functions multiplies the phi_22( T(flm) )
+ * as part of the similarity transformation.
+ * i.e. Ui * phi_22( Ti(f_lm )
+ */
+double XLALSimIMRPhenomDHMU2(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm, double k1, double k2){
+
+    /* k's are the value of the specific values of phi_22 evaluated at specific mapped frequency */
+    /* k1 = phi_22( T1(Mf_1_lm) )  = phi_22( T2(Mf_1_lm) )*/
+    /* k2 = phi_22( T2(Mf_RD_lm) ) = phi_22( T3(Mf_RD_lm) )*/
+
+    /* compute predicted final spin */
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+
+    double U1 = XLALSimIMRPhenomDHMU1(mm);
+    double U3 = XLALSimIMRPhenomDHMU3(Mf_wf, eta, chi1z, chi2z, ell, mm);
+
+    double c = ( (U3 * k2) - (U1 * k1) ) / ( k2 - k1 );
+    double d = k1 * ( U1 - c );
+
+    double U2 = c * Mf_wf + d;
+    return U2;
+}
+
+/**
+ * this Ui functions multiplies the phi_22( T(flm) )
+ * as part of the similarity transformation.
+ * i.e. Ui * phi_22( Ti(f_lm )
+ */
+double XLALSimIMRPhenomDHMU3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm){
+    /* compute predicted final spin */
+    // Convention m1 >= m2
+    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+    REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    REAL8 Mf_RD_22 = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
+    REAL8 Mf_RD_lm = XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm); /* (ell, mm) ringdown frequency, geometric units */
+
+    double rho_lm = Mf_RD_22 / Mf_RD_lm;
+
+    double U3 = (1.0 / rho_lm) * Mf_wf;
+    return U3;
+}
+
+
+ /*
+  * END: similarity transformation T and U functions
+  */
+
+
+
 /**
  * XLALSimIMRPhenomDHMFreqDomainMapHM
  * Input waveform frequency in Geometric units (Mf_wf)
@@ -218,7 +357,7 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
     /* from technical notes: if AmpFlag is True */
    // if ( Mf_wf < Mf_1_lm ) {
    //     /* inspiral */
-   //     Mf_22 = XLALSimIMRPhenomDHMInspiralFreqScale( Mf_wf, mm );
+   //     Mf_22 = XLALSimIMRPhenomDHMT1( Mf_wf, mm );
    // } else if ( Mf_1_lm <= Mf_wf && Mf_wf < Mf_RD_lm  ) {
    //     /* intermediate */
    //     if ( AmpFlag==1 ) {
@@ -228,8 +367,9 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
    //     } else if ( AmpFlag==0 ) {
    //         /* For phase */
    //      //    Mf_22 = XLALSimIMRPhenomDHMChinmayCubic( Mf_wf, Mf_1_lm, Mf_RD_lm, Mf_RD_22, mm ) ;
-   //          const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
-   //          Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+   //          // const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+   //          // Mf_22 = S * ( Mf_wf - Mf_1_lm ) + Mf_1_22 ;
+   //          Mf_22 = XLALSimIMRPhenomDHMT2(Mf_wf, Mf_1_22, eta, chi1z, chi2z, ell, mm);
    //     }
    // } else if ( Mf_RD_lm <= Mf_wf ) {
    //     /* ringdown */
@@ -238,9 +378,10 @@ double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
    //         Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
    //     } else if ( AmpFlag==0 ) {
    //         /* For phase */
-   //         const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
-   //         Mf_22 = rho_lm * Mf_wf;
+   //      //    const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
+   //      //    Mf_22 = rho_lm * Mf_wf;
    //      //    Mf_22 = Mf_wf - Mf_RD_lm + Mf_RD_22 ;
+   //          Mf_22 = XLALSimIMRPhenomDHMT3(Mf_wf, eta, chi1z, chi2z, ell, mm);
    //     }
    // }
 
@@ -925,9 +1066,71 @@ static COMPLEX16 IMRPhenomDHMSingleModehlm(
 
     /* Phase conversion factors */
 
-    double m_factor = mm / 2.0;
+    /*ORIGINAL CODE - BEGIN*/
+    //double m_factor = mm / 2.0;
 
-    double HMphi = m_factor * IMRPhenDPhase(Mf_22_phi, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors);
+    //double HMphi = m_factor * IMRPhenDPhase(Mf_22_phi, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors);
+    /*ORIGINAL CODE - END*/
+
+    /* Code block for similarity transformation - BEGIN */
+    // initialise
+    REAL8 SIMSCALE = 0.0; /* scale to apply to phase */
+    REAL8 ans = 0.0;
+    /* For phase */
+    REAL8 Mf_1_22  = PHI_fJoin_INS; /* inspiral joining frequency from PhenomD [phase model], for the 22 mode */
+
+    /* FIXME: added this fudge factor so that the discontinuity in the phase derivative occurs after the peak of the phase derivative. */
+    /* FIXME PLEASE :) */
+    // REAL8 FUDGE_FACTOR = 1.3;
+    REAL8 FUDGE_FACTOR = 1.0;
+    // REAL8 FUDGE_FACTOR = 0.5; /* this looks a bit better but not best */
+    // REAL8 FUDGE_FACTOR = 0.3;
+    // REAL8 FUDGE_FACTOR = 0.1;
+
+
+    // Calculate phenomenological parameters
+    const REAL8 finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
+
+    if (finspin < MIN_FINAL_SPIN)
+          XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
+                          the model might misbehave here.", finspin);
+
+
+    REAL8 Mf_RD_22 = FUDGE_FACTOR * XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, 2, 2); /* 22 mode ringdown frequency, geometric units */
+
+    REAL8 Mf_1_lm  = Mf_1_22 * mm / 2.0; /* Convert from 22 to lm, opposite to what XLALSimIMRPhenomDHMInspiralFreqScale does */
+    REAL8 Mf_RD_lm = FUDGE_FACTOR * XLALSimIMRPhenomDHMfring(eta, chi1z, chi2z, finspin, ell, mm); /* (ell, mm) ringdown frequency, geometric units */
+
+
+    double k = IMRPhenDPhase(Mf_22_phi, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors); /* value of phase at input frequency scaled to 22 mode. */
+    double k1 = IMRPhenDPhase(Mf_1_lm, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors); /* value of phase at transition frequency 1. */
+    double k2 = IMRPhenDPhase(Mf_RD_22, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors); /* value of phase at transition frequency 2 (ringdown frequency) */
+
+
+
+    /* The following if ladder determines which frequencies get scaled in which way */
+    /* NOTE: Only works for linear map at the moment. */
+   if ( Mf < Mf_1_lm ) {
+       /* inspiral */
+       ans = XLALSimIMRPhenomDHMU1(mm) * k;
+   } else if ( Mf_1_lm <= Mf && Mf < Mf_RD_lm  ) {
+       /* intermediate */
+        const REAL8 S = (Mf_RD_22 - Mf_1_22) / (Mf_RD_lm - Mf_1_lm) ;
+        REAL8 tmpphase = IMRPhenDPhase(Mf_22_phi, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors);
+        ans = (  (tmpphase - Mf_1_22)/S ) + Mf_1_lm ;
+
+        // ans = XLALSimIMRPhenomDHMU2(Mf, eta, chi1z, chi2z, ell, mm, k1, k2) * k;
+   } else if ( Mf_RD_lm <= Mf ) {
+       /* ringdown */
+    //    const REAL8 rho_lm = Mf_RD_22 / Mf_RD_lm ;
+    //    SIMSCALE = 1.0 / rho_lm;
+    //    ans = SIMSCALE * IMRPhenDPhase(Mf_22_phi, pPhi, pn, &powers_of_Mf_22_phi, &phi_prefactors);
+
+       ans = XLALSimIMRPhenomDHMU3(Mf, eta, chi1z, chi2z, ell, mm) * k;
+   }
+
+   double HMphi = ans ;
+   /* Code block for similarity transformation - END */
 
     /* TODO: fix phase and time offsets */
 

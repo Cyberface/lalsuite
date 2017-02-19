@@ -107,6 +107,15 @@ double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 
 double XLALSimIMRPhenomDHMChinmayCubic(const REAL8 Mf_wf, const REAL8 Mf_1_lm, const REAL8 Mf_RD_lm, const REAL8 Mf_RD_22, const INT4 mm);
 
 
+/*similarity transformation functions*/
+double XLALSimIMRPhenomDHMT1(double Mf_wf, INT4 mm);
+double XLALSimIMRPhenomDHMT2(double Mf_wf, double Mf_1_22, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
+double XLALSimIMRPhenomDHMT3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
+double XLALSimIMRPhenomDHMU1(INT4 mm);
+double XLALSimIMRPhenomDHMU2(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm, double k1, double k2);
+double XLALSimIMRPhenomDHMU3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
+
+
 int XLALIMRPhenomDHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 m1_in, REAL8 m2_in, REAL8 chi1z_in, REAL8 chi2z_in, REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomDHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
 
