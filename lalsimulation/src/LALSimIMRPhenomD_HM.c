@@ -1570,6 +1570,7 @@ static COMPLEX16 IMRPhenomDHMSingleModehlm(
     // factor of m spherical harmonic mode b/c phi0 is orbital phase
     const REAL8 phi_precalc = mm*phi0 + HMphaseRef;
     const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
+    /* NOTE: I've used the Amplitude frequency scaling here because the t0 is caluclated from the amplitude function */
     double Mflm = XLALSimIMRPhenomDHMFreqDomainMap(Mf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue);
     double MfReflm = XLALSimIMRPhenomDHMFreqDomainMap(Mfref, ell, mm, eta, chi1z, chi2z, AmpFlagTrue);
     HMphase -= t0*(Mflm-MfReflm) + phi_precalc;
