@@ -23,6 +23,8 @@
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimInspiral.h>
 
+// #include <lal/LALSimIMRPhenomD_HM.h>
+
 #ifdef LAL_HDF5_ENABLED
 #include <lal/H5FileIO.h>
 #endif

@@ -16,3 +16,30 @@
  *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  *  MA  02111-1307  USA
  */
+
+
+
+// #include <LALSimIMRPhenomD_HM.c>
+
+/**
+  * Structure holding Higher Mode Phase pre-computations
+  */
+typedef struct tagHMPhasePreComp {
+ double ai;
+ double bi;
+ double a2lm;
+ double b2lm;
+ double ar;
+ double br;
+ double fi;
+ double f2lm;
+ double fr;
+ double PhDBconst;
+ double PhDCconst;
+ double PhDDconst;
+ double PhDBAterm;
+} HMPhasePreComp;
+
+
+
+int XLALSimIMRPhenomDHMPhasePreComp(struct tagHMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z);

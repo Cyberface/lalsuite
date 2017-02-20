@@ -34,7 +34,8 @@
 #include "LALSimIMRPhenomD_internals.c"
 #include "LALSimRingdownCW.c"
 
-// #include "LALSimIMRPhenomD_HM.h"
+
+#include "LALSimIMRPhenomD_HM.h"
 
 #ifndef _OPENMP
 #define omp ignore
@@ -562,7 +563,7 @@ double XLALSimIMRPhenomDHMFreqDomainMap(REAL8 Mflm,
  * Input waveform frequency in Geometric units (Mf_wf)
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
- */
+ */ //NOTE: THIS IS THE OLD FUNCTION - SK 20.2.17
 double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf_wf,
                                            const INT4 ell,
                                            const INT4 mm,
@@ -802,26 +803,7 @@ double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
 }
 
 
- /**
-   * Structure holding Higher Mode Phase pre-computations
-   */
-typedef struct tagHMPhasePreComp {
-  double ai;
-  double bi;
-  double a2lm;
-  double b2lm;
-  double ar;
-  double br;
-  double fi;
-  double f2lm;
-  double fr;
-  double PhDBconst;
-  double PhDCconst;
-  double PhDDconst;
-  double PhDBAterm;
-} HMPhasePreComp;
 
-int XLALSimIMRPhenomDHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z);
 
 int XLALSimIMRPhenomDHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z)
 {
@@ -957,7 +939,6 @@ int XLALSimIMRPhenomDHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT
     return XLAL_SUCCESS;
 
 }
-
 double XLALSimIMRPhenomDHMPhase( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm, HMPhasePreComp *q );
 
 double XLALSimIMRPhenomDHMPhase( double Mf_wf,
@@ -1042,7 +1023,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->ai;
     } else if ( q->fi < Mf_wf && Mf_wf <= q->f2lm ){
-        Mf = q->a2lm*Mf + q->b2lm;
+        Mf = q->a2lm*Mf_wf + q->b2lm;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
@@ -1053,7 +1034,7 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
         status = init_useful_powers(&powers_of_Mf2lm, Mf2lm);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf2lm failed");
         tmpphaseB = IMRPhenDPhase(Mf2lm, pPhi, pn, &powers_of_Mf2lm, &phi_prefactors, Rholm, Taulm) / q->a2lm;
-        Mf = q->a2lm*Mf + q->b2lm;
+        Mf = q->a2lm*Mf_wf + q->b2lm;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
@@ -1071,11 +1052,14 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mfr failed");
         tmpphaseC = IMRPhenDPhase(Mfr, pPhi, pn, &powers_of_Mfr, &phi_prefactors, Rholm, Taulm) / q->a2lm - q->PhDCconst + tmpphaseB - q->PhDBconst + q->PhDBAterm;;
 
-        Mf = q->ar*Mf + q->br;
+        Mf = q->ar*Mf_wf + q->br;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->ar - q->PhDDconst + tmpphaseC;
+    } else {
+        XLALPrintError("XLAL_ERROR - should not get here - in function XLALSimIMRPhenomDHMPhase");
+        XLAL_ERROR(XLAL_EDOM);
     }
 
     /* phase shift due to leading order complex amplitude
@@ -1098,10 +1082,12 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
         cShift = LAL_PI; /* -1 shift */
     } else if ( ell==6 && mm==5 ) {
         cShift = LAL_PI/2.0; /* i shift */
-    } else {
+    } /*else {
         XLALPrintError("XLAL Error (in function XLALSimIMRPhenomDHMPhase) - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
-    }
+    }*/
+    /*TODO: Need to have a list at the begining and a function to check the input
+    lm mode to see if it is one that is included in the model.*/
 
     LALFree(pPhi);
     LALFree(pn);
