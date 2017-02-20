@@ -498,21 +498,22 @@ int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     // Defne function to output map params used depending on
     // *a = 0.0;
     // *b = 0.0;
-    XLALIMRPhenomDHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    int ret = XLALIMRPhenomDHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    if (ret != XLAL_SUCCESS){
+        XLALPrintError("XLAL Error - XLALIMRPhenomDHMMapParams failed in XLALIMRPhenomDHMFreqDomainMapParams (1)\n");
+        XLAL_ERROR(XLAL_EDOM);
+    }
+
 
     REAL8 a2 = 0.0;
     REAL8 b2 = 0.0;
     REAL8 frfi = ( *fr + *fi ) / 2.0;
-    XLALIMRPhenomDHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    ret = XLALIMRPhenomDHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    if (ret != XLAL_SUCCESS){
+        XLALPrintError("XLAL Error - XLALIMRPhenomDHMMapParams failed in XLALIMRPhenomDHMFreqDomainMapParams (2)\n");
+        XLAL_ERROR(XLAL_EDOM);
+    }
     *f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
-
-
-    // *b=0.;
-    // *fi=0.;
-    // *fr=0.;
-    // *f1=0.;
-    // *f2lm=0.;
-    // printf("*a = %g\n", *a);
 
     return XLAL_SUCCESS;
 }
@@ -771,7 +772,7 @@ double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
 
     const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
-    double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
+    double Mf_22 =  XLALSimIMRPhenomDHMFreqDomainMap(Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue);
 
     UsefulPowers powers_of_Mf_22;
     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
@@ -781,7 +782,7 @@ double XLALSimIMRPhenomDHMAmplitude( double Mf_wf,
 
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
     double MfAtScale_wf = 0.0001; /* FIXME: This should be made a global variable in header. */
-    double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
+    double MfAtScale_22 = XLALSimIMRPhenomDHMFreqDomainMap( MfAtScale_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_MfAtScale_22;
     errcode = init_useful_powers(&powers_of_MfAtScale_22, MfAtScale_22);
