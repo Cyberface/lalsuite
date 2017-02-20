@@ -1014,12 +1014,13 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
     // Compute coefficients to make phase C^1 continuous (phase and first derivative)
     ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
 
-    const INT4 AmpFlagFalse = 0; /* FIXME: Could make this a global variable too */
-    double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMapHM( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
+    // const INT4 AmpFlagFalse = 0; /* FIXME: Could make this a global variable too */
+    // double Mf_22 = XLALSimIMRPhenomDHMFreqDomainMap( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
 
-    UsefulPowers powers_of_Mf_22;
-    status = init_useful_powers(&powers_of_Mf_22, Mf_22);
-    XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf_22 failed");
+
+    // UsefulPowers powers_of_Mf_22;
+    // status = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    // XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf_22 failed");
 
     /* phi_lm(f) = m * phi_22(f_22) / 2.0 */
     // double PhenDphase = mm * IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors, Rholm, Taulm) / 2.0;
