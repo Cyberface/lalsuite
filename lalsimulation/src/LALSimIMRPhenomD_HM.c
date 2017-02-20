@@ -1646,7 +1646,7 @@ static double ComputeAmpRatio(REAL8 eta, REAL8 chi1z, REAL8 chi2z, INT4 ell, INT
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
     const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
     double MfAtScale_wf_amp = 0.0001; /* FIXME: This should be made a global variable in header. */
-    double MfAtScale_22_amp = XLALSimIMRPhenomDHMFreqDomainMapHM( MfAtScale_wf_amp, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
+    double MfAtScale_22_amp = XLALSimIMRPhenomDHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, eta, chi1z, chi2z, AmpFlagTrue );
 
     UsefulPowers powers_of_MfAtScale_22_amp;
     int errcode = init_useful_powers(&powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
