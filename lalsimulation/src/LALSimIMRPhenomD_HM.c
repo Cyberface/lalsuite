@@ -812,7 +812,6 @@ typedef struct tagHMPhasePreComp {
   double ar;
   double br;
   double fi;
-  double f1;
   double f2lm;
   double fr;
   double PhDBconst;
@@ -884,7 +883,6 @@ int XLALSimIMRPhenomDHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT
 
     q->fi = fi;
     q->fr = fr;
-    q->f1 = f1;
     q->f2lm = f2lm;
 
     // Convention m1 >= m2
@@ -1078,10 +1076,35 @@ double XLALSimIMRPhenomDHMPhase( double Mf_wf,
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->ar - q->PhDDconst + tmpphaseC;
     }
 
+    /* phase shift due to leading order complex amplitude
+    Luc Blancet 1310.1528. Section 9.5
+    "Spherical hrmonic modes for numerical relativity" */
+    /*initialise answer*/
+    REAL8 cShift = 0.0;
+
+    if ( ell==2 && mm==1 ) {
+        cShift = LAL_PI/2.0; /* i shift */
+    } else if ( ell==3 && mm==3 ) {
+        cShift = -LAL_PI/2.0; /* -i shift */
+    } else if ( ell==4 && mm==4 ) {
+        cShift = LAL_PI; /* -1 shift */
+    } else if ( ell==4 && mm==3 ) {
+        cShift = -LAL_PI/2.0; /* -i shift */
+    } else if ( ell==5 && mm==5 ) {
+        cShift = LAL_PI/2.0; /* i shift */
+    } else if ( ell==5 && mm==4 ) {
+        cShift = LAL_PI; /* -1 shift */
+    } else if ( ell==6 && mm==5 ) {
+        cShift = LAL_PI/2.0; /* i shift */
+    } else {
+        XLALPrintError("XLAL Error (in function XLALSimIMRPhenomDHMPhase) - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
+        XLAL_ERROR(XLAL_EDOM);
+    }
+
     LALFree(pPhi);
     LALFree(pn);
 
-    return retphase;
+    return retphase + cShift;
 }
 
 int XLALSimIMRPhenomDHMCoreOneMode(
