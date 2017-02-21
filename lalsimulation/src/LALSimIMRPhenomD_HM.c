@@ -1216,12 +1216,14 @@ int XLALSimIMRPhenomDHMCoreOneMode(
 }
 
 /* Function to add modes for frequency-domain structures */
+/* This function was lifted from the EOBNRv2HM_ROM code */
 static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym);
 
 /********************* Function to add modes for frequency-domain structures ********************/
 
 /* Helper function to add a mode to hplus, hcross in Fourier domain
  * - copies the function XLALSimAddMode, which was done only for TD structures */
+ /* This function was lifted from the EOBNRv2HM_ROM code */
 static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym) {
   /* Deleted the definition of the string 'func': usage ? */
   COMPLEX16 Y;
