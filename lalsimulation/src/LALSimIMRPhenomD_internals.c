@@ -943,7 +943,7 @@ static double alpha5Fit(double eta, double chi) {
  * Rholm was added when IMRPhenomDHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
- * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
 static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
@@ -964,7 +964,7 @@ static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double R
  * Rholm was added when IMRPhenomDHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
- * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
 static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm) {
@@ -1292,7 +1292,7 @@ static IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double et
  * Rholm was added when IMRPhenomDHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
- * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
 static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
@@ -1340,7 +1340,7 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
  * Rholm was added when IMRPhenomDHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
- * Taulm = fDM22/fDMlm. Ratio of ringdown damping times.
+ * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
 static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
