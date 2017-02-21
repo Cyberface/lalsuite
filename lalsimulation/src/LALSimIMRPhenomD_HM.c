@@ -1556,7 +1556,10 @@ static COMPLEX16 IMRPhenomDHMSingleModehlm(
 
 /* given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
 static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M);
-static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M){
+static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf /**< geometric frequency*/,
+                                     REAL8 f_min /**< low frequency in Hz*/,
+                                     REAL8 f_max /**< end frequency in Hz*/,
+                                     REAL8 M /**< total mass (Msun)*/){
 
       const REAL8 M_sec = M * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
 
@@ -1615,9 +1618,9 @@ int XLALIMRPhenomDHMMultiModehlm(
     REAL8 m2_in,                        /**< secondary mass in SI*/
     REAL8 chi1z_in,
     REAL8 chi2z_in,
-    REAL8 deltaF,
-    REAL8 f_min,
-    REAL8 f_max,
+    REAL8 deltaF,/**< Hz */
+    REAL8 f_min,/**< Hz */
+    REAL8 f_max, /**< Hz */
     REAL8 fRef_in,  /**< reference frequency in Hz */
     REAL8 phi0, /**< reference orbital phase */
     REAL8 distance
@@ -1788,6 +1791,34 @@ int XLALIMRPhenomDHMMultiModehlm(
     return XLAL_SUCCESS;
 }
 
+int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z);
+int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
+    REAL8 chi1z_tmp, chi2z_tmp, m1_tmp, m2_tmp;
+    if (*m1>*m2) {
+       chi1z_tmp = *chi1z;
+       chi2z_tmp = *chi2z;
+       m1_tmp   = *m1;
+       m2_tmp   = *m2;
+   } else { /* swap spins and masses */
+       chi1z_tmp = *chi2z;
+       chi2z_tmp = *chi1z;
+       m1_tmp   = *m2;
+       m2_tmp   = *m1;
+    }
+    *m1 = m1_tmp;
+    *m2 = m2_tmp;
+    *chi1z = chi1z_tmp;
+    *chi2z = chi2z_tmp;
+
+    if (*m1 < *m2)
+        XLAL_ERROR(XLAL_EDOM, "XLAL_ERROR in EnforcePrimaryIsm1. When trying\
+ to enfore that m1 should be the larger mass.\
+ After trying to enforce this m1 = %f and m2 = %f\n", *m1, *m2);
+
+    return XLAL_SUCCESS;
+}
+
+
 /* This function will be a wrapper of
  * XLALIMRPhenomDHMMultiModehlm
  * It will take the
@@ -1801,13 +1832,13 @@ int XLALIMRPhenomDHMMultiModehlm(
 int XLALIMRPhenomDHMMultiModeStrain(
     COMPLEX16FrequencySeries **hptilde, /**< [out] */
     COMPLEX16FrequencySeries **hctilde, /**< [out] */
-    REAL8 m1_in,                        /**< primary mass in SI*/
-    REAL8 m2_in,                        /**< secondary mass in SI*/
-    REAL8 chi1z_in,
-    REAL8 chi2z_in,
-    REAL8 deltaF,
-    REAL8 f_min,
-    REAL8 f_max,
+    REAL8 m1,                        /**< primary mass in SI*/
+    REAL8 m2,                        /**< secondary mass in SI*/
+    REAL8 chi1z,
+    REAL8 chi2z,
+    REAL8 deltaF, /**< Hz*/
+    REAL8 f_min, /**< Hz*/
+    REAL8 f_max, /**< Hz*/
     REAL8 fRef_in, /**< reference frequency in Hz */
     REAL8 phi0,/**< reference orbital phase */
     REAL8 inclination,
@@ -1822,8 +1853,8 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /* sanity checks on input parameters */
 
-    if (m1_in <= 0) XLAL_ERROR(XLAL_EDOM, "m1_in must be positive\n");
-    if (m2_in <= 0) XLAL_ERROR(XLAL_EDOM, "m2_in must be positive\n");
+    if (m1 <= 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
+    if (m2 <= 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
 
     if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
     if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
@@ -1832,29 +1863,32 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /* FIXME: code duplication in XLALIMRPhenomDHMMultiModeStrain */
     /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
-    REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
-    if (m1_in>m2_in) {
-       chi1z = chi1z_in;
-       chi2z = chi2z_in;
-       m1_tmp   = m1_in;
-       m2_tmp   = m2_in;
-   } else { /* swap spins and masses */
-       chi1z = chi2z_in;
-       chi2z = chi1z_in;
-       m1_tmp   = m2_in;
-       m2_tmp   = m1_in;
-    }
+   //  REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
+   //  if (m1_in>m2_in) {
+   //     chi1z = chi1z_in;
+   //     chi2z = chi2z_in;
+   //     m1_tmp   = m1_in;
+   //     m2_tmp   = m2_in;
+   // } else { /* swap spins and masses */
+   //     chi1z = chi2z_in;
+   //     chi2z = chi1z_in;
+   //     m1_tmp   = m2_in;
+   //     m2_tmp   = m1_in;
+   //  }
 
-    /* external: SI; internal: solar masses */
-    const REAL8 m1 = m1_tmp / LAL_MSUN_SI;
-    const REAL8 m2 = m2_tmp / LAL_MSUN_SI;
+   /* external: SI; internal: solar masses */
+   m1 /= LAL_MSUN_SI;
+   m2 /= LAL_MSUN_SI;
+
+   int ret = EnforcePrimaryIsm1(&m1, &m2, &chi1z, &chi2z);
+   XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
 
     const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
 
     if (q > MAX_ALLOWED_MASS_RATIO)
       XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
 
-    const REAL8 M = m1 + m2;
+    const REAL8 M = m1 + m2; /* total mass (Msun) */
     const REAL8 eta = m1 * m2 / (M * M);
 
     if (eta > 0.25 || eta < 0.0)
@@ -1875,7 +1909,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     *hlms=NULL;
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModehlm */
-    int ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1_tmp, m2_tmp, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
