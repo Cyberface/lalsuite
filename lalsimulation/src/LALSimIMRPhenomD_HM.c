@@ -879,6 +879,7 @@ int XLALSimIMRPhenomDHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT
 
     const INT4 AmpFlag = 0;
 
+    /* NOTE: As long as Mfshit + f2lm isn't >= fr then the value of the shift is arbitrary. */
     const REAL8 Mfshift = 0.0001;
 
     int ret = XLALIMRPhenomDHMFreqDomainMapParams(&ai, &bi, &fi, &fr, &f1, &f2lm, Mfshift, ell, mm, eta, chi1z, chi2z, AmpFlag);
@@ -1586,7 +1587,8 @@ static COMPLEX16 IMRPhenomDHMSingleModehlm(
 }
 
 
-static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, double Mfref, double phi0, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors);
+// static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, double Mfref, double phi0, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors);
+static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, double Mfref, double phi0, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp);
 
 /*
  * This returns the hlm of a single (l,m) mode at a single frequency Mf
@@ -1599,8 +1601,8 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(
         double Mfref, /**< reference frequency in geometric units*/
         double phi0, /**< orbital reference frequency*/
         HMPhasePreComp *z,
-        IMRPhenomDAmplitudeCoefficients *pAmp,
-        AmpInsPrefactors * amp_prefactors
+        IMRPhenomDAmplitudeCoefficients *pAmp
+        // AmpInsPrefactors * amp_prefactors
 ) {
 
     /*
@@ -1612,8 +1614,25 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(
     */
 
     /*=====NEW======*/
+    // Convention m1 >= m2
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
 
-    double HMamp = XLALSimIMRPhenomDHMAmplitudeOpt( Mf, eta, chi1z, chi2z, ell, mm, pAmp, amp_prefactors );
+    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    /*compute phenomD amp and phase coefficients*/
+    // IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
+    // if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+    AmpInsPrefactors amp_prefactors;
+    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
+
+
+
+    double HMamp = XLALSimIMRPhenomDHMAmplitudeOpt( Mf, eta, chi1z, chi2z, ell, mm, pAmp, &amp_prefactors );
     // printf("Mf = %.10f ,    HMamp Opt = %.16f\n", Mf, HMamp);
     double HMphase = XLALSimIMRPhenomDHMPhase( Mf, eta, chi1z, chi2z, ell, mm, z );
 
@@ -1622,6 +1641,7 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(
     /* compute reference phase at reference frequency */
 
     // factor of m spherical harmonic mode b/c phi0 is orbital phase
+    /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
     const REAL8 phi_precalc = mm*phi0 + HMphaseRef;
     HMphase -= phi_precalc;
 
@@ -1779,6 +1799,13 @@ int XLALIMRPhenomDHMMultiModehlm(
     const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1Msun, m2Msun, chi1z, chi2z);
     if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
+    /*compute phenomD amp and phase coefficients*/
+    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
+    if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+    AmpInsPrefactors amp_prefactors;
+    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
 
@@ -1797,12 +1824,7 @@ int XLALIMRPhenomDHMMultiModehlm(
     const REAL8 MfRef = M_sec * fRef;
 
 
-    /*compute phenomD amp and phase coefficients*/
-    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
-    if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
-    AmpInsPrefactors amp_prefactors;
-    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
-    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
 
 
     /*
@@ -1874,6 +1896,7 @@ int XLALIMRPhenomDHMMultiModehlm(
 
             //optimised version
             // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp, &amp_prefactors);
+            // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
 
             // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
             (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
