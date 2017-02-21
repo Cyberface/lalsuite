@@ -1603,6 +1603,35 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
 }
 
 
+
+int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z);
+int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
+    REAL8 chi1z_tmp, chi2z_tmp, m1_tmp, m2_tmp;
+    if (*m1>*m2) {
+       chi1z_tmp = *chi1z;
+       chi2z_tmp = *chi2z;
+       m1_tmp   = *m1;
+       m2_tmp   = *m2;
+   } else { /* swap spins and masses */
+       chi1z_tmp = *chi2z;
+       chi2z_tmp = *chi1z;
+       m1_tmp   = *m2;
+       m2_tmp   = *m1;
+    }
+    *m1 = m1_tmp;
+    *m2 = m2_tmp;
+    *chi1z = chi1z_tmp;
+    *chi2z = chi2z_tmp;
+
+    if (*m1 < *m2)
+        XLAL_ERROR(XLAL_EDOM, "XLAL_ERROR in EnforcePrimaryIsm1. When trying\
+ to enfore that m1 should be the larger mass.\
+ After trying to enforce this m1 = %f and m2 = %f\n", *m1, *m2);
+
+    return XLAL_SUCCESS;
+}
+
+
 /* the goal of this function is to compute hlm for a list of modes
  * and output them in the data type
  * SphHarmFrequencySeries
@@ -1611,48 +1640,28 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
 /* NOTE: I've change the name from hlmsphharmfreqseries to hlms */
 
 
-/* NOTE: The units of this are in Mf! */
+/* NOTE: Some code duplication here because I'd like to keep this function XLAL */
 int XLALIMRPhenomDHMMultiModehlm(
     SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes with units of Mf */
-    REAL8 m1_in,                        /**< primary mass in SI*/
-    REAL8 m2_in,                        /**< secondary mass in SI*/
-    REAL8 chi1z_in,
-    REAL8 chi2z_in,
+    REAL8 m1Msun,                        /**< primary mass in Msun*/
+    REAL8 m2Msun,                        /**< secondary mass in Msun*/
+    REAL8 chi1z,
+    REAL8 chi2z,
     REAL8 deltaF,/**< Hz */
     REAL8 f_min,/**< Hz */
     REAL8 f_max, /**< Hz */
     REAL8 fRef_in,  /**< reference frequency in Hz */
     REAL8 phi0, /**< reference orbital phase */
-    REAL8 distance
+    REAL8 distance /**< distance to source in SI */
 ) {
 
+    //here masses are in Msun
+    int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
+    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
 
-    /* FIXME: code duplication in XLALIMRPhenomDHMMultiModeStrain */
-    /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
-    REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
-    if (m1_in>m2_in) {
-       chi1z = chi1z_in;
-       chi2z = chi2z_in;
-       m1_tmp   = m1_in;
-       m2_tmp   = m2_in;
-   } else { /* swap spins and masses */
-       chi1z = chi2z_in;
-       chi2z = chi1z_in;
-       m1_tmp   = m2_in;
-       m2_tmp   = m1_in;
-    }
-
-    /* external: SI; internal: solar masses */
-    const REAL8 m1 = m1_tmp / LAL_MSUN_SI;
-    const REAL8 m2 = m2_tmp / LAL_MSUN_SI;
-
-    const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
-
-    if (q > MAX_ALLOWED_MASS_RATIO)
-      XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
-
-    const REAL8 M = m1 + m2;
-    const REAL8 eta = m1 * m2 / (M * M);
+    /*Unfortunately duplication of M, eta and M_sec here and in XLALIMRPhenomDHMMultiModeStrain*/
+    const REAL8 M = m1Msun + m2Msun;
+    const REAL8 eta = m1Msun * m2Msun / (M * M);
     const REAL8 M_sec = M * LAL_MTSUN_SI;
 
     if (eta > 0.25 || eta < 0.0)
@@ -1686,7 +1695,7 @@ int XLALIMRPhenomDHMMultiModehlm(
     // }
 
     // Convention m1 >= m2
-    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
+    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1Msun, m2Msun, chi1z, chi2z);
     if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
     /* Compute the amplitude pre-factor */
@@ -1743,7 +1752,7 @@ int XLALIMRPhenomDHMMultiModehlm(
          /* compute phenomHM pre computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         int ret = XLALSimIMRPhenomDHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, finspin);
+         ret = XLALSimIMRPhenomDHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, finspin);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomDHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
@@ -1791,33 +1800,6 @@ int XLALIMRPhenomDHMMultiModehlm(
     return XLAL_SUCCESS;
 }
 
-int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z);
-int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
-    REAL8 chi1z_tmp, chi2z_tmp, m1_tmp, m2_tmp;
-    if (*m1>*m2) {
-       chi1z_tmp = *chi1z;
-       chi2z_tmp = *chi2z;
-       m1_tmp   = *m1;
-       m2_tmp   = *m2;
-   } else { /* swap spins and masses */
-       chi1z_tmp = *chi2z;
-       chi2z_tmp = *chi1z;
-       m1_tmp   = *m2;
-       m2_tmp   = *m1;
-    }
-    *m1 = m1_tmp;
-    *m2 = m2_tmp;
-    *chi1z = chi1z_tmp;
-    *chi2z = chi2z_tmp;
-
-    if (*m1 < *m2)
-        XLAL_ERROR(XLAL_EDOM, "XLAL_ERROR in EnforcePrimaryIsm1. When trying\
- to enfore that m1 should be the larger mass.\
- After trying to enforce this m1 = %f and m2 = %f\n", *m1, *m2);
-
-    return XLAL_SUCCESS;
-}
-
 
 /* This function will be a wrapper of
  * XLALIMRPhenomDHMMultiModehlm
@@ -1842,7 +1824,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     REAL8 fRef_in, /**< reference frequency in Hz */
     REAL8 phi0,/**< reference orbital phase */
     REAL8 inclination,
-    REAL8 distance
+    REAL8 distance /**< distance to source in SI */
 ) {
 
     /* define mode list */
@@ -1859,22 +1841,6 @@ int XLALIMRPhenomDHMMultiModeStrain(
     if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
     if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
     if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
-
-
-    /* FIXME: code duplication in XLALIMRPhenomDHMMultiModeStrain */
-    /* ensure that m1 is the larger mass and chi1z is the spin on m1 */
-   //  REAL8 chi1z, chi2z, m1_tmp, m2_tmp;
-   //  if (m1_in>m2_in) {
-   //     chi1z = chi1z_in;
-   //     chi2z = chi2z_in;
-   //     m1_tmp   = m1_in;
-   //     m2_tmp   = m2_in;
-   // } else { /* swap spins and masses */
-   //     chi1z = chi2z_in;
-   //     chi2z = chi1z_in;
-   //     m1_tmp   = m2_in;
-   //     m2_tmp   = m1_in;
-   //  }
 
    /* external: SI; internal: solar masses */
    m1 /= LAL_MSUN_SI;
@@ -1909,7 +1875,7 @@ int XLALIMRPhenomDHMMultiModeStrain(
     *hlms=NULL;
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModehlm */
-    ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}

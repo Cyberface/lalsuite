@@ -118,7 +118,7 @@ double XLALSimIMRPhenomDHMU2(double Mf_wf, double eta, double chi1z, double chi2
 double XLALSimIMRPhenomDHMU3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
 
 
-int XLALIMRPhenomDHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 m1_in, REAL8 m2_in, REAL8 chi1z_in, REAL8 chi2z_in, REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in, REAL8 phi0, REAL8 distance);
+int XLALIMRPhenomDHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomDHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
 
 /*Newer functions SK - 19.02.17*/
