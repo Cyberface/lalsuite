@@ -42,11 +42,11 @@
 #endif
 
 // #define NMODES_MAX 8
-// #define NMODES_MAX 5
-#define NMODES_MAX 4
+#define NMODES_MAX 5
+// #define NMODES_MAX 4
 
 /* dimensionless frequency of last data point in waveform */
-#define Mf_CUT_HM 0.4
+#define Mf_CUT_HM 0.5
 
 
 
@@ -1773,7 +1773,7 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(
     return hlm;
 }
 
-static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, double Mfref, double phi0, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm );
+static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc );
 /*
  * This returns the hlm of a single (l,m) mode at a single frequency Mf
  */
@@ -1782,8 +1782,6 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(
         int ell,
         int mm,
         double Mf,
-        double Mfref, /**< reference frequency in geometric units*/
-        double phi0, /**< orbital reference frequency*/
         HMPhasePreComp *z,
         IMRPhenomDAmplitudeCoefficients *pAmp,
         AmpInsPrefactors * amp_prefactors,
@@ -1791,7 +1789,8 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(
         IMRPhenomDPhaseCoefficients *pPhi,
         PhiInsPrefactors * phi_prefactors,
         double Rholm,
-        double Taulm
+        double Taulm,
+        double phi_precalc /**< m*phi0 + HMphaseRef*/
 ) {
 
     /*
@@ -1803,13 +1802,6 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(
     */
 
     /*=====NEW======*/
-    // Convention m1 >= m2
-    REAL8 Seta = sqrt(1.0 - 4.0*eta);
-    REAL8 m1 = 0.5 * (1.0 + Seta);
-    REAL8 m2 = 0.5 * (1.0 - Seta);
-
-    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
-    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
     /*compute phenomD amp and phase coefficients*/
     // IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
@@ -1825,13 +1817,10 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(
     // printf("Mf = %.10f ,    HMamp Opt = %.16f\n", Mf, HMamp);
     double HMphase = XLALSimIMRPhenomDHMPhaseOpt( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
-    double HMphaseRef = XLALSimIMRPhenomDHMPhaseOpt( Mfref, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
-
     /* compute reference phase at reference frequency */
 
     // factor of m spherical harmonic mode b/c phi0 is orbital phase
     /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
-    const REAL8 phi_precalc = mm*phi0 + HMphaseRef;
     HMphase -= phi_precalc;
 
     COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
@@ -2143,8 +2132,11 @@ int XLALIMRPhenomDHMMultiModehlmOpt(
 
     REAL8 f_max_prime = ComputeIMRPhenomDHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
     /* This does not work :( */
     // #define NMODES_MAX LMAX
@@ -2267,6 +2259,14 @@ int XLALIMRPhenomDHMMultiModehlmOpt(
              XLAL_ERROR(XLAL_EDOM);
          }
 
+         double HMphaseRef = XLALSimIMRPhenomDHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+
+         /* compute reference phase at reference frequency */
+
+         // factor of m spherical harmonic mode b/c phi0 is orbital phase
+         /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
+         REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+
 
          /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
          COMPLEX16FrequencySeries *hlm = NULL;
@@ -2291,7 +2291,7 @@ int XLALIMRPhenomDHMMultiModehlmOpt(
             // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
             //optimised version
-            (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt2(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm );
+            (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt2(eta, chi1z, chi2z, ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc );
             // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
 
             // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
@@ -2343,8 +2343,11 @@ int XLALIMRPhenomDHMMultiModeStrain(
     /* define mode list */
     /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
 
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+
     int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
     /* sanity checks on input parameters */
 
@@ -2388,7 +2391,8 @@ int XLALIMRPhenomDHMMultiModeStrain(
     *hlms=NULL;
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModehlm */
-    ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    // ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    ret = XLALIMRPhenomDHMMultiModehlmOpt(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
