@@ -90,43 +90,15 @@ double XLALSimIMRPhenomDChirpTime(const REAL8 m1_in, const REAL8 m2_in, const RE
 double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const REAL8 chi1_in, const REAL8 chi2_in);
 
 /* in module LALSimIMRPhenomD_HM.c */
-double XLALSimIMRPhenomDHMFreqDomainMapHM( const REAL8 Mf, const INT4 ell, const INT4 m, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const INT4 AmpFlag);
-double XLALSimIMRPhenomDHMInspiralFreqScale( const REAL8 f, const INT4 mm );
 double XLALSimIMRPhenomDHMfring(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const INT4 ell, const INT4 mm);
 double XLALSimIMRPhenomDHMfdamp(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const REAL8 finspin, const INT4 ell, const INT4 mm);
-double XLALSimIMRPhenomDHMfmaxCalc(const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const INT4 ell, const INT4 mm);
 double XLALSimIMRPhenomDHMAmplitude( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
-
-int XLALSimIMRPhenomDHMCoreOneMode(COMPLEX16FrequencySeries **hlm, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, int ell, int mm, double distance);
-// int XLALSimIMRPhenomDHM(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 m1_in, const REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination);
-// int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde);
-// SphHarmFrequencySeries* XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
-// int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(void);
-int XLALSimIMRPhenomDHMExampleRetrunSphFSerires(SphHarmFrequencySeries **hlmsphharmfreqseries);
-int XLALSimIMRPhenomDHMExampleAddMode(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 m1_in, REAL8 m2_in, double chi1z_in, double chi2z_in, double inclination, double distance);
 double XLALSimIMRPhenomDHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 double XLALSimIMRPhenomDHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
-double XLALSimIMRPhenomDHMChinmayCubic(const REAL8 Mf_wf, const REAL8 Mf_1_lm, const REAL8 Mf_RD_lm, const REAL8 Mf_RD_22, const INT4 mm);
-
-
-/*similarity transformation functions*/
-double XLALSimIMRPhenomDHMT1(double Mf_wf, INT4 mm);
-double XLALSimIMRPhenomDHMT2(double Mf_wf, double Mf_1_22, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
-double XLALSimIMRPhenomDHMT3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
-double XLALSimIMRPhenomDHMU1(INT4 mm);
-double XLALSimIMRPhenomDHMU2(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm, double k1, double k2);
-double XLALSimIMRPhenomDHMU3(double Mf_wf, double eta, double chi1z, double chi2z, INT4 ell, INT4 mm);
-
 int XLALIMRPhenomDHMMultiModehlmOpt(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
-int XLALIMRPhenomDHMMultiModeStrainOpt(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
-
-int XLALIMRPhenomDHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomDHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
-
-/*Newer functions SK - 19.02.17*/
 int XLALIMRPhenomDHMFreqDomainMapParams( REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const int AmpFlag );
 double XLALIMRPhenomDHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
-
 double XLALIMRPhenomDHMTi(REAL8 Mf, const INT4 mm);
 double XLALIMRPhenomDHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
 double XLALIMRPhenomDHMTm(REAL8 Mf, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
