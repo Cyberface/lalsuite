@@ -1654,6 +1654,71 @@ static COMPLEX16 IMRPhenomDHMSingleModehlmOpt(
     return hlm;
 }
 
+static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(REAL8 eta, REAL8 chi1z, REAL8 chi2z, int ell, int mm, double Mf, double Mfref, double phi0, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors);
+
+/*
+ * This returns the hlm of a single (l,m) mode at a single frequency Mf
+ */
+static COMPLEX16 IMRPhenomDHMSingleModehlmOpt2(
+        REAL8 eta, REAL8 chi1z, REAL8 chi2z,
+        int ell,
+        int mm,
+        double Mf,
+        double Mfref, /**< reference frequency in geometric units*/
+        double phi0, /**< orbital reference frequency*/
+        HMPhasePreComp *z,
+        IMRPhenomDAmplitudeCoefficients *pAmp,
+        AmpInsPrefactors * amp_prefactors
+) {
+
+    /*
+    * In this function we should pass the
+    * phenom model parameters and the (l,m)
+    * mode to return a given hlm, not summed
+    * with spherical harmonics.
+    * Can be evaluated at a single geometric frequency (Mf).
+    */
+
+    /*=====NEW======*/
+    // Convention m1 >= m2
+    REAL8 Seta = sqrt(1.0 - 4.0*eta);
+    REAL8 m1 = 0.5 * (1.0 + Seta);
+    REAL8 m2 = 0.5 * (1.0 - Seta);
+
+    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    /*compute phenomD amp and phase coefficients*/
+    // IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
+    // if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+    // AmpInsPrefactors amp_prefactors;
+    // int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
+
+
+
+    double HMamp = XLALSimIMRPhenomDHMAmplitudeOpt( Mf, eta, chi1z, chi2z, ell, mm, pAmp, amp_prefactors );
+    // printf("Mf = %.10f ,    HMamp Opt = %.16f\n", Mf, HMamp);
+    double HMphase = XLALSimIMRPhenomDHMPhase( Mf, eta, chi1z, chi2z, ell, mm, z );
+
+    double HMphaseRef = XLALSimIMRPhenomDHMPhase( Mfref, eta, chi1z, chi2z, ell, mm, z );
+
+    /* compute reference phase at reference frequency */
+
+    // factor of m spherical harmonic mode b/c phi0 is orbital phase
+    /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
+    const REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+    HMphase -= phi_precalc;
+
+    COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
+    // printf("Mf = %f     hlm  =  %f + i %f\nx",Mf, creal(hlm), cimag(hlm));
+
+    /*=====NEW======*/
+
+
+    return hlm;
+}
 
 /* given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
 static REAL8 ComputeIMRPhenomDHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M);
@@ -1918,6 +1983,182 @@ int XLALIMRPhenomDHMMultiModehlm(
     return XLAL_SUCCESS;
 }
 
+/* NOTE: Some code duplication here because I'd like to keep this function XLAL */
+int XLALIMRPhenomDHMMultiModehlmOpt(
+    SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes with units of Mf */
+    REAL8 m1Msun,                        /**< primary mass in Msun*/
+    REAL8 m2Msun,                        /**< secondary mass in Msun*/
+    REAL8 chi1z,
+    REAL8 chi2z,
+    REAL8 deltaF,/**< Hz */
+    REAL8 f_min,/**< Hz */
+    REAL8 f_max, /**< Hz */
+    REAL8 fRef_in,  /**< reference frequency in Hz */
+    REAL8 phi0, /**< reference orbital phase */
+    REAL8 distance /**< distance to source in SI */
+) {
+
+    //here masses are in Msun
+    int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
+    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
+
+    /*Unfortunately duplication of M, eta and M_sec here and in XLALIMRPhenomDHMMultiModeStrain*/
+    const REAL8 M = m1Msun + m2Msun;
+    const REAL8 eta = m1Msun * m2Msun / (M * M);
+    const REAL8 M_sec = M * LAL_MTSUN_SI;
+
+    if (eta > 0.25 || eta < 0.0)
+        XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
+
+    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+        XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
+
+    // if no reference frequency given, set it to the starting GW frequency
+    REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
+
+    REAL8 f_max_prime = ComputeIMRPhenomDHMfmax(Mf_CUT_HM, f_min, f_max, M);
+
+    int NMODES = NMODES_MAX;
+    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+
+    /* This does not work :( */
+    // #define NMODES_MAX LMAX
+    // int NMODES = NMODES_MAX;
+    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
+    //
+    //
+    // if ( LMAX==2 ) {
+    //     int NMODES = NMODES_MAX;
+    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
+    // } else if ( LMAX==3 ) {
+    //     int NMODES = NMODES_MAX;
+    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
+    // } else {
+    //     XLAL_ERROR(XLAL_EDOM, "LMAX = %d not supported.\n", LMAX);
+    // }
+
+    // Convention m1 >= m2
+    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1Msun, m2Msun, chi1z, chi2z);
+    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
+
+    /*compute phenomD amp and phase coefficients*/
+    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
+    if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+    AmpInsPrefactors amp_prefactors;
+    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
+    /* Compute the amplitude pre-factor */
+    const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
+
+    LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* Coalesce at t=0 */
+    // shift by overall length in time
+    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
+
+    size_t n = NextPow2(f_max_prime / deltaF) + 1;
+    /* range that will have actual non-zero waveform values generated */
+    size_t ind_min = (size_t) (f_min / deltaF);
+    size_t ind_max = (size_t) (f_max_prime / deltaF);
+    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+
+    const REAL8 MfRef = M_sec * fRef;
+
+
+
+
+
+    /*
+    * In this function we should setup
+    * all the variables that we can precompute
+    * to generate the PhenomD amplitude and phase functions
+    * We then loop over the static function 'IMRPhenomDHMSingleModehlm'
+    * to generate the modes.
+    * We then sum them up at the end.
+    */
+
+    /* Now we have all the PhenomD model parameters, which actually correspond
+     * to the (l,m)=(2,2) parameters, we can feed these into the function
+     * IMRPhenomDHMSingleModehlm to generate any mode we want. */
+
+     //TODO: Turn t0 computation into a function
+     /*NOTE: We could compute the t0 here as the time of the peak of the
+     22 mode and make that the assumtion.*/
+
+
+         /*
+         * NOTE: I'm not sure what Mf should be used for the reference time... I think it should be the scaled one. And it should come from the amplitude
+         * NOTE: I'm not sure what Mf should be used for the reference time... I think it should be the scaled one. And it should come from the amplitude
+         */
+
+     const REAL8 t0 = Computet0(eta, chi1z, chi2z, finspin);
+
+
+
+
+     for( int j=0; j<NMODES; j++ ){
+
+         int ell = ModeArray[j][0];
+         int mm = ModeArray[j][1];
+         printf("ell = %i\n",ell);
+         printf("mm = %i\n",mm);
+
+         /* compute phenomHM pre computations */
+         /* NOTE: Need to make this an input and NOT part of the frequency loop! */
+         HMPhasePreComp z;
+         ret = XLALSimIMRPhenomDHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, finspin);
+         if (ret != XLAL_SUCCESS){
+             XLALPrintError("XLAL Error - XLALSimIMRPhenomDHMPhasePreComp failed\n");
+             XLAL_ERROR(XLAL_EDOM);
+         }
+
+
+         /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
+         COMPLEX16FrequencySeries *hlm = NULL;
+         hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+         memset(hlm->data->data, 0, n * sizeof(COMPLEX16));
+
+        /* NOTE: Do I need this bit? */
+        /* XLALUnitMultiply(hlm->sampleUnits, hlm->sampleUnits, &lalSecondUnit); */
+
+         /* loop over frequency */
+         /* Now generate the waveform for a single (l,m) mode */
+         #pragma omp parallel for
+         for (size_t i = ind_min; i < ind_max; i++)
+         {
+            REAL8 Mf = M_sec * i * deltaF; /* geometric frequency */
+            /* now we can compute the hlm */
+            /* TODO: fix phase and time offsets */
+            /* TODO: inclusion of reference frequency */
+            // phi -= t0*(Mf-MfRef) + phi_precalc;
+            // ((*htilde)->data->data)[i] = amp0 * amp * cexp(-I * phi);
+            /* construct hlm at single frequency point and return */
+            // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
+
+            //optimised version
+            (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt2(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp, &amp_prefactors);
+            // (hlm->data->data)[i] = amp0 * IMRPhenomDHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
+
+            // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
+            (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
+            /*from phenomD for referene*/
+            //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
+            //  REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
+            //  phi -= t0*(Mf-MfRef) + phi_precalc;
+            //  ((*htilde)->data->data)[i] = amp0 * amp * cexp(-I * phi);
+         }
+        *hlms = XLALSphHarmFrequencySeriesAddMode(*hlms, hlm, ell, mm);
+         /* Destroy hlm in (l,m) loop */
+         XLALDestroyCOMPLEX16FrequencySeries(hlm);
+     }
+
+     LALFree(pAmp);
+    //  LALFree(pPhi);
+    //  LALFree(pn);
+
+    return XLAL_SUCCESS;
+}
 
 /* This function will be a wrapper of
  * XLALIMRPhenomDHMMultiModehlm
@@ -1994,6 +2235,132 @@ int XLALIMRPhenomDHMMultiModeStrain(
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModehlm */
     ret = XLALIMRPhenomDHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
+
+    LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* Coalesce at t=0 */
+    // shift by overall length in time
+    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
+
+    /* compute array sizes */
+    size_t n = NextPow2(f_max_prime / deltaF) + 1;
+    /* range that will have actual non-zero waveform values generated */
+    size_t ind_min = (size_t) (f_min / deltaF);
+    size_t ind_max = (size_t) (f_max_prime / deltaF);
+    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+
+    /* Allocate hptilde and hctilde */
+    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    if (!(hptilde) ) XLAL_ERROR(XLAL_EFUNC);
+    memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitDivide(&(*hptilde)->sampleUnits, &(*hptilde)->sampleUnits, &lalSecondUnit);
+
+    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+    if (!(hctilde) ) XLAL_ERROR(XLAL_EFUNC);
+    memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
+    XLALUnitDivide(&(*hctilde)->sampleUnits, &(*hctilde)->sampleUnits, &lalSecondUnit);
+
+
+    /* Adding the modes to form hplus, hcross
+     * - use of a function that copies XLALSimAddMode but for Fourier domain structures */
+    INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
+    for( int i=0; i<NMODES; i++){
+      INT4 ell = ModeArray[i][0];
+      INT4 mm = ModeArray[i][1];
+    //   printf("computing hlm for mode l=%d, m=%d\n", ell, mm); /*NOTE: Remove this*/
+      COMPLEX16FrequencySeries* hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
+      if (!(hlm)) XLAL_ERROR(XLAL_EFUNC);
+
+      if ( mm==0 ) {
+          sym = 0; /* We test for hypothetical m=0 modes */
+      } else {
+          sym = 1;
+      }
+      FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+    }
+
+    XLALDestroySphHarmFrequencySeries(*hlms);
+    XLALFree(hlms);
+
+    return XLAL_SUCCESS;
+}
+
+/* This function will be a wrapper of
+ * XLALIMRPhenomDHMMultiModehlm
+ * It will take the
+ * SphHarmFrequencySeries **hlms as inputs
+ * and compbine them with the Spherical harmonics
+ * at a given inclination angle and azimuthal angle
+ * and return the hptilde and hctilde
+ */
+ /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModeStrain */
+ /*TODO: Change name from XLALIMRPhenomDHMMultiModeStrain to XLALIMRPhenomHM */
+int XLALIMRPhenomDHMMultiModeStrainOpt(
+    COMPLEX16FrequencySeries **hptilde, /**< [out] */
+    COMPLEX16FrequencySeries **hctilde, /**< [out] */
+    REAL8 m1,                        /**< primary mass in SI*/
+    REAL8 m2,                        /**< secondary mass in SI*/
+    REAL8 chi1z,
+    REAL8 chi2z,
+    REAL8 deltaF, /**< Hz*/
+    REAL8 f_min, /**< Hz*/
+    REAL8 f_max, /**< Hz*/
+    REAL8 fRef_in, /**< reference frequency in Hz */
+    REAL8 phi0,/**< reference orbital phase */
+    REAL8 inclination,
+    REAL8 distance /**< distance to source in SI */
+) {
+
+    /* define mode list */
+    /*FIXME: this is also defined above in XLALIMRPhenomDHMMultiModehlm*/
+
+    int NMODES = NMODES_MAX;
+    int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
+
+    /* sanity checks on input parameters */
+
+    if (m1 <= 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
+    if (m2 <= 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
+
+    if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
+    if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
+    if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
+
+   /* external: SI; internal: solar masses */
+   m1 /= LAL_MSUN_SI;
+   m2 /= LAL_MSUN_SI;
+
+   int ret = EnforcePrimaryIsm1(&m1, &m2, &chi1z, &chi2z);
+   XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
+
+    const REAL8 q = (m1 > m2) ? (m1 / m2) : (m2 / m1);
+
+    if (q > MAX_ALLOWED_MASS_RATIO)
+      XLAL_PRINT_WARNING("Warning: The model is not supported for high mass ratio, see MAX_ALLOWED_MASS_RATIO\n");
+
+    const REAL8 M = m1 + m2; /* total mass (Msun) */
+    const REAL8 eta = m1 * m2 / (M * M);
+
+    if (eta > 0.25 || eta < 0.0)
+        XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
+
+    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+        XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
+
+    // if no reference frequency given, set it to the starting GW frequency
+    REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
+
+    REAL8 f_max_prime = ComputeIMRPhenomDHMfmax(Mf_CUT_HM, f_min, f_max, M);
+
+    /* evaluate XLALIMRPhenomDHMMultiModehlm */
+
+    // SphHarmFrequencySeries *hlms=NULL;
+    SphHarmFrequencySeries **hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
+    *hlms=NULL;
+
+    /*TODO: Add LALDict as an argument to XLALIMRPhenomDHMMultiModehlm */
+    ret = XLALIMRPhenomDHMMultiModehlmOpt(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomDHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
