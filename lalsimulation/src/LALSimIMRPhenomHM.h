@@ -19,7 +19,7 @@
 
 
 
-// #include <LALSimIMRPhenomD_HM.c>
+// #include <LALSimIMRPhenomHM.c>
 
 /**
   * Structure holding Higher Mode Phase pre-computations
@@ -42,4 +42,4 @@ typedef struct tagHMPhasePreComp {
 
 
 
-int XLALSimIMRPhenomDHMPhasePreComp(struct tagHMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const double finspin);
+int XLALSimIMRPhenomHMPhasePreComp(struct tagHMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const double finspin);

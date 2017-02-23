@@ -940,7 +940,7 @@ static double alpha5Fit(double eta, double chi) {
 
 /**
  * Ansatz for the merger-ringdown phase Equation 14 arXiv:1508.07253
- * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm was added when IMRPhenomHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
@@ -961,7 +961,7 @@ static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double R
 
 /**
  * First frequency derivative of PhiMRDAnsatzInt
- * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm was added when IMRPhenomHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
@@ -1289,7 +1289,7 @@ static IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double et
  * This function aligns the three phase parts (inspiral, intermediate and merger-rindown)
  * such that they are c^1 continuous at the transition frequencies
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
- * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm was added when IMRPhenomHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
@@ -1337,7 +1337,7 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
 /**
  * This function computes the IMR phase given phenom coefficients.
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
- * Rholm was added when IMRPhenomDHM (high mode) was added.
+ * Rholm was added when IMRPhenomHM (high mode) was added.
  * Rholm = fRD22/fRDlm. For PhenomD (only (l,m)=(2,2)) this is just equal
  * to 1. and PhenomD is recovered.
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.

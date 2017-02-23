@@ -58,6 +58,7 @@ pkginclude_HEADERS = \
 	LALSimBlackHoleRingdown.h \
 	LALSimBurst.h \
 	LALSimIMR.h \
+	LALSimIMRPhenomHM.h \
 	LALSimInspiral.h \
 	LALSimInspiralPrecess.h \
 	LALSimInspiralTestGRParams.h \
@@ -94,7 +95,7 @@ noinst_HEADERS = \
 	LALSimIMRPhenomD.h \
 	LALSimIMRPhenomD_internals.c \
 	LALSimIMRPhenomD_internals.h \
-	LALSimIMRPhenomD_HM.h \
+	LALSimIMRPhenomHM.h \
 	LALSimIMRPhenomP.c \
 	LALSimIMRPhenomP.h \
 	LALSimIMRSEOBNRROMUtilities.c \
@@ -146,7 +147,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimIMRPhenom.c \
 	LALSimIMRPhenomC.c \
 	LALSimIMRPhenomD.c \
-	LALSimIMRPhenomD_HM.c \
+	LALSimIMRPhenomHM.c \
 	LALSimIMRPhenomP.c \
 	LALSimIMRPSpinInspiralRD.c \
 	LALSimPhenSpinRingDown.c \
