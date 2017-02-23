@@ -45,6 +45,10 @@
 #define NMODES_MAX 5
 // #define NMODES_MAX 4
 
+static int NMODES = NMODES_MAX;
+static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+
+
 /* dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
 
@@ -1168,12 +1172,6 @@ int XLALIMRPhenomHMMultiModehlmOpt(
 
     REAL8 f_max_prime = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
-
-    int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
-
     /* This does not work :( */
     // #define NMODES_MAX LMAX
     // int NMODES = NMODES_MAX;
@@ -1375,15 +1373,6 @@ int XLALIMRPhenomHMMultiModeStrain(
     REAL8 inclination,
     REAL8 distance /**< distance to source in SI */
 ) {
-
-    /* define mode list */
-    /*FIXME: this is also defined above in XLALIMRPhenomHMMultiModehlm*/
-
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2},{3,3}, {4,4}, {5,5} };
-
-    int NMODES = NMODES_MAX;
-    int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
     /* sanity checks on input parameters */
 
