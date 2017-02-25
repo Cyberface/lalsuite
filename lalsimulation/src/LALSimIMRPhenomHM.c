@@ -1329,6 +1329,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
 
             // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
+            /* NOTE: Double check if we need an m scaling here for Mf. We don't think so. */
             (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
             /*from phenomD for referene*/
             //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
