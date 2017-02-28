@@ -1569,7 +1569,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     if (!pn) XLAL_ERROR(XLAL_EFUNC);
 
 
-    printf("pPhi->beta1 = %f\n", pPhi->beta1);
+    // printf("pPhi->beta1 = %f\n", pPhi->beta1);
 
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
@@ -1592,7 +1592,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     /*FIXME */
     /*FIXME */
 
-    printf("phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
+    // printf("phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
 
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
