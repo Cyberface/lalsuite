@@ -392,8 +392,8 @@ static double alpha2Fit(double eta, double chiPN);
 static double alpha3Fit(double eta, double chiPN);
 static double alpha4Fit(double eta, double chiPN);
 static double alpha5Fit(double eta, double chiPN);
-static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p);
-static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p);
+static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm);
+static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm);
 
 /////////////////////////// Phase: Intermediate functions ///////////////////////////
 
@@ -416,7 +416,7 @@ static double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhas
 ////////////////////////////// Phase: glueing function //////////////////////////////
 
 static IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2, double finspin, const LALSimInspiralTestGRParam *extraParams);
-static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors);
-static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors);
+static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors, double Rholm, double Taulm);
+static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors, double Rholm, double Taulm);
 
 #endif	// of #ifndef _LALSIM_IMR_PHENOMD_INTERNALS_H
