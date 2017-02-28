@@ -1044,6 +1044,15 @@ static COMPLEX16 IMRPhenomHMSingleModehlmOpt2(
     /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
     HMphase -= phi_precalc;
 
+    // Debug lines
+    // double Seta = sqrt(1.0 - 4.0*pPhi->eta);
+    // double m1 = 0.5 * (1.0 + Seta);
+    // double m2 = 0.5 * (1.0 - Seta);
+    // const REAL8 M_sec = (m1+m2) * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
+    // if ( Mf > 0.05 && Mf < 0.051 ){
+    //     printf("Mf = %.9f Hz = %f mode l = %i, m = %i       HMphase -= phi_precalc = %.9f\n", Mf, Mf/M_sec, ell, mm, HMphase);
+    // }
+
     COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
     // printf("Mf = %f     hlm  =  %f + i %f\nx",Mf, creal(hlm), cimag(hlm));
 
@@ -1220,7 +1229,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
 
-    printf("HI IM FROM WORKING FUNC phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
+    // printf("HI IM FROM WORKING FUNC phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
 
@@ -1274,8 +1283,8 @@ int XLALIMRPhenomHMMultiModehlmOpt(
 
          int ell = ModeArray[j][0];
          int mm = ModeArray[j][1];
-         printf("ell = %i\n",ell);
-         printf("mm = %i\n",mm);
+        //  printf("ell = %i\n",ell);
+        //  printf("mm = %i\n",mm);
 
          double Rholm = XLALSimIMRPhenomHMRholm(eta, chi1z, chi2z, ell, mm);
          double Taulm = XLALSimIMRPhenomHMTaulm(eta, chi1z, chi2z, ell, mm);
@@ -1299,6 +1308,9 @@ int XLALIMRPhenomHMMultiModehlmOpt(
 
          // factor of m spherical harmonic mode b/c phi0 is orbital phase
          /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
+         /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
+         to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
+         if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
          REAL8 phi_precalc = mm*phi0 + HMphaseRef;
 
 
@@ -1329,7 +1341,10 @@ int XLALIMRPhenomHMMultiModehlmOpt(
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
 
             // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
-            /* NOTE: Double check if we need an m scaling here for Mf. We don't think so. */
+            /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
+            /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
+            // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
+            // (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
             (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
             /*from phenomD for referene*/
             //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
@@ -1492,10 +1507,10 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
 
-printf(" m1Msun= %f\n",m1Msun);
-printf(" m2Msun= %f\n",m2Msun);
-printf(" chi1z= %f\n",chi1z);
-printf(" chi2z= %f\n",chi2z);
+    // printf(" m1Msun= %f\n",m1Msun);
+    // printf(" m2Msun= %f\n",m2Msun);
+    // printf(" chi1z= %f\n",chi1z);
+    // printf(" chi2z= %f\n",chi2z);
 
     /*Unfortunately duplication of M, eta and M_sec here and in XLALIMRPhenomHMMultiModeStrain*/
     const REAL8 M = m1Msun + m2Msun;
@@ -1538,7 +1553,7 @@ printf(" chi2z= %f\n",chi2z);
 
     IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
 
-    printf("pAmp->chi1 = %f\n", pAmp->chi1);
+    // printf("pAmp->chi1 = %f\n", pAmp->chi1);
 
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
@@ -1656,6 +1671,9 @@ printf(" chi2z= %f\n",chi2z);
 
      // factor of m spherical harmonic mode b/c phi0 is orbital phase
      /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
+     /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
+     to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
+     if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
      REAL8 phi_precalc = mm*phi0 + HMphaseRef;
 
     /* NOTE: Do I need this bit? */
@@ -1680,7 +1698,8 @@ printf(" chi2z= %f\n",chi2z);
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
 
         // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
-        ((*hlmtilde)->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
+        /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
+        ((*hlmtilde)->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
         /*from phenomD for referene*/
         //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
         //  REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
