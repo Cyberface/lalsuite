@@ -1205,7 +1205,7 @@ int XLALSimInspiralChooseFDWaveform(
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
             ret = XLALIMRPhenomHMMultiModeStrain(hptilde, hctilde, m1, m2,
-                  S1z, S2z, deltaF, f_min, f_max, f_ref, phiRef, inclination, distance);
+                  S1z, S2z, deltaF, f_min, f_max, f_ref, phiRef, i, r);
             if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             break;
 
