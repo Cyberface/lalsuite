@@ -1644,18 +1644,18 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
 
      const REAL8 t0 = Computet0(eta, chi1z, chi2z, finspin);
 
-     printf("ell = %i\n",ell);
-     printf("mm = %i\n",mm);
+    //  printf("ell = %i\n",ell);
+    //  printf("mm = %i\n",mm);
 
      double Rholm = XLALSimIMRPhenomHMRholm(eta, chi1z, chi2z, ell, mm);
      double Taulm = XLALSimIMRPhenomHMTaulm(eta, chi1z, chi2z, ell, mm);
 
-     printf("Rholm = %f\n",Rholm);
-     printf("Taulm = %f\n",Taulm);
+    //  printf("Rholm = %f\n",Rholm);
+    //  printf("Taulm = %f\n",Taulm);
 
      // Compute coefficients to make phase C^1 continuous (phase and first derivative)
      ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
-     printf("pPhi->C1Int = %f\n", pPhi->C1Int);
+    //  printf("pPhi->C1Int = %f\n", pPhi->C1Int);
      /* compute phenomHM pre computations */
      /* NOTE: Need to make this an input and NOT part of the frequency loop! */
      HMPhasePreComp z;
@@ -1666,7 +1666,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      }
 
      double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
-     printf("HMphaseRef = %f\n",HMphaseRef);
+    //  printf("HMphaseRef = %f\n",HMphaseRef);
      /* compute reference phase at reference frequency */
 
      // factor of m spherical harmonic mode b/c phi0 is orbital phase
