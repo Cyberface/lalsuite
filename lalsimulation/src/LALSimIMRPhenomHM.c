@@ -535,6 +535,8 @@ double XLALSimIMRPhenomHMAmplitudeOpt( double Mf_wf,
 
     double HMamp = PhenDamp * R;
 
+    // printf("Mf_wf = %f HMamp = %f\n", Mf_wf, HMamp);
+
     // LALFree(pAmp);
 
     return HMamp;
@@ -666,6 +668,8 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     status = init_useful_powers(&powers_of_PhDBAMf, PhDBAMf);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_PhDBAMf failed");
     q->PhDBAterm = IMRPhenDPhase(PhDBAMf, pPhi, pn, &powers_of_PhDBAMf, &phi_prefactors, Rholm, Taulm)/ai;
+
+    LALFree(extraParams);
 
     return XLAL_SUCCESS;
 
@@ -821,6 +825,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
 
     LALFree(pPhi);
     LALFree(pn);
+    LALFree(extraParams);
 
     return retphase;
 }
@@ -940,6 +945,8 @@ double XLALSimIMRPhenomHMPhaseOpt( double Mf_wf, /**< input frequency in geometr
 
     // LALFree(pPhi);
     // LALFree(pn);
+
+    // printf("Mf_wf = %f retphase = %f\n", Mf_wf, retphase);
 
     return retphase;
 }
@@ -1104,6 +1111,7 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
     //NOTE: All modes will have the same time offset. So we use the 22 mode.
     //If we just use the 22 mode then we pass 1.0, 1.0 into DPhiMRD.
     const REAL8 t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
+    LALFree(extraParams);
     return t0;
 }
 
@@ -1161,6 +1169,11 @@ int XLALIMRPhenomHMMultiModehlmOpt(
 
     LALDict *extraParams = NULL;
 
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+
+
     //here masses are in Msun
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
@@ -1206,10 +1219,10 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
-    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
     if (extraParams==NULL)
-    extraParams=XLALCreateDict();
+        extraParams=XLALCreateDict();
     XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams,LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
     IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
@@ -1229,7 +1242,18 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
 
+
+    // printf("HI IM FROM WORKING FUNC powers_of_pi.two_thirds = %f\n", powers_of_pi.two_thirds);
+    //
     // printf("HI IM FROM WORKING FUNC phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
+    //
+    //
+    //
+    // printf("HI IM FROM WORKING FUNC phi_prefactors.four_thirds = %f\n", phi_prefactors.four_thirds);
+    // printf("HI IM FROM WORKING FUNC phi_prefactors.two = %f\n", phi_prefactors.two);
+    // printf("HI IM FROM WORKING FUNC phi_prefactors.third = %f\n", phi_prefactors.third);
+
+
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
 
@@ -1360,6 +1384,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
      LALFree(pAmp);
      LALFree(pPhi);
      LALFree(pn);
+     LALFree(extraParams);
 
     return XLAL_SUCCESS;
 }
@@ -1710,6 +1735,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      LALFree(pAmp);
      LALFree(pPhi);
      LALFree(pn);
+     LALFree(extraParams);
 
     return XLAL_SUCCESS;
 }

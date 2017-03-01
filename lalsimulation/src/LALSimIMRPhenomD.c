@@ -272,7 +272,7 @@ static int IMRPhenomDGenerateFD(
 
   // Compute coefficients to make phase C^1 continuous (phase and first derivative)
   ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, 1.0, 1.0);
-
+  printf("HI IM FROM WORKING FUNC phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
   //time shift so that peak amplitude is approximately at t=0
   //For details see https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/WaveformsReview/IMRPhenomDCodeReview/timedomain
   const REAL8 t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
