@@ -1157,6 +1157,10 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     REAL8 distance /**< distance to source in SI */
 ) {
 
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+
     //here masses are in Msun
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
@@ -1202,7 +1206,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
-    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
     const LALSimInspiralTestGRParam *extraParams = NULL;
     IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
@@ -1500,6 +1504,11 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
                                     INT4 ell,
                                     INT4 mm){
 
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+
+
     //here masses are in Msun
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
@@ -1554,7 +1563,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
 
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
-    int errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
     const LALSimInspiralTestGRParam *extraParams = NULL;
     IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
