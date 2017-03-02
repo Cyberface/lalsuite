@@ -1305,6 +1305,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          }
 
          double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+         HMphaseRef = HMphaseRef * 0.;
 
          /* compute reference phase at reference frequency */
 
@@ -1313,7 +1314,12 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
          to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
          if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
-         REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+        //  REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+         /* NOTE: */
+         /* FIXME: */
+         /* NOTE: Quick and dirty fix to get a reference phase working.*/
+         /* NOTE: Moving the reference phase to the spherical harmonic.*/
+         REAL8 phi_precalc = phi0*0.;
 
 
          /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
@@ -1477,7 +1483,8 @@ int XLALIMRPhenomHMMultiModeStrain(
       } else {
           sym = 1;
       }
-      FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+    //   FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+    FDAddMode( *hptilde, *hctilde, hlm, inclination, phi0, ell, mm, sym); /* Added phi0 here as a quick fix for the reference phase. not sure if it should be m * phi0 or m/2*phi0 . */
     }
 
     XLALDestroySphHarmFrequencySeries(*hlms);
