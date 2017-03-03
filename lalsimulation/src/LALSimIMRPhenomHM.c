@@ -152,16 +152,19 @@ double XLALIMRPhenomHMSlopeBm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22,
 }
 
 int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, REAL8 Ai, REAL8 Bi, REAL8 Am, REAL8 Bm, REAL8 Ar, REAL8 Br){
-    // Defne function to output map params used depending on
-    if ( flm <= fi ){
+    // Define function to output map params used depending on
+    if ( flm > fi ){
+        if ( flm > fr ){
+            *a = Ar;
+            *b = Br;
+        } else {
+            *a = Am;
+            *b = Bm;
+        }
+    }
+    else {
         *a = Ai;
         *b = Bi;
-    } else if ( fi < flm && flm <= fr ){
-        *a = Am;
-        *b = Bm;
-    } else if ( fr < flm ){
-        *a = Ar;
-        *b = Br;
     };
     return XLAL_SUCCESS;
 }
