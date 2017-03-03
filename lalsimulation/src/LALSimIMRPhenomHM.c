@@ -1155,6 +1155,17 @@ int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
 }
 
 
+double ComputeReferencePhaseHelper(double fref, double phi22ref, double phiInput, double t0, INT4 mm);
+double ComputeReferencePhaseHelper(double fref, double phi22ref, double phiInput, double t0, INT4 mm){
+
+    double phi0 = -phiInput + (LAL_PI * fref * t0) - 0.5 * ( phi22ref + LAL_PI_4 );
+    // double phi0 = -phiInput + (LAL_PI * fref * t0) - 0.5 * ( phi22ref );
+    // double phi0 = -phiInput + (fref * t0/2.) - 0.5 * ( phi22ref );
+
+    return mm*phi0;
+}
+
+
 /* the goal of this function is to compute hlm for a list of modes
  * and output them in the data type
  * SphHarmFrequencySeries
@@ -1336,7 +1347,9 @@ int XLALIMRPhenomHMMultiModehlmOpt(
              XLAL_ERROR(XLAL_EDOM);
          }
 
-         double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+        //  double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+        double HMphaseRef22 = XLALSimIMRPhenomHMPhaseOpt( MfRef, 2, 2, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+        // double HMphaseRef22 = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
 
          /* compute reference phase at reference frequency */
 
@@ -1346,7 +1359,9 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
          if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
         //  REAL8 phi_precalc = mm*phi0 + HMphaseRef;
-        REAL8 phi_precalc = 0.;
+        // REAL8 phi_precalc = 0.;
+
+        REAL8 phi_precalc = -ComputeReferencePhaseHelper(MfRef, HMphaseRef22, phi0, t0, mm);
 
 
          /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
@@ -1380,7 +1395,8 @@ int XLALIMRPhenomHMMultiModehlmOpt(
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
             // (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
-            (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
+            // (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
+            (hlm->data->data)[i] *= cexp(-I * t0*Mf );
             /*from phenomD for referene*/
             //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
             //  REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
