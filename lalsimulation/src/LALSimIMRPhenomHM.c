@@ -302,15 +302,18 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     }
 
 
-    REAL8 a2 = 0.0;
-    REAL8 b2 = 0.0;
+    //REAL8 a2 = 0.0;
+    //REAL8 b2 = 0.0;
     REAL8 frfi = ( *fr + *fi ) / 2.0;
-    ret = XLALIMRPhenomHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
-    if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMFreqDomainMapParams (2)\n");
-        XLAL_ERROR(XLAL_EDOM);
-    }
-    *f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
+    //ret = XLALIMRPhenomHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    //if (ret != XLAL_SUCCESS){
+    //    XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMFreqDomainMapParams (2)\n");
+    //    XLAL_ERROR(XLAL_EDOM);
+    //}
+    //*f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
+
+    *f2lm = frfi;
+
 
     return XLAL_SUCCESS;
 }
@@ -608,6 +611,9 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->fr = fr;
     q->f2lm = f2lm;
 
+    //printf("fi = %f, f2lm = %f, fr = %f\n", fi, f2lm, fr);
+
+
     LALDict *extraParams = NULL;
 
     int status = init_useful_powers(&powers_of_pi, LAL_PI);
@@ -652,6 +658,10 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->PhDBconst = IMRPhenDPhase(PhDBMf, pPhi, pn, &powers_of_PhDBMf, &phi_prefactors, Rholm, Taulm)/a2lm;
 
     REAL8 PhDCMf = a2lm*f2lm + b2lm;
+    //printf("a2lm = %f\n", a2lm);
+    //printf("f2lm = %f\n", f2lm);
+    //printf("b2lm = %f\n", b2lm);
+    //printf("PhDCMf = %f\n", PhDCMf);
     UsefulPowers powers_of_PhDCMf;
     status = init_useful_powers(&powers_of_PhDCMf, PhDCMf);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_PhDCMf failed");
@@ -1052,13 +1062,13 @@ static COMPLEX16 IMRPhenomHMSingleModehlmOpt2(
     HMphase -= phi_precalc;
 
     // Debug lines
-    // double Seta = sqrt(1.0 - 4.0*pPhi->eta);
-    // double m1 = 0.5 * (1.0 + Seta);
-    // double m2 = 0.5 * (1.0 - Seta);
-    // const REAL8 M_sec = (m1+m2) * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
-    // if ( Mf > 0.05 && Mf < 0.051 ){
-    //     printf("Mf = %.9f Hz = %f mode l = %i, m = %i       HMphase -= phi_precalc = %.9f\n", Mf, Mf/M_sec, ell, mm, HMphase);
-    // }
+    double Seta = sqrt(1.0 - 4.0*pPhi->eta);
+    double m1 = 0.5 * (1.0 + Seta);
+    double m2 = 0.5 * (1.0 - Seta);
+    const REAL8 M_sec = (m1+m2) * LAL_MTSUN_SI; // Conversion factor Hz -> dimensionless frequency
+    if ( Mf > 0.05 && Mf < 0.051 ){
+        printf("Mf = %.9f Hz = %f mode l = %i, m = %i       HMphase -= phi_precalc = %.9f\n", Mf, Mf/M_sec, ell, mm, HMphase);
+    }
 
     COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
     // printf("Mf = %f     hlm  =  %f + i %f\nx",Mf, creal(hlm), cimag(hlm));
@@ -1335,7 +1345,8 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
          to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
          if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
-         REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+        //  REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+        REAL8 phi_precalc = 0.;
 
 
          /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
