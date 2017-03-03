@@ -302,15 +302,16 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     }
 
 
-    REAL8 a2 = 0.0;
-    REAL8 b2 = 0.0;
+    //REAL8 a2 = 0.0;
+    //REAL8 b2 = 0.0;
     REAL8 frfi = ( *fr + *fi ) / 2.0;
-    ret = XLALIMRPhenomHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
-    if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMFreqDomainMapParams (2)\n");
-        XLAL_ERROR(XLAL_EDOM);
-    }
-    *f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
+    //ret = XLALIMRPhenomHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
+    //if (ret != XLAL_SUCCESS){
+    //    XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMFreqDomainMapParams (2)\n");
+    //    XLAL_ERROR(XLAL_EDOM);
+    //}
+    //*f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
+    *f2lm = frfi;
 
     return XLAL_SUCCESS;
 }
@@ -646,6 +647,22 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->PhDBconst = IMRPhenDPhase(PhDBMf, pPhi, pn, &powers_of_PhDBMf, &phi_prefactors, Rholm, Taulm)/a2lm;
 
     REAL8 PhDCMf = a2lm*f2lm + b2lm;
+
+    if (PhDCMf < 0.){
+
+        printf("eta = %f\n", eta);
+        printf("chi1z = %f\n", chi1z);
+        printf("chi2z = %f\n", chi2z);
+        printf("ell = %i\n", ell);
+        printf("mm = %i\n", mm);
+
+        printf("a2lm = %f\n", a2lm);
+        printf("f2lm = %f\n", f2lm);
+        printf("b2lm = %f\n", b2lm);
+        printf("PhDCMf = %f\n", PhDCMf);
+
+    }
+
     UsefulPowers powers_of_PhDCMf;
     status = init_useful_powers(&powers_of_PhDCMf, PhDCMf);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_PhDCMf failed");
