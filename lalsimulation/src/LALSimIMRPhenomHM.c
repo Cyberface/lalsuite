@@ -683,6 +683,9 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_PhDBAMf failed");
     q->PhDBAterm = IMRPhenDPhase(PhDBAMf, pPhi, pn, &powers_of_PhDBAMf, &phi_prefactors, Rholm, Taulm)/ai;
 
+    LALFree(pPhi);
+    LALFree(pn);
+
     return XLAL_SUCCESS;
 
 }
@@ -1122,6 +1125,10 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
     //NOTE: All modes will have the same time offset. So we use the 22 mode.
     //If we just use the 22 mode then we pass 1.0, 1.0 into DPhiMRD.
     const REAL8 t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
+
+    LALFree(pPhi);
+    LALFree(pAmp);
+
     return t0;
 }
 
