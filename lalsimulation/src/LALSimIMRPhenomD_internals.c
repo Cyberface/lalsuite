@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
+ * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London, Francesco Pannarale
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 
 /**
- * \author Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
+ * \author Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London, Francesco Pannarale
  *
  * \file
  *
@@ -97,8 +97,8 @@ of this waveform.
 static double chiPN(double eta, double chi1, double chi2) {
   // Convention m1 >= m2 and chi1 is the spin on m1
   double delta = sqrt(1.0 - 4.0*eta);
-  double chi_s = (chi1 + chi2) / 2.0;
-  double chi_a = (chi1 - chi2) / 2.0;
+  double chi_s = 0.5*(chi1 + chi2);
+  double chi_a = 0.5*(chi1 - chi2);
   return chi_s * (1.0 - eta*76.0/113.0) + delta*chi_a;
 }
 
@@ -139,17 +139,15 @@ static bool StepFunc_boolean(const double t, const double t1) {
 static double FinalSpin0815_s(double eta, double s) {
   double eta2 = eta*eta;
   double eta3 = eta2*eta;
-  double eta4 = eta3*eta;
   double s2 = s*s;
   double s3 = s2*s;
-  double s4 = s3*s;
 
-return 3.4641016151377544*eta - 4.399247300629289*eta2 +
-   9.397292189321194*eta3 - 13.180949901606242*eta4 +
-   (1 - 0.0850917821418767*eta - 5.837029316602263*eta2)*s +
-   (0.1014665242971878*eta - 2.0967746996832157*eta2)*s2 +
-   (-1.3546806617824356*eta + 4.108962025369336*eta2)*s3 +
-   (-0.8676969352555539*eta + 2.064046835273906*eta2)*s4;
+return eta*(3.4641016151377544 - 4.399247300629289*eta +
+   9.397292189321194*eta2 - 13.180949901606242*eta3 +
+   s*((1 - 0.0850917821418767 - 5.837029316602263*eta) +
+   (0.1014665242971878 - 2.0967746996832157*eta)*s +
+   (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
+   (-0.8676969352555539 + 2.064046835273906*eta)*s3));
 }
 
 /**
@@ -174,9 +172,8 @@ static double FinalSpin0815(double eta, double chi1, double chi2) {
 static double EradRational0815_s(double eta, double s) {
   double eta2 = eta*eta;
   double eta3 = eta2*eta;
-  double eta4 = eta3*eta;
 
-  return ((0.055974469826360077*eta + 0.5809510763115132*eta2 - 0.9606726679372312*eta3 + 3.352411249771192*eta4)*
+  return (eta*(0.055974469826360077 + 0.5809510763115132*eta - 0.9606726679372312*eta2 + 3.352411249771192*eta3)*
     (1. + (-0.0030302335878845507 - 2.0066110851351073*eta + 7.7050567802399215*eta2)*s))/(1. + (-0.6714403054720589 - 1.4756929437702908*eta + 7.304676214885011*eta2)*s);
 }
 
@@ -278,9 +275,9 @@ static double rho1_fun(double eta, double chi) {
   double eta2 = eta*eta;
 
   return 3931.8979897196696 - 17395.758706812805*eta
-  + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2)*xi
-  + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi2
-  + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi3;
+  + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2
+  + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi
+  + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -288,14 +285,12 @@ static double rho1_fun(double eta, double chi) {
  */
 static double rho2_fun(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -40105.47653771657 + 112253.0169706701*eta
-  + (23561.696065836168 - 3.476180699403351e6*eta + 1.137593670849482e7*eta2)*xi
-  + (754313.1127166454 - 1.308476044625268e7*eta + 3.6444584853928134e7*eta2)*xi2
-  + (596226.612472288 - 7.4277901143564405e6*eta + 1.8928977514040343e7*eta2)*xi3;
+  + (23561.696065836168 - 3.476180699403351e6*eta + 1.137593670849482e7*eta2
+  + (754313.1127166454 - 1.308476044625268e7*eta + 3.6444584853928134e7*eta2)*xi
+  + (596226.612472288 - 7.4277901143564405e6*eta + 1.8928977514040343e7*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -303,14 +298,12 @@ static double rho2_fun(double eta, double chi) {
  */
 static double rho3_fun(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
-  return 83208.35471266537 - 191237.7264145924*eta +
-  (-210916.2454782992 + 8.71797508352568e6*eta - 2.6914942420669552e7*eta2)*xi
-  + (-1.9889806527362722e6 + 3.0888029960154563e7*eta - 8.390870279256162e7*eta2)*xi2
-  + (-1.4535031953446497e6 + 1.7063528990822166e7*eta - 4.2748659731120914e7*eta2)*xi3;
+  return 83208.35471266537 - 191237.7264145924*eta
+  + (-210916.2454782992 + 8.71797508352568e6*eta - 2.6914942420669552e7*eta2
+  + (-1.9889806527362722e6 + 3.0888029960154563e7*eta - 8.390870279256162e7*eta2)*xi
+  + (-1.4535031953446497e6 + 1.7063528990822166e7*eta - 4.2748659731120914e7*eta2)*xi*xi)*xi;
 }
 
 // The Newtonian term in LAL is fine and we should use exactly the same (either hardcoded or call).
@@ -355,22 +348,23 @@ static int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmpl
 	double Pi = LAL_PI;
 	double Pi2 = powers_of_pi.two;
 	double Seta = sqrt(1.0 - 4.0*eta);
+        double SetaPlus1 = (1.0 + Seta); 
 
 	prefactors->two_thirds = ((-969 + 1804*eta)*powers_of_pi.two_thirds)/672.;
-	prefactors->one = ((chi1*(81*(1 + Seta) - 44*eta) + chi2*(81 - 81*Seta - 44*eta))*Pi)/48.;
-	prefactors->four_thirds = (	(-27312085.0 - 10287648*chi22 - 10287648*chi12*(1 + Seta) + 10287648*chi22*Seta
+	prefactors->one = ((chi1*(81*SetaPlus1 - 44*eta) + chi2*(81 - 81*Seta - 44*eta))*Pi)/48.;
+	prefactors->four_thirds = (	(-27312085.0 - 10287648*chi22 - 10287648*chi12*SetaPlus1 + 10287648*chi22*Seta
 								 + 24*(-1975055 + 857304*chi12 - 994896*chi1*chi2 + 857304*chi22)*eta
 								 + 35371056*eta2
 								 )
 							* powers_of_pi.four_thirds) / 8.128512e6;
 	prefactors->five_thirds = (powers_of_pi.five_thirds * (chi2*(-285197*(-1 + Seta) + 4*(-91902 + 1579*Seta)*eta - 35632*eta2)
-															+ chi1*(285197*(1 + Seta) - 4*(91902 + 1579*Seta)*eta - 35632*eta2)
+															+ chi1*(285197*SetaPlus1 - 4*(91902 + 1579*Seta)*eta - 35632*eta2)
 															+ 42840*(-1.0 + 4*eta)*Pi
 															)
 								) / 32256.;
 	prefactors->two = - (Pi2*(-336*(-3248849057.0 + 2943675504*chi12 - 3339284256*chi1*chi2 + 2943675504*chi22)*eta2
 							  - 324322727232*eta3
-							  - 7*(-177520268561 + 107414046432*chi22 + 107414046432*chi12*(1 + Seta)
+							  - 7*(-177520268561 + 107414046432*chi22 + 107414046432*chi12*SetaPlus1
 									- 107414046432*chi22*Seta + 11087290368*(chi1 + chi2 + chi1*Seta - chi2*Seta)*Pi
 									)
 							  + 12*eta*(-545384828789 - 176491177632*chi1*chi2 + 202603761360*chi22
@@ -406,17 +400,18 @@ static double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double Pi = LAL_PI;
   double Pi2 = powers_of_pi.two;
   double Seta = sqrt(1.0 - 4.0*eta);
+  double SetaPlus1 = (1.0 + Seta); 
 
    return ((-969 + 1804*eta)*pow(Pi,2.0/3.0))/(1008.*pow(Mf,1.0/3.0))
-   + ((chi1*(81*(1 + Seta) - 44*eta) + chi2*(81 - 81*Seta - 44*eta))*Pi)/48.
-   + ((-27312085 - 10287648*chi22 - 10287648*chi12*(1 + Seta)
+   + ((chi1*(81*SetaPlus1 - 44*eta) + chi2*(81 - 81*Seta - 44*eta))*Pi)/48.
+   + ((-27312085 - 10287648*chi22 - 10287648*chi12*SetaPlus1
    + 10287648*chi22*Seta + 24*(-1975055 + 857304*chi12 - 994896*chi1*chi2 + 857304*chi22)*eta
    + 35371056*eta2)*pow(Mf,1.0/3.0)*pow(Pi,4.0/3.0))/6.096384e6
    + (5*pow(Mf,2.0/3.0)*pow(Pi,5.0/3.0)*(chi2*(-285197*(-1 + Seta)
-   + 4*(-91902 + 1579*Seta)*eta - 35632*eta2) + chi1*(285197*(1 + Seta)
+   + 4*(-91902 + 1579*Seta)*eta - 35632*eta2) + chi1*(285197*SetaPlus1
    - 4*(91902 + 1579*Seta)*eta - 35632*eta2) + 42840*(-1 + 4*eta)*Pi))/96768.
    - (Mf*Pi2*(-336*(-3248849057.0 + 2943675504*chi12 - 3339284256*chi1*chi2 + 2943675504*chi22)*eta2 - 324322727232*eta3
-   - 7*(-177520268561 + 107414046432*chi22 + 107414046432*chi12*(1 + Seta) - 107414046432*chi22*Seta
+   - 7*(-177520268561 + 107414046432*chi22 + 107414046432*chi12*SetaPlus1 - 107414046432*chi22*Seta
    + 11087290368*(chi1 + chi2 + chi1*Seta - chi2*Seta)*Pi)
    + 12*eta*(-545384828789.0 - 176491177632*chi1*chi2 + 202603761360*chi22 + 77616*chi12*(2610335 + 995766*Seta)
    - 77287373856*chi22*Seta + 5841690624*(chi1 + chi2)*Pi + 21384760320*Pi2)))/3.0042980352e10
@@ -433,14 +428,12 @@ static double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
  */
 static double gamma1_fun(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 0.006927402739328343 + 0.03020474290328911*eta
-  + (0.006308024337706171 - 0.12074130661131138*eta + 0.26271598905781324*eta2)*xi
-  + (0.0034151773647198794 - 0.10779338611188374*eta + 0.27098966966891747*eta2)*xi2
-  + (0.0007374185938559283 - 0.02749621038376281*eta + 0.0733150789135702*eta2)*xi3;
+  + (0.006308024337706171 - 0.12074130661131138*eta + 0.26271598905781324*eta2
+  + (0.0034151773647198794 - 0.10779338611188374*eta + 0.27098966966891747*eta2)*xi
+  + (0.0007374185938559283 - 0.02749621038376281*eta + 0.0733150789135702*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -448,14 +441,12 @@ static double gamma1_fun(double eta, double chi) {
  */
 static double gamma2_fun(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 1.010344404799477 + 0.0008993122007234548*eta
-  + (0.283949116804459 - 4.049752962958005*eta + 13.207828172665366*eta2)*xi
-  + (0.10396278486805426 - 7.025059158961947*eta + 24.784892370130475*eta2)*xi2
-  + (0.03093202475605892 - 2.6924023896851663*eta + 9.609374464684983*eta2)*xi3;
+  + (0.283949116804459 - 4.049752962958005*eta + 13.207828172665366*eta2
+  + (0.10396278486805426 - 7.025059158961947*eta + 24.784892370130475*eta2)*xi
+  + (0.03093202475605892 - 2.6924023896851663*eta + 9.609374464684983*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -463,14 +454,12 @@ static double gamma2_fun(double eta, double chi) {
  */
 static double gamma3_fun(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 1.3081615607036106 - 0.005537729694807678*eta
-  + (-0.06782917938621007 - 0.6689834970767117*eta + 3.403147966134083*eta2)*xi
-  + (-0.05296577374411866 - 0.9923793203111362*eta + 4.820681208409587*eta2)*xi2
-  + (-0.006134139870393713 - 0.38429253308696365*eta + 1.7561754421985984*eta2)*xi3;
+  + (-0.06782917938621007 - 0.6689834970767117*eta + 3.403147966134083*eta2
+  + (-0.05296577374411866 - 0.9923793203111362*eta + 4.820681208409587*eta2)*xi
+  + (-0.006134139870393713 - 0.38429253308696365*eta + 1.7561754421985984*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -537,9 +526,7 @@ static double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p) {
  */
 static double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double Mf2 = Mf*Mf;
-  double Mf3 = Mf*Mf2;
-  double Mf4 = Mf*Mf3;
-  return p->delta0 + p->delta1*Mf + p->delta2*Mf2 + p->delta3*Mf3 + p->delta4*Mf4;
+  return p->delta0 + Mf*p->delta1 + Mf2*(p->delta2 + Mf*p->delta3 + p->delta4*Mf2);
 }
 
 /**
@@ -548,14 +535,12 @@ static double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
  */
 static double AmpIntColFitCoeff(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 0.8149838730507785 + 2.5747553517454658*eta
-  + (1.1610198035496786 - 2.3627771785551537*eta + 6.771038707057573*eta2)*xi
-  + (0.7570782938606834 - 2.7256896890432474*eta + 7.1140380397149965*eta2)*xi2
-  + (0.1766934149293479 - 0.7978690983168183*eta + 2.1162391502005153*eta2)*xi3;
+  + (1.1610198035496786 - 2.3627771785551537*eta + 6.771038707057573*eta2
+  + (0.7570782938606834 - 2.7256896890432474*eta + 7.1140380397149965*eta2)*xi
+  + (0.1766934149293479 - 0.7978690983168183*eta + 2.1162391502005153*eta2)*xi*xi)*xi;
 }
 
   /**
@@ -728,7 +713,7 @@ static void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
   // Three evenly spaced collocation points in the interval [f1,f3].
   double f1 = AMP_fJoin_INS;
   double f3 = p->fmaxCalc;
-  double dfx = (f3 - f1)/2.0;
+  double dfx = 0.5*(f3 - f1);
   double f2 = f1 + dfx;
 
   UsefulPowers powers_of_f1;
@@ -868,14 +853,12 @@ static double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, Us
  */
 static double alpha1Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 43.31514709695348 + 638.6332679188081*eta
-    + (-32.85768747216059 + 2415.8938269370315*eta - 5766.875169379177*eta2)*xi
-    + (-61.85459307173841 + 2953.967762459948*eta - 8986.29057591497*eta2)*xi2
-    + (-21.571435779762044 + 981.2158224673428*eta - 3239.5664895930286*eta2)*xi3;
+    + (-32.85768747216059 + 2415.8938269370315*eta - 5766.875169379177*eta2
+    + (-61.85459307173841 + 2953.967762459948*eta - 8986.29057591497*eta2)*xi
+    + (-21.571435779762044 + 981.2158224673428*eta - 3239.5664895930286*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -883,14 +866,12 @@ static double alpha1Fit(double eta, double chi) {
  */
 static double alpha2Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -0.07020209449091723 - 0.16269798450687084*eta
-  + (-0.1872514685185499 + 1.138313650449945*eta - 2.8334196304430046*eta2)*xi
-  + (-0.17137955686840617 + 1.7197549338119527*eta - 4.539717148261272*eta2)*xi2
-  + (-0.049983437357548705 + 0.6062072055948309*eta - 1.682769616644546*eta2)*xi3;
+  + (-0.1872514685185499 + 1.138313650449945*eta - 2.8334196304430046*eta2
+  + (-0.17137955686840617 + 1.7197549338119527*eta - 4.539717148261272*eta2)*xi
+  + (-0.049983437357548705 + 0.6062072055948309*eta - 1.682769616644546*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -898,14 +879,12 @@ static double alpha2Fit(double eta, double chi) {
  */
 static double alpha3Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 9.5988072383479 - 397.05438595557433*eta
-  + (16.202126189517813 - 1574.8286986717037*eta + 3600.3410843831093*eta2)*xi
-  + (27.092429659075467 - 1786.482357315139*eta + 5152.919378666511*eta2)*xi2
-  + (11.175710130033895 - 577.7999423177481*eta + 1808.730762932043*eta2)*xi3;
+  + (16.202126189517813 - 1574.8286986717037*eta + 3600.3410843831093*eta2
+  + (27.092429659075467 - 1786.482357315139*eta + 5152.919378666511*eta2)*xi
+  + (11.175710130033895 - 577.7999423177481*eta + 1808.730762932043*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -913,14 +892,12 @@ static double alpha3Fit(double eta, double chi) {
  */
 static double alpha4Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -0.02989487384493607 + 1.4022106448583738*eta
-  + (-0.07356049468633846 + 0.8337006542278661*eta + 0.2240008282397391*eta2)*xi
-  + (-0.055202870001177226 + 0.5667186343606578*eta + 0.7186931973380503*eta2)*xi2
-  + (-0.015507437354325743 + 0.15750322779277187*eta + 0.21076815715176228*eta2)*xi3;
+  + (-0.07356049468633846 + 0.8337006542278661*eta + 0.2240008282397391*eta2
+  + (-0.055202870001177226 + 0.5667186343606578*eta + 0.7186931973380503*eta2)*xi
+  + (-0.015507437354325743 + 0.15750322779277187*eta + 0.21076815715176228*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -928,14 +905,12 @@ static double alpha4Fit(double eta, double chi) {
  */
 static double alpha5Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 0.9974408278363099 - 0.007884449714907203*eta
-  + (-0.059046901195591035 + 1.3958712396764088*eta - 4.516631601676276*eta2)*xi
-  + (-0.05585343136869692 + 1.7516580039343603*eta - 5.990208965347804*eta2)*xi2
-  + (-0.017945336522161195 + 0.5965097794825992*eta - 2.0608879367971804*eta2)*xi3;
+  + (-0.059046901195591035 + 1.3958712396764088*eta - 4.516631601676276*eta2
+  + (-0.05585343136869692 + 1.7516580039343603*eta - 5.990208965347804*eta2)*xi
+  + (-0.017945336522161195 + 0.5965097794825992*eta - 2.0608879367971804*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -985,14 +960,12 @@ static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, do
  */
 static double beta1Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 97.89747327985583 - 42.659730877489224*eta
-  + (153.48421037904913 - 1417.0620760768954*eta + 2752.8614143665027*eta2)*xi
-  + (138.7406469558649 - 1433.6585075135881*eta + 2857.7418952430758*eta2)*xi2
-  + (41.025109467376126 - 423.680737974639*eta + 850.3594335657173*eta2)*xi3;
+  + (153.48421037904913 - 1417.0620760768954*eta + 2752.8614143665027*eta2
+  + (138.7406469558649 - 1433.6585075135881*eta + 2857.7418952430758*eta2)*xi
+  + (41.025109467376126 - 423.680737974639*eta + 850.3594335657173*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1000,14 +973,12 @@ static double beta1Fit(double eta, double chi) {
  */
 static double beta2Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -3.282701958759534 - 9.051384468245866*eta
-  + (-12.415449742258042 + 55.4716447709787*eta - 106.05109938966335*eta2)*xi
-  + (-11.953044553690658 + 76.80704618365418*eta - 155.33172948098394*eta2)*xi2
-  + (-3.4129261592393263 + 25.572377569952536*eta - 54.408036707740465*eta2)*xi3;
+  + (-12.415449742258042 + 55.4716447709787*eta - 106.05109938966335*eta2
+  + (-11.953044553690658 + 76.80704618365418*eta - 155.33172948098394*eta2)*xi
+  + (-3.4129261592393263 + 25.572377569952536*eta - 54.408036707740465*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1015,14 +986,12 @@ static double beta2Fit(double eta, double chi) {
  */
 static double beta3Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -0.000025156429818799565 + 0.000019750256942201327*eta
-  + (-0.000018370671469295915 + 0.000021886317041311973*eta + 0.00008250240316860033*eta2)*xi
-  + (7.157371250566708e-6 - 0.000055780000112270685*eta + 0.00019142082884072178*eta2)*xi2
-  + (5.447166261464217e-6 - 0.00003220610095021982*eta + 0.00007974016714984341*eta2)*xi3;
+  + (-0.000018370671469295915 + 0.000021886317041311973*eta + 0.00008250240316860033*eta2
+  + (7.157371250566708e-6 - 0.000055780000112270685*eta + 0.00019142082884072178*eta2)*xi
+  + (5.447166261464217e-6 - 0.00003220610095021982*eta + 0.00007974016714984341*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1067,14 +1036,12 @@ static double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
  */
 static double sigma1Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 2096.551999295543 + 1463.7493168261553*eta
-  + (1312.5493286098522 + 18307.330017082117*eta - 43534.1440746107*eta2)*xi
-  + (-833.2889543511114 + 32047.31997183187*eta - 108609.45037520859*eta2)*xi2
-  + (452.25136398112204 + 8353.439546391714*eta - 44531.3250037322*eta2)*xi3;
+  + (1312.5493286098522 + 18307.330017082117*eta - 43534.1440746107*eta2
+  + (-833.2889543511114 + 32047.31997183187*eta - 108609.45037520859*eta2)*xi
+  + (452.25136398112204 + 8353.439546391714*eta - 44531.3250037322*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1082,14 +1049,12 @@ static double sigma1Fit(double eta, double chi) {
  */
 static double sigma2Fit(double eta, double chi) {
   double xi = -1 + chi;
-  double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -10114.056472621156 - 44631.01109458185*eta
-  + (-6541.308761668722 - 266959.23419307504*eta + 686328.3229317984*eta2)*xi
-  + (3405.6372187679685 - 437507.7208209015*eta + 1.6318171307344697e6*eta2)*xi2
-  + (-7462.648563007646 - 114585.25177153319*eta + 674402.4689098676*eta2)*xi3;
+  + (-6541.308761668722 - 266959.23419307504*eta + 686328.3229317984*eta2
+  + (3405.6372187679685 - 437507.7208209015*eta + 1.6318171307344697e6*eta2)*xi
+  + (-7462.648563007646 - 114585.25177153319*eta + 674402.4689098676*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1102,9 +1067,9 @@ static double sigma3Fit(double eta, double chi) {
   double eta2 = eta*eta;
 
   return 22933.658273436497 + 230960.00814979506*eta
-  + (14961.083974183695 + 1.1940181342318142e6*eta - 3.1042239693052764e6*eta2)*xi
-  + (-3038.166617199259 + 1.8720322849093592e6*eta - 7.309145012085539e6*eta2)*xi2
-  + (42738.22871475411 + 467502.018616601*eta - 3.064853498512499e6*eta2)*xi3;
+  + (14961.083974183695 + 1.1940181342318142e6*eta - 3.1042239693052764e6*eta2
+  + (-3038.166617199259 + 1.8720322849093592e6*eta - 7.309145012085539e6*eta2)*xi
+  + (42738.22871475411 + 467502.018616601*eta - 3.064853498512499e6*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1117,9 +1082,9 @@ static double sigma4Fit(double eta, double chi) {
   double eta2 = eta*eta;
 
   return -14621.71522218357 - 377812.8579387104*eta
-  + (-9608.682631509726 - 1.7108925257214056e6*eta + 4.332924601416521e6*eta2)*xi
-  + (-22366.683262266528 - 2.5019716386377467e6*eta + 1.0274495902259542e7*eta2)*xi2
-  + (-85360.30079034246 - 570025.3441737515*eta + 4.396844346849777e6*eta2)*xi3;
+  + (-9608.682631509726 - 1.7108925257214056e6*eta + 4.332924601416521e6*eta2
+  + (-22366.683262266528 - 2.5019716386377467e6*eta + 1.0274495902259542e7*eta2)*xi
+  + (-85360.30079034246 - 570025.3441737515*eta + 4.396844346849777e6*eta2)*xi*xi)*xi;
 }
 
 /**
@@ -1346,13 +1311,12 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
+static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
   // The inspiral, intermendiate and merger-ringdown phase parts
 
   // split the calculation to just 1 of 3 possible mutually exclusive ranges
-
   if (!StepFunc_boolean(f, p->fInsJoin))	// Inspiral range
   {
 	  double PhiIns = PhiInsAnsatzInt(f, powers_of_f, prefactors, p, pn);
