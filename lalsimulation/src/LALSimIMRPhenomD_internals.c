@@ -1096,7 +1096,7 @@ static double sigma4Fit(double eta, double chi) {
  */
 static double PhiInsAnsatzInt(double Mf, UsefulPowers * powers_of_Mf, PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
 {
-	XLAL_CHECK(0 != pn, XLAL_EFAULT, "pn is NULL");
+  XLAL_CHECK(0 != pn, XLAL_EFAULT, "pn is NULL");
 
   // Assemble PN phasing series
   const double v = powers_of_Mf->third * powers_of_pi.third;
@@ -1104,7 +1104,7 @@ static double PhiInsAnsatzInt(double Mf, UsefulPowers * powers_of_Mf, PhiInsPref
 
   double phasing = prefactors->initial_phasing;
 
-  phasing += prefactors->two_thirds	* powers_of_Mf->two_thirds;
+  phasing += prefactors->two_thirds * powers_of_Mf->two_thirds;
   phasing += prefactors->third * powers_of_Mf->third;
   phasing += prefactors->third_with_logv * logv * powers_of_Mf->third;
   phasing += prefactors->logv * logv;
