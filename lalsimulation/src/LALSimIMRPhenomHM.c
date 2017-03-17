@@ -586,6 +586,10 @@ static double ComputeAmpRatio(REAL8 eta, REAL8 chi1z, REAL8 chi2z, INT4 ell, INT
     int errcode = init_useful_powers(&powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22_amp");
 
+    UsefulMfPowers more_powers_of_MfAtScale_22_amp;
+    errcode = init_useful_mf_powers(&more_powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_mf_powers failed for MfAtScale_22_amp");
+
     /* see technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( MfAtScale_wf_amp, eta, ell, mm );
     double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(MfAtScale_22_amp, ell, mm) * IMRPhenDAmplitude(MfAtScale_22_amp, pAmp, &powers_of_MfAtScale_22_amp, &amp_prefactors);
@@ -660,7 +664,8 @@ double XLALSimIMRPhenomHMAmplitudeOpt( double Mf_wf,
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue);
 
     UsefulPowers powers_of_Mf_22;
-    int errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
@@ -1014,19 +1019,19 @@ double XLALSimIMRPhenomHMPhaseOpt( double Mf_wf, /**< input frequency in geometr
 
     // This if ladder is in the mathematica function HMPhase. PhenomHMDev.nb
 
-    if ( Mf_wf <= q->fi ){
+    if ( !(Mf_wf > q->fi) ){
         Mf = q->ai * Mf_wf + q->bi;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, phi_prefactors, Rholm, Taulm) / q->ai;
-    } else if ( q->fi < Mf_wf && Mf_wf <= q->f2lm ){
+    } else if ( !(Mf_wf > q->f2lm) ){
         Mf = q->a2lm*Mf_wf + q->b2lm;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, phi_prefactors, Rholm, Taulm) / q->a2lm - q->PhDBconst + q->PhDBAterm;
-    } else if ( q->f2lm < Mf_wf && Mf_wf <= q->fr ){
+    } else if ( !(Mf_wf > q->fr) ){
         Mf2lm = q->a2lm*q->f2lm + q->b2lm;
         UsefulPowers powers_of_Mf2lm;
         status = init_useful_powers(&powers_of_Mf2lm, Mf2lm);
@@ -1326,6 +1331,9 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
 
+    PhenomDStorage PhenomDQuantities;
+    errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
     /*Unfortunately duplication of M, eta and M_sec here and in XLALIMRPhenomHMMultiModeStrain*/
     const REAL8 M = m1Msun + m2Msun;
     const REAL8 eta = m1Msun * m2Msun / (M * M);
@@ -1363,7 +1371,6 @@ int XLALIMRPhenomHMMultiModehlmOpt(
     if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
     /*compute phenomD amp and phase coefficients*/
-
     IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
     AmpInsPrefactors amp_prefactors;
@@ -1599,13 +1606,14 @@ int XLALIMRPhenomHMMultiModeStrain(
 
     /* Coalesce at t=0 */
     // shift by overall length in time
-    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
+    REAL8 InvDeltaF = 1./deltaF;
+    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, - InvDeltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
 
     /* compute array sizes */
-    size_t n = NextPow2(f_max_prime / deltaF) + 1;
+    size_t n = NextPow2(f_max_prime * InvDeltaF) + 1;
     /* range that will have actual non-zero waveform values generated */
-    size_t ind_min = (size_t) (f_min / deltaF);
-    size_t ind_max = (size_t) (f_max_prime / deltaF);
+    size_t ind_min = (size_t) (f_min * InvDeltaF);
+    size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
     XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     /* Allocate hptilde and hctilde */
@@ -1688,6 +1696,9 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
+    PhenomDStorage PhenomDQuantities;
+    ret = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
+    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "init_PhenomD_Storage failed");
     // if no reference frequency given, set it to the starting GW frequency
     REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
 
