@@ -74,8 +74,7 @@ int init_useful_mf_powers(UsefulMfPowers * p, REAL8 number)
 
 int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, const REAL8 chi1z, const REAL8 chi2z)
 {
-	//XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
-	//XLAL_CHECK(number >= 0 , XLAL_EDOM, "number must be non-negative");
+  XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
 
   REAL8 M = m1+m2;
   REAL8 eta = m1*m2/(M*M);
@@ -162,29 +161,6 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   return XLAL_SUCCESS;
 }
 
-/*
- * Return real part of the ringdown frequency computed via Lionel's QNM higher mode fits
- */
-double XLALSimIMRPhenomHMfring( const INT4 ell,     /**< ell mode */
-                                const INT4 mm,      /**< m mode */
-                                PhenomDStorage* PhenomDQuantities /* Stores quantities in order to calculate them only once */
-                            )
-{
-		return PhenomDQuantities->PhenomHMfring[ell][mm];
-}
-/*
- * Return imaginary part of the ringdown frequency computed via Lionel's QNM higher mode fits
- */
-double XLALSimIMRPhenomHMfdamp( const INT4 ell,     /**< ell mode */
-                                const INT4 mm,      /**< m mode */
-                                PhenomDStorage* PhenomDQuantities /* Stores quantities in order to calculate them only once */
-                            )
-{
-		return PhenomDQuantities->PhenomHMfdamp[ell][mm];
-}
-
-
-
 /* START: newer functions  */
 
 //mathematica function postfRDflm
@@ -195,7 +171,7 @@ double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const
         ans = Mf-Mf_RD_lm+Mf_RD_22; /*Used for the Amplitude as an approx fix for post merger powerlaw slope */
     } else {
         /* For phase */
-        REAL8 Rholm = PhenomDQuantities->Rholm[ell][mm]; //Mf_RD_22/Mf_RD_lm; //FIXME
+        REAL8 Rholm = PhenomDQuantities->Rholm[ell][mm];
         ans = Rholm * Mf;          /* Used for the Phase */
     }
 
@@ -214,28 +190,15 @@ double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 A
     return XLALIMRPhenomHMpostfRDflm(Mf, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, PhenomDQuantities);
 }
 
-// mathematica function Tm
-// domain mapping function - intermediate
-//double XLALIMRPhenomHMTm(REAL8 Mf, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag){//
-//    REAL8 Trd = XLALIMRPhenomHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
-//    REAL8 Ti = XLALIMRPhenomHMTi(fi, mm);
-//    return (Mf - fi) * ( Trd - Ti )/( fr - fi ) + Ti;
-//}
-
-//FP: NEXT 2 FUNCS CAN BE COMBINED
-double XLALIMRPhenomHMSlopeAm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities){
-    //Am = ( Trd[fr]-Ti[fi] )/( fr - fi );
+void XLALIMRPhenomHMSlopeAmAndBm(double *Am, double *Bm, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities){
     REAL8 Trd = XLALIMRPhenomHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, PhenomDQuantities);
     REAL8 Ti = XLALIMRPhenomHMTi(fi, mm);
 
-    return ( Trd-Ti )/( fr - fi );
-}
+    //Am = ( Trd[fr]-Ti[fi] )/( fr - fi );
+    *Am = ( Trd-Ti )/( fr - fi );
 
-double XLALIMRPhenomHMSlopeBm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities){
     //Bm = Ti[fi] - fi*Am;
-    REAL8 Ti = XLALIMRPhenomHMTi(fi, mm);
-    REAL8 Am = XLALIMRPhenomHMSlopeAm(mm, fi, fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, PhenomDQuantities);
-    return Ti - fi*Am;
+    *Bm = Ti - fi*(*Am);
 }
 
 int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, REAL8 Ai, REAL8 Bi, REAL8 Am, REAL8 Bm, REAL8 Ar, REAL8 Br){
@@ -255,27 +218,6 @@ int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, 
     };
     return XLAL_SUCCESS;
 }
-
-/**
- * XLALSimIMRPhenomHMRholm = MfRD22/MfRDlm.
- * Ratio of the (l,m)=(2,2) ringdown frequency to input (l.m) mode.
- */
-//double XLALSimIMRPhenomHMRholm(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
-//    //REAL8 Mf_RD_lm = XLALSimIMRPhenomHMfring(ell, mm, PhenomDQuantities);
-//    REAL8 Rholm = PhenomDQuantities->Rholm[ell][mm];
-//    return Rholm;
-//}
-
-/**
- * XLALSimIMRPhenomHMTaulm = MfDMlm/MfDM22.
- * Ratio of the input (l.m) mode ringdown damping time to (l,m)=(2,2).
- */
-//double XLALSimIMRPhenomHMTaulm(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
-//    //REAL8 Mf_DM_lm = XLALSimIMRPhenomHMfdamp(ell, mm, PhenomDQuantities);
-//    //REAL8 Taulm = PhenomDQuantities->PhenomHMfdamp[ell][mm]/PhenomDQuantities->Mf_DM_22;
-//    REAL8 Taulm = PhenomDQuantities->Taulm[ell][mm];
-//    return Taulm;
-//}
 
 int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
                                         REAL8 *b,/**< [Out]  */
@@ -299,7 +241,6 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     XLAL_CHECK(f2lm != NULL, XLAL_EFAULT);
 
     // Account for different f1 definition between PhenomD Amplitude and Phase derivative models
-    // initialise
     REAL8 Mf_1_22  = 0.; /* initalise variable */
     if ( AmpFlag==1 ) {
         /* For amplitude */
@@ -311,8 +252,8 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
 
     *f1 = Mf_1_22;
 
-    REAL8 Mf_RD_22 = PhenomDQuantities->Mf_RD_22; //XLALSimIMRPhenomHMfring(2, 2, PhenomDQuantities); /* 22 mode ringdown frequency (real part of ringdown), geometric units */
-    REAL8 Mf_RD_lm = PhenomDQuantities->PhenomHMfring[ell][mm]; //XLALSimIMRPhenomHMfring(ell, mm, PhenomDQuantities);
+    REAL8 Mf_RD_22 = PhenomDQuantities->Mf_RD_22;
+    REAL8 Mf_RD_lm = PhenomDQuantities->PhenomHMfring[ell][mm];
 
     // Define a ratio of QNM frequencies to be used for scaling various quantities
     REAL8 Rholm = PhenomDQuantities->Rholm[ell][mm];
@@ -320,24 +261,16 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
     // Given experiments with the l!=m modes, it appears that the QNM scaling rather than the PN scaling may be optimal for mapping f1
     REAL8 Mf_1_lm = Mf_1_22 / Rholm;
 
-    // (* Handle cases for post-f3 mapping *)
-    // REAL8 postfRDflm = XLALIMRPhenomHMpostfRDflm(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
-
     /* Define transition frequencies */
     *fi = Mf_1_lm;
     *fr = Mf_RD_lm;
 
-    // (* Define functions to be applied in each domain *)
-    // REAL8 Ti = XLALIMRPhenomHMTi(flm, mm);
-    // REAL8 Trd = XLALIMRPhenomHMTrd(flm, Mf_RD_22, Mf_RD_lm, AmpFlag);
-    // REAL8 Tm = XLALIMRPhenomHMTm(flm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag);
-
     /*Define the slope and intercepts of the linear transformation used*/
     REAL8 Ai = 2.0/mm;
     REAL8 Bi = 0.0;
-    REAL8 Am = XLALIMRPhenomHMSlopeAm(mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, PhenomDQuantities);
-    REAL8 Bm = XLALIMRPhenomHMSlopeBm(mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, PhenomDQuantities);
-
+    REAL8 Am;
+    REAL8 Bm;
+    XLALIMRPhenomHMSlopeAmAndBm(&Am, &Bm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, PhenomDQuantities);
 
     REAL8 Ar = 1.0;
     REAL8 Br = 0.0;
@@ -349,24 +282,14 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
         Ar = Rholm;
     }
 
-    // Defne function to output map params used depending on
-    // *a = 0.0;
-    // *b = 0.0;
+    // Define function to output map params used depending on
     int ret = XLALIMRPhenomHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
     if (ret != XLAL_SUCCESS){
         XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMMapParams (1)\n");
         XLAL_ERROR(XLAL_EDOM);
     }
 
-    //REAL8 a2 = 0.0;
-    //REAL8 b2 = 0.0;
     REAL8 frfi = 0.5 * ( *fr + *fi );
-    //ret = XLALIMRPhenomHMMapParams(&a2, &b2, frfi, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
-    //if (ret != XLAL_SUCCESS){
-    //    XLALPrintError("XLAL Error - XLALIMRPhenomHMMapParams failed in XLALIMRPhenomHMMapParams (2)\n");
-    //    XLAL_ERROR(XLAL_EDOM);
-    //}
-    //*f2lm = ( (Mf_RD_22 / 2.0) - b2 ) / a2;
     *f2lm = frfi;
 
     return XLAL_SUCCESS;
@@ -549,58 +472,9 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
     return ampRatio;
 }
 
-//double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
-//                                    double eta,
-//                                    double chi1z,
-//                                    double chi2z,
-//                                    int ell,
-//                                    int mm
-//                                )
-//{
-//
-//    int errcode = XLAL_SUCCESS;
-//    errcode = init_useful_powers(&powers_of_pi, LAL_PI);
-//    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
-//
-//    // Calculate phenomenological parameters
-//    // Convention m1 >= m2
-//    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
-//    REAL8 Seta = sqrt(1.0 - 4.0*eta);
-//    REAL8 m1 = 0.5 * (1.0 + Seta);
-//    REAL8 m2 = 0.5 * (1.0 - Seta);
-//
-//    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
-//    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
-//
-//    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
-//    if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
-//    AmpInsPrefactors amp_prefactors;
-//    errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
-//    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
-//
-//    const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
-//    double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagTrue);
-//
-//    UsefulPowers powers_of_Mf_22;
-//    errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
-//    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
-//
-//    double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, &amp_prefactors);
-//
-//    double ampRatio = ComputeAmpRatio(eta, chi1z, chi2z, ell, mm, amp_prefactors, pAmp);
-//
-//    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(Mf_22, ell, mm);
-//
-//    double HMamp = PhenDamp * R;
-//
-//    LALFree(pAmp);
-//
-//    return HMamp;
-//}
+double XLALSimIMRPhenomHMAmplitude( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities );
 
-double XLALSimIMRPhenomHMAmplitudeOpt( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities );
-
-double XLALSimIMRPhenomHMAmplitudeOpt( double Mf_wf,
+double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                        int ell,
                                        int mm,
                                        IMRPhenomDAmplitudeCoefficients *pAmp,
@@ -632,7 +506,7 @@ double XLALSimIMRPhenomHMAmplitudeOpt( double Mf_wf,
 
 
 /*TODO Should also probably add LALDict as a argument here.*/
-int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, const double finspin)
+int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, PhenomDStorage *PhenomDQuantities)
 {
     /*
     { ai,bi,fi,fr,f1,f2lm,fRD22,fRDlm,Ti,Trd,Tm } = FreqDomainMapParams[ 0.0001, mode, eta,chi1,chi2,False ];
@@ -669,34 +543,32 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     REAL8 Seta = sqrt(1.0 - 4.0*eta);
     REAL8 m1 = 0.5 * (1.0 + Seta);
     REAL8 m2 = 0.5 * (1.0 - Seta);
-    REAL8 M = m1 + m2;
-    PhenomDStorage PhenomDQuantities; //FP: CAN I AVOID COMPUTING THESE?
-    //printf("line 680\n");
-    int ret = init_PhenomD_Storage(&PhenomDQuantities, m1, m2, chi1z, chi2z);
+    //REAL8 M = m1 + m2;
+    //PhenomDStorage PhenomDQuantities; //FP: CAN I AVOID COMPUTING THESE?
+    int ret = init_PhenomD_Storage(PhenomDQuantities, m1, m2, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "init_PhenomD_Storage failed");
-    //printf("line 683\n");
 
-    ret = XLALIMRPhenomHMFreqDomainMapParams(&ai, &bi, &fi, &fr, &f1, &f2lm, Mfshift, ell, mm, &PhenomDQuantities, AmpFlag);
+    ret = XLALIMRPhenomHMFreqDomainMapParams(&ai, &bi, &fi, &fr, &f1, &f2lm, Mfshift, ell, mm, PhenomDQuantities, AmpFlag);
     if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALSimIMRPhenomHMPhasePreComp - inspiral\n");
+        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALIMRPhenomHMFreqDomainMapParams - inspiral\n");
         XLAL_ERROR(XLAL_EDOM);
     }
 
     q->ai = ai;
     q->bi = bi;
 
-    ret = XLALIMRPhenomHMFreqDomainMapParams(&a2lm, &b2lm, &fi, &fr, &f1, &f2lm, f2lm+Mfshift, ell, mm, &PhenomDQuantities, AmpFlag);
+    ret = XLALIMRPhenomHMFreqDomainMapParams(&a2lm, &b2lm, &fi, &fr, &f1, &f2lm, f2lm+Mfshift, ell, mm, PhenomDQuantities, AmpFlag);
     if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALSimIMRPhenomHMPhasePreComp - intermediate\n");
+        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALIMRPhenomHMFreqDomainMapParams - intermediate\n");
         XLAL_ERROR(XLAL_EDOM);
     }
 
     q->a2lm = a2lm;
     q->b2lm = b2lm;
 
-    ret = XLALIMRPhenomHMFreqDomainMapParams(&ar, &br, &fi, &fr, &f1, &f2lm, fr+Mfshift, ell, mm, &PhenomDQuantities, AmpFlag);
+    ret = XLALIMRPhenomHMFreqDomainMapParams(&ar, &br, &fi, &fr, &f1, &f2lm, fr+Mfshift, ell, mm, PhenomDQuantities, AmpFlag);
     if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALSimIMRPhenomHMPhasePreComp - merger-ringdown\n");
+        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALIMRPhenomHMFreqDomainMapParams - merger-ringdown\n");
         XLAL_ERROR(XLAL_EDOM);
     }
 
@@ -713,7 +585,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     const LALSimInspiralTestGRParam *extraParams = NULL;
     IMRPhenomDPhaseCoefficients *pPhi;
     pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
-    ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1z, chi2z, finspin, extraParams);
+    ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1z, chi2z, PhenomDQuantities->finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
 
     PNPhasingSeries *pn = NULL;
@@ -723,14 +595,14 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1z, chi2z) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSS(m1, m2, (m1+m2), chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
 
-    double Rholm = PhenomDQuantities.Rholm[ell][mm]; //XLALSimIMRPhenomHMRholm(ell, mm, &PhenomDQuantities);
-    double Taulm = PhenomDQuantities.Taulm[ell][mm]; //XLALSimIMRPhenomHMTaulm(ell, mm, &PhenomDQuantities);
+    double Rholm = PhenomDQuantities->Rholm[ell][mm];
+    double Taulm = PhenomDQuantities->Taulm[ell][mm];
 
     // Compute coefficients to make phase C^1 continuous (phase and first derivative)
     ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
@@ -781,166 +653,10 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     return XLAL_SUCCESS;
 
 }
-//double XLALSimIMRPhenomHMPhase( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm, HMPhasePreComp *q );
-//
-//double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric units*/
-//                                    double eta,
-//                                    double chi1z,
-//                                    double chi2z,
-//                                    int ell,
-//                                    int mm,
-//                                    HMPhasePreComp *q
-//                                )
-//{
-//
-//    // Convention m1 >= m2
-//    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
-//    REAL8 Seta = sqrt(1.0 - 4.0*eta);
-//    REAL8 m1 = 0.5 * (1.0 + Seta);
-//    REAL8 m2 = 0.5 * (1.0 - Seta);
-//    // REAL8 M = m1 + m2;
-//
-//    int status = init_useful_powers(&powers_of_pi, LAL_PI);
-//    XLAL_CHECK(XLAL_SUCCESS == status, status, "Failed to initiate useful powers of pi.");
-//
-//
-//    // Calculate phenomenological parameters
-//    const REAL8 finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z);
-//    if (finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
-//
-//    const LALSimInspiralTestGRParam *extraParams = NULL;
-//    IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin, extraParams);
-//    if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
-//    PNPhasingSeries *pn = NULL;
-//    XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1z, chi2z, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
-//    if (!pn) XLAL_ERROR(XLAL_EFUNC);
-//
-//    // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
-//    // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
-//    // was not available when PhenomD was tuned.
-//    // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
-//    // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
-//    REAL8 testGRcor=1.0;
-//    if (extraParams!=NULL)
-//    {
-//  	  if (XLALSimInspiralTestGRParamExists(extraParams,"dchi6"))  testGRcor += XLALSimInspiralGetTestGRParam(extraParams,"dchi6");
-//    }
-//
-//    PhiInsPrefactors phi_prefactors;
-//    status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
-//    XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
-//
-//    double Rholm = XLALSimIMRPhenomHMRholm(eta, chi1z, chi2z, ell, mm);
-//    double Taulm = XLALSimIMRPhenomHMTaulm(eta, chi1z, chi2z, ell, mm);
-//
-//    // Compute coefficients to make phase C^1 continuous (phase and first derivative)
-//    ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
-//
-//    // const INT4 AmpFlagFalse = 0; /* FIXME: Could make this a global variable too */
-//    // double Mf_22 = XLALSimIMRPhenomHMFreqDomainMap( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
-//
-//
-//    // UsefulPowers powers_of_Mf_22;
-//    // status = init_useful_powers(&powers_of_Mf_22, Mf_22);
-//    // XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf_22 failed");
-//
-//    /* phi_lm(f) = m * phi_22(f_22) / 2.0 */
-//    // double PhenDphase = mm * IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors, Rholm, Taulm) / 2.0;
-//
-//
-//    REAL8 Mf = 0.0;
-//    REAL8 Mf2lm = 0.0;
-//    REAL8 Mfr = 0.0;
-//    REAL8 retphase = 0.0;
-//    REAL8 tmpphaseB = 0.0;
-//    REAL8 tmpphaseC = 0.0;
-//
-//    // This if ladder is in the mathematica function HMPhase. PhenomHMDev.nb
-//
-//    if ( Mf_wf <= q->fi ){
-//        Mf = q->ai * Mf_wf + q->bi;
-//        UsefulPowers powers_of_Mf;
-//        status = init_useful_powers(&powers_of_Mf, Mf);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
-//        retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->ai;
-//    } else if ( q->fi < Mf_wf && Mf_wf <= q->f2lm ){
-//        Mf = q->a2lm*Mf_wf + q->b2lm;
-//        UsefulPowers powers_of_Mf;
-//        status = init_useful_powers(&powers_of_Mf, Mf);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
-//        retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->a2lm - q->PhDBconst + q->PhDBAterm;
-//    } else if ( q->f2lm < Mf_wf && Mf_wf <= q->fr ){
-//        Mf2lm = q->a2lm*q->f2lm + q->b2lm;
-//        UsefulPowers powers_of_Mf2lm;
-//        status = init_useful_powers(&powers_of_Mf2lm, Mf2lm);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf2lm failed");
-//        tmpphaseB = IMRPhenDPhase(Mf2lm, pPhi, pn, &powers_of_Mf2lm, &phi_prefactors, Rholm, Taulm) / q->a2lm;
-//        Mf = q->a2lm*Mf_wf + q->b2lm;
-//        UsefulPowers powers_of_Mf;
-//        status = init_useful_powers(&powers_of_Mf, Mf);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
-//        retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->a2lm - q->PhDCconst + tmpphaseB - q->PhDBconst + q->PhDBAterm;
-//    } else if ( Mf_wf > q->fr ) {
-//        Mf2lm = q->a2lm*q->f2lm + q->b2lm;
-//        UsefulPowers powers_of_Mf2lm;
-//        status = init_useful_powers(&powers_of_Mf2lm, Mf2lm);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf2lm failed");
-//        tmpphaseB = IMRPhenDPhase(Mf2lm, pPhi, pn, &powers_of_Mf2lm, &phi_prefactors, Rholm, Taulm) / q->a2lm;
-//
-//        Mfr = q->a2lm*q->fr + q->b2lm;
-//        UsefulPowers powers_of_Mfr;
-//        status = init_useful_powers(&powers_of_Mfr, Mfr);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mfr failed");
-//        tmpphaseC = IMRPhenDPhase(Mfr, pPhi, pn, &powers_of_Mfr, &phi_prefactors, Rholm, Taulm) / q->a2lm - q->PhDCconst + tmpphaseB - q->PhDBconst + q->PhDBAterm;;
-//
-//        Mf = q->ar*Mf_wf + q->br;
-//        UsefulPowers powers_of_Mf;
-//        status = init_useful_powers(&powers_of_Mf, Mf);
-//        XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
-//        retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, &phi_prefactors, Rholm, Taulm) / q->ar - q->PhDDconst + tmpphaseC;
-//    } else {
-//        XLALPrintError("XLAL_ERROR - should not get here - in function XLALSimIMRPhenomHMPhase");
-//        XLAL_ERROR(XLAL_EDOM);
-//    }
-//
-//    /* phase shift due to leading order complex amplitude
-//    Luc Blancet 1310.1528. Section 9.5
-//    "Spherical hrmonic modes for numerical relativity" */
-//    /*initialise answer*/
-//    REAL8 cShift = 0.0;
-//
-//    if ( ell==2 && mm==1 ) {
-//        cShift = LAL_PI/2.0; /* i shift */
-//    } else if ( ell==3 && mm==3 ) {
-//        cShift = -LAL_PI/2.0; /* -i shift */
-//    } else if ( ell==4 && mm==4 ) {
-//        cShift = LAL_PI; /* -1 shift */
-//    } else if ( ell==4 && mm==3 ) {
-//        cShift = -LAL_PI/2.0; /* -i shift */
-//    } else if ( ell==5 && mm==5 ) {
-//        cShift = LAL_PI/2.0; /* i shift */
-//    } else if ( ell==5 && mm==4 ) {
-//        cShift = LAL_PI; /* -1 shift */
-//    } else if ( ell==6 && mm==5 ) {
-//        cShift = LAL_PI/2.0; /* i shift */
-//    } /*else {
-//        XLALPrintError("XLAL Error (in function XLALSimIMRPhenomHMPhase) - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
-//        XLAL_ERROR(XLAL_EDOM);
-//    }*/
-//    /*TODO: Need to have a list at the begining and a function to check the input
-//    lm mode to see if it is one that is included in the model.*/
-//
-//    retphase += cShift;
-//
-//    LALFree(pPhi);
-//    LALFree(pn);
-//
-//    return retphase;
-//}
 
-double XLALSimIMRPhenomHMPhaseOpt( double Mf_wf, int ell, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
+double XLALSimIMRPhenomHMPhase( double Mf_wf, int ell, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
 
-double XLALSimIMRPhenomHMPhaseOpt( double Mf_wf, /**< input frequency in geometric units*/
+double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric units*/
                                    int ell,
                                    int mm,
                                    HMPhasePreComp *q,
@@ -1123,11 +839,11 @@ static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySerie
  *
  */
 
-static COMPLEX16 IMRPhenomHMSingleModehlmOpt2(int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc, PhenomDStorage * PhenomDQuantities );
+static COMPLEX16 IMRPhenomHMSingleModehlm(int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc, PhenomDStorage * PhenomDQuantities );
 /*
  * This returns the hlm of a single (l,m) mode at a single frequency Mf
  */
-static COMPLEX16 IMRPhenomHMSingleModehlmOpt2(
+static COMPLEX16 IMRPhenomHMSingleModehlm(
         int ell,
         int mm,
         double Mf,
@@ -1151,9 +867,8 @@ static COMPLEX16 IMRPhenomHMSingleModehlmOpt2(
     * Can be evaluated at a single geometric frequency (Mf).
     */
 
-    double HMamp = XLALSimIMRPhenomHMAmplitudeOpt( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities );
-    // printf("Mf = %.10f ,    HMamp Opt = %.16f\n", Mf, HMamp);
-    double HMphase = XLALSimIMRPhenomHMPhaseOpt( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
+    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities );
+    double HMphase = XLALSimIMRPhenomHMPhase( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
     /* compute reference phase at reference frequency */
 
@@ -1269,7 +984,7 @@ int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
 /* NOTE: I've change the name from hlmsphharmfreqseries to hlms */
 
 /* NOTE: Some code duplication here because I'd like to keep this function XLAL */
-int XLALIMRPhenomHMMultiModehlmOpt(
+int XLALIMRPhenomHMMultiModehlm(
     SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes with units of Mf */
     REAL8 m1Msun,                        /**< primary mass in Msun*/
     REAL8 m2Msun,                        /**< secondary mass in Msun*/
@@ -1411,8 +1126,8 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          //printf("ell = %i\n",ell);
          //printf("mm = %i\n",mm);
 
-         double Rholm = PhenomDQuantities.Rholm[ell][mm]; //XLALSimIMRPhenomHMRholm(ell, mm, &PhenomDQuantities);
-         double Taulm = PhenomDQuantities.Taulm[ell][mm]; //XLALSimIMRPhenomHMTaulm(ell, mm, &PhenomDQuantities);
+         double Rholm = PhenomDQuantities.Rholm[ell][mm];
+         double Taulm = PhenomDQuantities.Taulm[ell][mm];
 
          // Compute coefficients to make phase C^1 continuous (phase and first derivative)
          ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
@@ -1420,13 +1135,13 @@ int XLALIMRPhenomHMMultiModehlmOpt(
          /* compute phenomHM pre computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, PhenomDQuantities.finspin);
+         ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
          }
 
-         double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+         double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
          HMphaseRef = HMphaseRef * 0.;
 
          /* compute reference phase at reference frequency */
@@ -1466,11 +1181,7 @@ int XLALIMRPhenomHMMultiModehlmOpt(
             /* construct hlm at single frequency point and return */
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-            //optimised version
-            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt2(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities );
-            // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, &pAmp);
-
-            // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
+            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities );
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
@@ -1562,7 +1273,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     *hlms=NULL;
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomHMMultiModehlm */
-    ret = XLALIMRPhenomHMMultiModehlmOpt(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    ret = XLALIMRPhenomHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
@@ -1597,7 +1308,6 @@ int XLALIMRPhenomHMMultiModeStrain(
     for( int i=0; i<NMODES; i++){
       INT4 ell = ModeArray[i][0];
       INT4 mm = ModeArray[i][1];
-    //   printf("computing hlm for mode l=%d, m=%d\n", ell, mm); /*NOTE: Remove this*/
       COMPLEX16FrequencySeries* hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
       if (!(hlm)) XLAL_ERROR(XLAL_EFUNC);
 
@@ -1668,23 +1378,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     REAL8 f_max_prime = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
 
-    /* This does not work :( */
-    // #define NMODES_MAX LMAX
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
-    //
-    //
-    // if ( LMAX==2 ) {
-    //     int NMODES = NMODES_MAX;
-    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
-    // } else if ( LMAX==3 ) {
-    //     int NMODES = NMODES_MAX;
-    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
-    // } else {
-    //     XLAL_ERROR(XLAL_EDOM, "LMAX = %d not supported.\n", LMAX);
-    // }
-
-    /*compute phenomD amp and phase coefficients*/
+    /* Compute PhenomD amp and phase coefficients*/
 
     IMRPhenomDAmplitudeCoefficients *pAmp;
     pAmp = XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
@@ -1722,7 +1416,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     PhiInsPrefactors phi_prefactors;
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
-    /* NOTE: There seems to be a problem here, with the phi_prefactors as in IMRPhenomHMMultiModehlmOpt they work fine here but in this
+    /* NOTE: There seems to be a problem here, with the phi_prefactors as in IMRPhenomHMMultiModehlm they work fine here but in this
     function they do not. */
     /*FIXME */
     /*FIXME */
@@ -1731,8 +1425,6 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     /*FIXME */
     /*FIXME */
     /*FIXME */
-
-    // printf("phi_prefactors.two_thirds = %f\n", phi_prefactors.two_thirds);
 
     /* Compute the amplitude pre-factor */
     const REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
@@ -1784,14 +1476,8 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
 
      const REAL8 t0 = Computet0(eta, chi1z, chi2z, PhenomDQuantities.finspin);
 
-    //  printf("ell = %i\n",ell);
-    //  printf("mm = %i\n",mm);
-
-     double Rholm = PhenomDQuantities.Rholm[ell][mm]; //XLALSimIMRPhenomHMRholm(ell, mm, &PhenomDQuantities);
-     double Taulm = PhenomDQuantities.Taulm[ell][mm]; //XLALSimIMRPhenomHMTaulm(ell, mm, &PhenomDQuantities);
-
-    //  printf("Rholm = %f\n",Rholm);
-    //  printf("Taulm = %f\n",Taulm);
+     double Rholm = PhenomDQuantities.Rholm[ell][mm];
+     double Taulm = PhenomDQuantities.Taulm[ell][mm];
 
      // Compute coefficients to make phase C^1 continuous (phase and first derivative)
      ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
@@ -1799,13 +1485,13 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      /* compute phenomHM pre computations */
      /* NOTE: Need to make this an input and NOT part of the frequency loop! */
      HMPhasePreComp z;
-     ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, PhenomDQuantities.finspin);
+     ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
      if (ret != XLAL_SUCCESS){
          XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
          XLAL_ERROR(XLAL_EDOM);
      }
 
-     double HMphaseRef = XLALSimIMRPhenomHMPhaseOpt( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+     double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
     //  printf("HMphaseRef = %f\n",HMphaseRef);
      /* compute reference phase at reference frequency */
 
@@ -1833,11 +1519,8 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         /* construct hlm at single frequency point and return */
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-        //optimised version
-        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt2(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities );
-        // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlmOpt(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z, pAmp);
+        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities );
 
-        // printf("f = %f    Mf = %f      (hlm->data->data)[i]  =  %f + i %f\nx",i * deltaF, Mf, creal((hlm->data->data)[i]), cimag((hlm->data->data)[i]));
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
         ((*hlmtilde)->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
         /*from phenomD for referene*/

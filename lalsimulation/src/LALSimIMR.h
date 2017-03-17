@@ -89,10 +89,10 @@ double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const RE
 
 /* in module LALSimIMRPhenomHM.c */
 //double XLALSimIMRPhenomHMfring(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
-//double XLALSimIMRPhenomHMfdamp(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities );
-double XLALSimIMRPhenomHMAmplitude( double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm );
+//double XLALSimIMRPhenomHMfdamp(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
+//double XLALSimIMRPhenomHMAmplitude(double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm, PhenomDStorage* PhenomDQuantities);
 double XLALSimIMRPhenomHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
-//double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm );
+//double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm);
 int XLALIMRPhenomHMMultiModehlmOpt(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
 //int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities, const int AmpFlag );
