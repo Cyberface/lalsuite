@@ -543,8 +543,6 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     REAL8 Seta = sqrt(1.0 - 4.0*eta);
     REAL8 m1 = 0.5 * (1.0 + Seta);
     REAL8 m2 = 0.5 * (1.0 - Seta);
-    //REAL8 M = m1 + m2;
-    //PhenomDStorage PhenomDQuantities; //FP: CAN I AVOID COMPUTING THESE?
     int ret = init_PhenomD_Storage(PhenomDQuantities, m1, m2, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "init_PhenomD_Storage failed");
 
@@ -1025,22 +1023,6 @@ int XLALIMRPhenomHMMultiModehlm(
 
     REAL8 f_max_prime = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
-    /* This does not work :( */
-    // #define NMODES_MAX LMAX
-    // int NMODES = NMODES_MAX;
-    // int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
-    //
-    //
-    // if ( LMAX==2 ) {
-    //     int NMODES = NMODES_MAX;
-    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
-    // } else if ( LMAX==3 ) {
-    //     int NMODES = NMODES_MAX;
-    //     int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2} };
-    // } else {
-    //     XLAL_ERROR(XLAL_EDOM, "LMAX = %d not supported.\n", LMAX);
-    // }
-
     /*compute phenomD amp coefficients*/
     IMRPhenomDAmplitudeCoefficients *pAmp;
     pAmp = (IMRPhenomDAmplitudeCoefficients *) XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
@@ -1056,6 +1038,7 @@ int XLALIMRPhenomHMMultiModehlm(
     ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1z, chi2z, PhenomDQuantities.finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
     PNPhasingSeries *pn = NULL;
+    // FP: Malloc?
     // XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1Msun, m2Msun, chi1z, chi2z, extraParams);
     XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1Msun, m2Msun, chi1z, chi2z, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
     if (!pn) XLAL_ERROR(XLAL_EFUNC);
