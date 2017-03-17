@@ -508,8 +508,10 @@ static int PhenomPCore(
       }
 
       // IMRPhenomD assumes that m1 >= m2.
-      pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi2_l, chi1_l, finspin);
-      pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi2_l, chi1_l, finspin, extraParams);
+      pAmp = XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+      ComputeIMRPhenomDAmplitudeCoefficients(pAmp, eta, chi2_l, chi1_l, finspin);
+      pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
+      ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi2_l, chi1_l, finspin, extraParams);
       XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1_l, chi2_l, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
       if (!pAmp || !pPhi || !pn) {
         errcode = XLAL_EFUNC;

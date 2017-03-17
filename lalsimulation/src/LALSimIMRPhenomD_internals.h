@@ -232,7 +232,7 @@ static double Subtract3PNSS(double m1, double m2, double M, double chi1, double 
 /******************************* Constants to save floating-point pow calculations *******************************/
 
 /**
- * useful powers in GW waveforms: 1/6, 1/3, 2/3, 4/3, 5/3, 7/3, 8/3
+ * useful powers in GW waveforms: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3
  * calculated using only one invocation of 'pow', the rest are just multiplications and divisions
  */
 typedef struct tagUsefulPowers
@@ -242,7 +242,7 @@ typedef struct tagUsefulPowers
     REAL8 two_thirds;
     REAL8 four_thirds;
     REAL8 five_thirds;
-	REAL8 two;
+    REAL8 two;
     REAL8 seven_thirds;
     REAL8 eight_thirds;
 } UsefulPowers;
@@ -261,7 +261,7 @@ static int init_useful_powers(UsefulPowers * p, REAL8 number);
 extern UsefulPowers powers_of_pi;
 
 /**
- * used to cache the recurring (frequency-independant) prefactors of AmpInsAnsatz. Must be inited with a call to
+ * used to cache the recurring (frequency-independent) prefactors of AmpInsAnsatz. Must be inited with a call to
  * init_amp_ins_prefactors(&prefactors, p);
  */
 typedef struct tagAmpInsPrefactors
@@ -284,7 +284,7 @@ typedef struct tagAmpInsPrefactors
 static int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmplitudeCoefficients* p);
 
 /**
- * used to cache the recurring (frequency-independant) prefactors of PhiInsAnsatzInt. Must be inited with a call to
+ * used to cache the recurring (frequency-independent) prefactors of PhiInsAnsatzInt. Must be inited with a call to
  * init_phi_ins_prefactors(&prefactors, p, pn);
  */
 typedef struct tagPhiInsPrefactors
@@ -340,7 +340,8 @@ static inline double pow_4_of(double number)
 //////////////////////// Final spin, final mass, fring, fdamp ///////////////////////
 
 static double FinalSpin0815_s(double eta, double s);
-UNUSED static double FinalSpin0815(double eta, double chi1, double chi2);
+//UNUSED static double FinalSpin0815(double eta, double chi1, double chi2);
+static double FinalSpin0815(double eta, double chi1, double chi2);
 static double EradRational0815_s(double eta, double s);
 static double EradRational0815(double eta, double chi1, double chi2);
 static double fring(double eta, double chi1, double chi2, double finalspin);
@@ -355,8 +356,8 @@ static double amp0Func(double eta);
 static double rho1_fun(double eta, double chiPN);
 static double rho2_fun(double eta, double chiPN);
 static double rho3_fun(double eta, double chiPN);
-static double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors);
-static double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p);
+static double AmpInsAnsatz(double Mf, UsefulPowers *powers_of_Mf, AmpInsPrefactors * prefactors);
+static double DAmpInsAnsatz(double Mf, UsefulPowers *powers_of_Mf, IMRPhenomDAmplitudeCoefficients* p);
 
 ////////////////////////// Amplitude: Merger-Ringdown functions //////////////////////
 
@@ -380,7 +381,7 @@ static void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p);
 
 ///////////////////////////// Amplitude: glueing function ////////////////////////////
 
-static IMRPhenomDAmplitudeCoefficients* ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2, double finspin);
+static void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficients *p, double eta, double chi1, double chi2, double finspin);
 static double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors);
 
 /********************************* Phase functions *********************************/
@@ -410,12 +411,12 @@ static double sigma1Fit(double eta, double chiPN);
 static double sigma2Fit(double eta, double chiPN);
 static double sigma3Fit(double eta, double chiPN);
 static double sigma4Fit(double eta, double chiPN);
-static double PhiInsAnsatzInt(double f, UsefulPowers * powers_of_Mf, PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
+static double PhiInsAnsatzInt(double f, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 static double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 
 ////////////////////////////// Phase: glueing function //////////////////////////////
 
-static IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2, double finspin, const LALSimInspiralTestGRParam *extraParams);
+static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, double eta, double chi1, double chi2, double finspin, const LALSimInspiralTestGRParam *extraParams);
 static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors, double Rholm, double Taulm);
 static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors * prefactors, double Rholm, double Taulm);
 

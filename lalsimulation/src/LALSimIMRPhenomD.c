@@ -247,9 +247,13 @@ static int IMRPhenomDGenerateFD(
           XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
                           the model might misbehave here.", finspin);
 
-  IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1, chi2, finspin);
+  IMRPhenomDAmplitudeCoefficients *pAmp;
+  pAmp = XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+  ComputeIMRPhenomDAmplitudeCoefficients(pAmp, eta, chi1, chi2, finspin);
   if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
-  IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1, chi2, finspin, extraParams);
+  IMRPhenomDPhaseCoefficients *pPhi;
+  pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
+  ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1, chi2, finspin, extraParams);
   if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
   PNPhasingSeries *pn = NULL;
   XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
@@ -365,7 +369,9 @@ double XLALIMRPhenomDGetPeakFreq(
     if (finspin < MIN_FINAL_SPIN)
           XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
                           the model might misbehave here.", finspin);
-    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1, chi2, finspin);
+    IMRPhenomDAmplitudeCoefficients *pAmp;
+    pAmp = XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+    ComputeIMRPhenomDAmplitudeCoefficients(pAmp, eta, chi1, chi2, finspin);
     if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
 
     // PeakFreq, converted to Hz
@@ -473,7 +479,9 @@ double XLALSimIMRPhenomDChirpTime(
             XLAL_PRINT_WARNING("Final spin (Mf=%g) and ISCO frequency of this system are small, \
                             the model might misbehave here.", finspin);
     const LALSimInspiralTestGRParam *extraParams = NULL;
-    IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1, chi2, finspin, extraParams);
+    IMRPhenomDPhaseCoefficients *pPhi;
+    pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
+    ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1, chi2, finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
     PNPhasingSeries *pn = NULL;
     XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);

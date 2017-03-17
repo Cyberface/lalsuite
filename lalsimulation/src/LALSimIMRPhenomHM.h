@@ -19,6 +19,7 @@
 
 // #define NMODES_MAX 8
 #define NMODES_MAX 5
+#define L_MAX_PLUS_1 6
 // #define NMODES_MAX 4
 
 // #include <LALSimIMRPhenomHM.c>
@@ -59,11 +60,11 @@ typedef struct tagPhenomDStorage
     REAL8 finspin;
     REAL8 Mf_RD_22;
     REAL8 Mf_DM_22;
-    REAL8 PhenomHMfring[NMODES_MAX][NMODES_MAX];
-    REAL8 PhenomHMfdamp[NMODES_MAX][NMODES_MAX];
-    REAL8 Rholm[NMODES_MAX][NMODES_MAX];
-    REAL8 Taulm[NMODES_MAX][NMODES_MAX];
-    REAL8 pow_Mf_wf_prefactor[NMODES_MAX][NMODES_MAX];
+    REAL8 PhenomHMfring[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 PhenomHMfdamp[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 Rholm[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 Taulm[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 pow_Mf_wf_prefactor[L_MAX_PLUS_1][L_MAX_PLUS_1];
 } PhenomDStorage;
 
 /**
