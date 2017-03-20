@@ -41,10 +41,11 @@
 #define omp ignore
 #endif
 
+//TODO: make PhenomDQuantities, powers_of_MfAtScale_22_amp, etc. EXTERNAL?
 
+/* List of modelled modes */
 static int NMODES = NMODES_MAX;
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
-
 
 /* Dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
@@ -477,12 +478,7 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp){
 
-    //FP: move outside loop on ell and mm
-    //UsefulPowers downsized_powers_of_MfAtScale_22_amp;
-    //int errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp);
-    //XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "downsized_init_useful_powers failed");
-
-    /* see technical document for description of below lines with A_R and R */
+    /* See technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp );
     double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * IMRPhenDAmplitude(powers_of_MfAtScale_22_amp->itself, pAmp, downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
@@ -585,10 +581,6 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->fr = fr;
     q->f2lm = f2lm;
 
-    //FP: pull this out of here
-    int status = init_useful_powers(&powers_of_pi, LAL_PI);
-    XLAL_CHECK(XLAL_SUCCESS == status, status, "Failed to initiate useful powers of pi.");
-
     const LALSimInspiralTestGRParam *extraParams = NULL;
     IMRPhenomDPhaseCoefficients *pPhi;
     pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
@@ -605,7 +597,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
-    status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+    int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_phi_ins_prefactors failed");
 
     double Rholm = PhenomDQuantities->Rholm[ell][mm];
@@ -1007,17 +999,20 @@ int XLALIMRPhenomHMMultiModehlm(
     REAL8 distance /**< distance to source in SI */
 ) {
 
+    /* Powers of pi */
     int errcode = XLAL_SUCCESS;
     errcode = init_useful_powers(&powers_of_pi, LAL_PI);
-    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed: failed to initiate useful powers of pi.");
 
     //here masses are in Msun
     errcode = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
 
+    /* Compute quantities/parameters related to PhenomD only once and store them */
     PhenomDStorage PhenomDQuantities;
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
+    
     /*Unfortunately duplication of M, eta and M_sec here and in XLALIMRPhenomHMMultiModeStrain*/
     const REAL8 M = m1Msun + m2Msun;
     const REAL8 eta = m1Msun * m2Msun / (M * M);
@@ -1350,8 +1345,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
 
     int errcode = XLAL_SUCCESS;
     errcode = init_useful_powers(&powers_of_pi, LAL_PI);
-    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
-
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed: failed to initiate useful powers of pi.");
 
     //here masses are in Msun
     int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
