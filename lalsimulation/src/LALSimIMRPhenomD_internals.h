@@ -2,7 +2,7 @@
 #define _LALSIM_IMR_PHENOMD_INTERNALS_H
 
 /*
- * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
+ * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London, Francesco Pannarale
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -155,6 +155,7 @@ IMRPhenomDAmplitudeCoefficients;
   */
 typedef struct tagIMRPhenomDPhaseCoefficients {
   double eta;         // symmetric mass-ratio
+  double etaInv;      // 1/eta
   double chi1, chi2;  // dimensionless aligned spins, convention m1 >= m2.
   double q;           // asymmetric mass-ratio (q>=1)
   double chi;         // PN reduced spin parameter

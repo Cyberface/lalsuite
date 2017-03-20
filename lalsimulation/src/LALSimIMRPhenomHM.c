@@ -46,10 +46,13 @@ static int NMODES = NMODES_MAX;
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
 
-/* dimensionless frequency of last data point in waveform */
+/* Dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
+/* Activates amplitude part of the model */
+#define AmpFlagTrue 1
+#define MfAtScale_wf_amp 0.0001
 
-int init_useful_mf_powers(UsefulMfPowers * p, REAL8 number)
+int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number)
 {
 	XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
 	XLAL_CHECK(number >= 0 , XLAL_EDOM, "number must be non-negative");
@@ -164,7 +167,8 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
 /* START: newer functions  */
 
 //mathematica function postfRDflm
-double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
+//double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
+double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
     double ans = 0.0;
     if ( AmpFlag==1 ) {
         /* For amplitude */
@@ -177,17 +181,16 @@ double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const
 
     return ans;
 }
+// mathematica function Trd
+// domain mapping function - ringdown
+//UNUSED double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
+//    return XLALIMRPhenomHMpostfRDflm(Mf, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, PhenomDQuantities);
+//}
 
 // mathematica function Ti
 // domain mapping function - inspiral
 double XLALIMRPhenomHMTi(REAL8 Mf, const INT4 mm){
     return 2.0 * Mf / mm;
-}
-
-// mathematica function Trd
-// domain mapping function - ringdown
-double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
-    return XLALIMRPhenomHMpostfRDflm(Mf, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, PhenomDQuantities);
 }
 
 void XLALIMRPhenomHMSlopeAmAndBm(double *Am, double *Bm, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities){
@@ -318,7 +321,7 @@ double XLALSimIMRPhenomHMFreqDomainMap(REAL8 Mflm,
     REAL8 f2lm = 0.;
     int ret = XLALIMRPhenomHMFreqDomainMapParams(&a, &b, &fi, &fr, &f1, &f2lm, Mflm, ell, mm, PhenomDQuantities, AmpFlag);
     if (ret != XLAL_SUCCESS){
-        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALSimIMRPhenomHMFreqDomainMap\n");
+        XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALSimIMRPhenomHMFreqDomainMapParams\n");
         XLAL_ERROR(XLAL_EDOM);
     }
     REAL8 Mf22 = a * Mflm + b;
@@ -452,8 +455,6 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities);
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities){
     /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
-    const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
-    double MfAtScale_wf_amp = 0.0001; /* FIXME: This should be made a global variable in header. */
     double MfAtScale_22_amp = XLALSimIMRPhenomHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, AmpFlagTrue );
 
     UsefulPowers powers_of_MfAtScale_22_amp;
@@ -483,7 +484,6 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                      )
 {
 
-    const INT4 AmpFlagTrue = 1; /* FIXME: Could make this a global variable too */
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);
 
     UsefulPowers powers_of_Mf_22;
@@ -1067,13 +1067,14 @@ int XLALIMRPhenomHMMultiModehlm(
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
 
     /* Coalesce at t=0 */
+    REAL8 InvDeltaF = 1./deltaF; 
     // shift by overall length in time
-    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
+    XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, - InvDeltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
 
-    size_t n = NextPow2(f_max_prime / deltaF) + 1;
+    size_t n = NextPow2(f_max_prime * InvDeltaF) + 1;
     /* range that will have actual non-zero waveform values generated */
-    size_t ind_min = (size_t) (f_min / deltaF);
-    size_t ind_max = (size_t) (f_max_prime / deltaF);
+    size_t ind_min = (size_t) (f_min * InvDeltaF);
+    size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
     XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     const REAL8 MfRef = M_sec * fRef;
@@ -1139,7 +1140,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* FIXME: */
          /* NOTE: Quick and dirty fix to get a reference phase working.*/
          /* NOTE: Moving the reference phase to the spherical harmonic.*/
-         REAL8 phi_precalc = phi0*0.;
+         REAL8 phi_precalc = phi0 * 0.;
 
 
          /* we loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
@@ -1147,15 +1148,16 @@ int XLALIMRPhenomHMMultiModehlm(
          hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
          memset(hlm->data->data, 0, n * sizeof(COMPLEX16));
 
-        /* NOTE: Do I need this bit? */
-        /* XLALUnitMultiply(hlm->sampleUnits, hlm->sampleUnits, &lalSecondUnit); */
+         /* NOTE: Do I need this bit? */
+         /* XLALUnitMultiply(hlm->sampleUnits, hlm->sampleUnits, &lalSecondUnit); */
 
          /* loop over frequency */
          /* Now generate the waveform for a single (l,m) mode */
+         REAL8 M_sec_dF = M_sec * deltaF;
          #pragma omp parallel for
          for (size_t i = ind_min; i < ind_max; i++)
          {
-            REAL8 Mf = M_sec * i * deltaF; /* geometric frequency */
+            REAL8 Mf = i * M_sec_dF; /* geometric frequency */
             /* now we can compute the hlm */
             /* TODO: fix phase and time offsets */
             /* TODO: inclusion of reference frequency */

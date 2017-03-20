@@ -1015,13 +1015,13 @@ static double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * coefficients to make the phase C(1) continuous between regions.
  */
 static double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
-  double eta = p->eta;
+  double etaInv = p->etaInv;
   double beta1 = p->beta1;
   double beta2 = p->beta2;
   double beta3 = p->beta3;
   double C2Int = p->C2Int;
 
-  return C2Int + (beta1 + beta3/pow_4_of(ff) + beta2/ff)/eta;
+  return C2Int + (beta1 + beta3/pow_4_of(ff) + beta2/ff)*etaInv;
 }
 
 ///////////////////////////// Phase: Inspiral functions /////////////////////////////
@@ -1206,6 +1206,7 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
 
   // Convention m1 >= m2
   p->eta = eta;
+  p->etaInv = 1./eta;
   p->chi1 = chi1;
   p->chi2 = chi2;
 
@@ -1261,6 +1262,7 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
 static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors * prefactors, double Rholm, double Taulm)
 {
   double eta = p->eta;
+  double etaInv = p->etaInv;
 
   // Transition frequencies
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
@@ -1280,7 +1282,7 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
   UsefulPowers powers_of_fInsJoin;
   init_useful_powers(&powers_of_fInsJoin, p->fInsJoin);
   p->C1Int = PhiInsAnsatzInt(p->fInsJoin, &powers_of_fInsJoin, prefactors, p, pn)
-    - 1.0/eta * PhiIntAnsatz(p->fInsJoin, p) - p->C2Int * p->fInsJoin;
+    - etaInv * PhiIntAnsatz(p->fInsJoin, p) - p->C2Int * p->fInsJoin;
 
   // Compute C1MRD and C2MRD coeffs
   // Equations to solve for to get C(1) continuous join
@@ -1290,11 +1292,11 @@ static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficien
   // PhiInsInt (fMRDJoin)  =   PhiMRD (fMRDJoin) + C1MRD + C2MRD fMRDJoin
   // PhiInsInt'(fMRDJoin)  =   PhiMRD'(fMRDJoin) + C2MRD
   // temporary Intermediate Phase function to Join up the Merger-Ringdown
-  double PhiIntTempVal = 1.0/eta * PhiIntAnsatz(p->fMRDJoin, p) + p->C1Int + p->C2Int*p->fMRDJoin;
+  double PhiIntTempVal = etaInv * PhiIntAnsatz(p->fMRDJoin, p) + p->C1Int + p->C2Int*p->fMRDJoin;
   double DPhiIntTempVal = DPhiIntTemp(p->fMRDJoin, p);
   double DPhiMRDVal = DPhiMRD(p->fMRDJoin, p, Rholm, Taulm);
   p->C2MRD = DPhiIntTempVal - DPhiMRDVal;
-  p->C1MRD = PhiIntTempVal - 1.0/eta * PhiMRDAnsatzInt(p->fMRDJoin, p, Rholm, Taulm) - p->C2MRD*p->fMRDJoin;
+  p->C1MRD = PhiIntTempVal - etaInv * PhiMRDAnsatzInt(p->fMRDJoin, p, Rholm, Taulm) - p->C2MRD*p->fMRDJoin;
 }
 
 /**
@@ -1320,12 +1322,12 @@ static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingS
 
   if (StepFunc_boolean(f, p->fMRDJoin))	// MRD range
   {
-	  double PhiMRD = 1.0/p->eta * PhiMRDAnsatzInt(f, p, Rholm, Taulm) + p->C1MRD + p->C2MRD * f;
+	  double PhiMRD = p->etaInv * PhiMRDAnsatzInt(f, p, Rholm, Taulm) + p->C1MRD + p->C2MRD * f;
 	  return PhiMRD;
   }
 
   //	Intermediate range
-  double PhiInt = 1.0/p->eta * PhiIntAnsatz(f, p) + p->C1Int + p->C2Int * f;
+  double PhiInt = p->etaInv * PhiIntAnsatz(f, p) + p->C1Int + p->C2Int * f;
   return PhiInt;
 }
 

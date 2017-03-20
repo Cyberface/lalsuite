@@ -25,7 +25,7 @@
 // #include <LALSimIMRPhenomHM.c>
 
 /**
-  * Useful powers in Mf: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -7/6, -5/6, -1/2, -1/6, 1/2
+  * Useful powers of Mf: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -7/6, -5/6, -1/2, -1/6, 1/2
   * calculated using only one invocation of 'pow', the rest are just multiplications and divisions
   */
 typedef struct tagUsefulMfPowers
@@ -48,7 +48,7 @@ typedef struct tagUsefulMfPowers
 /**
  * must be called before the first usage of *p
  */
-int init_useful_mf_powers(UsefulMfPowers * p, REAL8 number);
+int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number);
 
 /**
  * Structure storing (2,2) mode quantities and other parameters/properties
@@ -70,7 +70,7 @@ typedef struct tagPhenomDStorage
 /**
  * must be called before the first usage of *p
  */
-int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, const REAL8 chi1z, const REAL8 chi2z);
+int init_PhenomD_Storage(PhenomDStorage *p, const REAL8 m1, const REAL8 m2, const REAL8 chi1z, const REAL8 chi2z);
 
 /**
   * Structure holding Higher Mode Phase pre-computations
