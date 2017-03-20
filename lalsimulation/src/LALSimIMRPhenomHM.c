@@ -102,8 +102,10 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
 {
   XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
 
-  REAL8 M = m1+m2;
-  REAL8 eta = m1*m2/(M*M);
+  p->m1 = m1; /* Inherits units from m1 in function arguments */
+  p->m2 = m2; /* Inherits units from m2 in function arguments */
+  p->Mtot = m1+m2; /* Inherits units from m1 and m2 in function arguments */
+  REAL8 eta = m1*m2/(p->Mtot*p->Mtot);
   p->Inv1MinusEradRational0815 = 1.0/(1.0-EradRational0815(eta, chi1z, chi2z));
   p->finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
   if (p->finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
@@ -550,15 +552,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     /* NOTE: As long as Mfshit + f2lm isn't >= fr then the value of the shift is arbitrary. */
     const REAL8 Mfshift = 0.0001;
 
-    // Convention m1 >= m2
-    // FIXME: change input function args to always be m1, m2, chi1z, chi2z and never eta!
-    REAL8 Seta = sqrt(1.0 - 4.0*eta);
-    REAL8 m1 = 0.5 * (1.0 + Seta);
-    REAL8 m2 = 0.5 * (1.0 - Seta);
-    int ret = init_PhenomD_Storage(PhenomDQuantities, m1, m2, chi1z, chi2z);
-    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "init_PhenomD_Storage failed");
-
-    ret = XLALIMRPhenomHMFreqDomainMapParams(&ai, &bi, &fi, &fr, &f1, &f2lm, Mfshift, ell, mm, PhenomDQuantities, AmpFlag);
+    int ret = XLALIMRPhenomHMFreqDomainMapParams(&ai, &bi, &fi, &fr, &f1, &f2lm, Mfshift, ell, mm, PhenomDQuantities, AmpFlag);
     if (ret != XLAL_SUCCESS){
         XLALPrintError("XLAL Error - XLALIMRPhenomHMFreqDomainMapParams failed in XLALIMRPhenomHMFreqDomainMapParams - inspiral\n");
         XLAL_ERROR(XLAL_EDOM);
@@ -599,13 +593,13 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
 
     PNPhasingSeries *pn = NULL;
-    XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1z, chi2z, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
+    XLALSimInspiralTaylorF2AlignedPhasing(&pn, PhenomDQuantities->m1, PhenomDQuantities->m2, chi1z, chi2z, 1.0, 1.0, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN, extraParams);
     if (!pn) XLAL_ERROR(XLAL_EFUNC);
 
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(m1, m2, (m1+m2), chi1z, chi2z) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -1014,8 +1008,8 @@ int XLALIMRPhenomHMMultiModehlm(
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
 
     //here masses are in Msun
-    int ret = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
-    XLAL_CHECK(XLAL_SUCCESS == ret, ret, "EnforcePrimaryIsm1 failed");
+    errcode = EnforcePrimaryIsm1(&m1Msun, &m2Msun, &chi1z, &chi2z);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
 
     PhenomDStorage PhenomDQuantities;
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
@@ -1131,7 +1125,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* compute phenomHM pre computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
+         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
