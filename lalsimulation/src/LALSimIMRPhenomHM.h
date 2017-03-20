@@ -26,10 +26,12 @@
 
 /**
   * Useful powers of Mf: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -7/6, -5/6, -1/2, -1/6, 1/2
-  * calculated using only one invocation of 'pow', the rest are just multiplications and divisions
+  * calculated using only one invocation of 'pow' and one of 'sqrt'.
+  * The rest are just multiplications and divisions.  Also including Mf itself in here.
   */
 typedef struct tagUsefulMfPowers
 {
+    REAL8 itself;
     REAL8 sixth;
     REAL8 third;
     REAL8 two_thirds;

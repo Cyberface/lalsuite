@@ -52,6 +52,8 @@ static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} 
 #define AmpFlagTrue 1
 #define MfAtScale_wf_amp 0.0001
 
+#define PI_OVER_2 0.5*LAL_PI
+
 /* START: newer functions  */
 
 int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number)
@@ -60,6 +62,7 @@ int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number)
 	XLAL_CHECK(number >= 0 , XLAL_EDOM, "number must be non-negative");
 
 	// consider changing pow(x,1/6.0) to cbrt(x) and sqrt(x) - might be faster
+	p->itself = number;
 	p->sixth = pow(number, 1/6.0);
         p->m_sixth = 1.0/p->sixth;
 	p->third = p->sixth * p->sixth;
@@ -469,8 +472,8 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
 }
 
 
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp);
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp){
+static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp);
+static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp){
 
     UsefulPowers downsized_powers_of_MfAtScale_22_amp;
     int errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp);
@@ -478,13 +481,13 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
 
     /* see technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp );
-    double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(&downsized_powers_of_MfAtScale_22_amp, MfAtScale_22_amp, ell, mm) * IMRPhenDAmplitude(MfAtScale_22_amp, pAmp, &downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
+    double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(&downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * IMRPhenDAmplitude(powers_of_MfAtScale_22_amp->itself, pAmp, &downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
 
     return ampRatio;
 }
 
-double XLALSimIMRPhenomHMAmplitude( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp );
+double XLALSimIMRPhenomHMAmplitude( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp );
 
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
@@ -492,8 +495,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     IMRPhenomDAmplitudeCoefficients *pAmp,
                                     AmpInsPrefactors * amp_prefactors,
                                     PhenomDStorage * PhenomDQuantities,
-                                    UsefulMfPowers *powers_of_MfAtScale_22_amp,
-                                    double MfAtScale_22_amp
+                                    UsefulMfPowers *powers_of_MfAtScale_22_amp
                                   )
 {
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);
@@ -505,7 +507,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
+    double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp);
 
     double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);
 
@@ -752,24 +754,24 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
     REAL8 cShift = 0.0;
 
     if ( ell==2 && mm==1 ) {
-        cShift = 0.5*LAL_PI; /* i shift */
+        cShift = PI_OVER_2; /* i shift */
     } else if ( ell==3 && mm==3 ) {
-        cShift = -0.5*LAL_PI; /* -i shift */
+        cShift = -PI_OVER_2; /* -i shift */
     } else if ( ell==4 ) {
         if ( mm==4 ) {
           cShift = LAL_PI; /* -1 shift */
         }
         else { //mm==3
-          cShift = -0.5*LAL_PI; /* -i shift */
+          cShift = -PI_OVER_2; /* -i shift */
         }
     } else if ( ell==5 ) {
         if ( mm==5 ) {
-          cShift = 0.5*LAL_PI; /* i shift */
+          cShift = PI_OVER_2; /* i shift */
         } else { //mm==4
           cShift = LAL_PI; /* -1 shift */
         }
     } else if ( ell==6 && mm==5 ) {
-        cShift = 0.5*LAL_PI; /* i shift */
+        cShift = PI_OVER_2; /* i shift */
     } /*else {
         XLALPrintError("XLAL Error (in function XLALSimIMRPhenomHMPhase) - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
         XLAL_ERROR(XLAL_EDOM);
@@ -847,7 +849,7 @@ static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySerie
  *
  */
 
-static COMPLEX16 IMRPhenomHMSingleModehlm(int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp );
+static COMPLEX16 IMRPhenomHMSingleModehlm(int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp );
 /*
  * This returns the hlm of a single (l,m) mode at a single frequency Mf
  */
@@ -865,8 +867,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
         double Taulm,
         double phi_precalc, /**< m*phi0 + HMphaseRef*/
         PhenomDStorage * PhenomDQuantities,
-        UsefulMfPowers *powers_of_MfAtScale_22_amp,
-        double MfAtScale_22_amp
+        UsefulMfPowers *powers_of_MfAtScale_22_amp
 ) {
 
     /*
@@ -877,7 +878,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     * Can be evaluated at a single geometric frequency (Mf).
     */
 
-    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, MfAtScale_22_amp );
+    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp);
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
     /* compute reference phase at reference frequency */
@@ -901,7 +902,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     return hlm;
 }
 
-/* given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
+/* Given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
 static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M);
 static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf /**< geometric frequency*/,
                                      REAL8 f_min /**< low frequency in Hz*/,
@@ -913,14 +914,14 @@ static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf /**< geometric frequency*/,
       const REAL8 fCut = Mf/M_sec; // convert Mf -> Hz
       // Somewhat arbitrary end point for the waveform.
       // Chosen so that the end of the waveform is well after the ringdown.
-      if (fCut <= f_min)
+      if (!(fCut > f_min))
           XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", fCut, f_min);
 
       /* default f_max to Cut */
       REAL8 f_max_prime = f_max;
       f_max_prime = f_max ? f_max : fCut;
       f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
-      if (f_max_prime <= f_min)
+      if (!(f_max_prime > f_min))
           XLAL_ERROR(XLAL_EDOM, "f_max <= f_min\n");
 
       return f_max_prime;
@@ -1027,7 +1028,7 @@ int XLALIMRPhenomHMMultiModehlm(
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     // if no reference frequency given, set it to the starting GW frequency
@@ -1154,7 +1155,6 @@ int XLALIMRPhenomHMMultiModehlm(
          REAL8 phi_precalc = phi0 * 0.;
 
          //FP: malloc and then free?
-         //FP: Place if(...NULL) when more_powers_of_MfAtScale_22_amp and powers_of_MfAtScale_22_amp are used
          /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
          double MfAtScale_22_amp = XLALSimIMRPhenomHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, &PhenomDQuantities, AmpFlagTrue );
          UsefulMfPowers powers_of_MfAtScale_22_amp;
@@ -1184,7 +1184,7 @@ int XLALIMRPhenomHMMultiModehlm(
             /* construct hlm at single frequency point and return */
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, MfAtScale_22_amp );
+            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
@@ -1236,11 +1236,11 @@ int XLALIMRPhenomHMMultiModeStrain(
 
     /* sanity checks on input parameters */
 
-    if (m1 <= 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
-    if (m2 <= 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
+    if (!(m1 > 0)) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
+    if (!(m2 > 0)) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
 
-    if (deltaF <= 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
-    if (f_min <= 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
+    if (!(deltaF > 0)) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
+    if (!(f_min > 0)) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
     if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
 
     /* external: SI; internal: solar masses */
@@ -1261,7 +1261,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0 )
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     // if no reference frequency given, set it to the starting GW frequency
@@ -1369,7 +1369,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (chi1z > 1.0 || chi1z < -1.0 || chi2z > 1.0 || chi2z < -1.0)
+    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     PhenomDStorage PhenomDQuantities;
@@ -1505,7 +1505,6 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
      REAL8 phi_precalc = mm*phi0 + HMphaseRef;
      //FP: malloc and then free?
-     //FP: Place if(...NULL) when more_powers_of_MfAtScale_22_amp and powers_of_MfAtScale_22_amp are used
      /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
      double MfAtScale_22_amp = XLALSimIMRPhenomHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, &PhenomDQuantities, AmpFlagTrue );
      UsefulMfPowers powers_of_MfAtScale_22_amp;
@@ -1529,7 +1528,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         /* construct hlm at single frequency point and return */
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
+        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp);
 
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
         ((*hlmtilde)->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
