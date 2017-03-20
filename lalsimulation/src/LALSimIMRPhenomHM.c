@@ -358,12 +358,10 @@ double XLALSimIMRPhenomHMFreqDomainMap(REAL8 Mflm,
  * Calcuated from mathematica function: FrequencyPower[f, {ell, m}] / FrequencyPower[f, {2, 2}]
  * FrequencyPower function just returns the leading order PN term in the amplitude.
  */
-double XLALSimIMRPhenomHMPNFrequencyScale(
+double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
                                            REAL8 Mf,
                                            INT4 ell,
                                            INT4 mm ) {
-
-    /*FIXME: Precompute these powers*/
 
     /*initialise answer*/
     REAL8 ans = 0.0;
@@ -373,18 +371,18 @@ double XLALSimIMRPhenomHMPNFrequencyScale(
             ans = 1.0;
         }
         else { //mm==1
-            ans = pow(Mf, 1.0/3.0);
+            ans = p->third;
         }
     } else if ( ell==3 ) {
         if ( mm==3 ) {
-          ans = pow(Mf, 1.0/3.0);
+          ans = p->third;
         }
         else { //mm==2
-          ans = pow(Mf, 2.0/3.0);
+          ans = p->two_thirds;
         }
     } else if ( ell==4 ) {
         if ( mm==4 ) {
-          ans = pow(Mf, 2.0/3.0);
+          ans = p->two_thirds;
         }
         else { //mm==3
           ans = Mf;
@@ -394,14 +392,14 @@ double XLALSimIMRPhenomHMPNFrequencyScale(
           ans = Mf;
         }
         else { //mm==4
-          ans = pow(Mf, 4.0/3.0);
+          ans = p->four_thirds;
         }
     } else if ( ell==6 ) {
         if ( mm==6 ) {
-          ans = pow(Mf, 4.0/3.0);
+          ans = p->four_thirds;
         }
         else { //mm==5
-          ans = pow(Mf, 5.0/3.0);
+          ans = p->five_thirds;
         }
     } else {
         XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
@@ -473,23 +471,14 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
 
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp);
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp){
-    /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
-    //double MfAtScale_22_amp = XLALSimIMRPhenomHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, AmpFlagTrue );
 
     UsefulPowers downsized_powers_of_MfAtScale_22_amp;
     int errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "downsized_init_useful_powers failed");
-    //int errcode = init_useful_powers(&powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
-    //XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for MfAtScale_22_amp");
-
-    //UsefulMfPowers more_powers_of_MfAtScale_22_amp;
-    //errcode = init_useful_mf_powers(&more_powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
-    //XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_mf_powers failed for MfAtScale_22_amp");
 
     /* see technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp );
-    //FP: IMRPhenDAmplitude(...) is already done in XLALSimIMRPhenomHMAmplitude
-    double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(MfAtScale_22_amp, ell, mm) * IMRPhenDAmplitude(MfAtScale_22_amp, pAmp, &downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
+    double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(&downsized_powers_of_MfAtScale_22_amp, MfAtScale_22_amp, ell, mm) * IMRPhenDAmplitude(MfAtScale_22_amp, pAmp, &downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
 
     return ampRatio;
@@ -498,16 +487,15 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, double MfAtScale_22_amp );
 
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
-                                       int ell,
-                                       int mm,
-                                       IMRPhenomDAmplitudeCoefficients *pAmp,
-                                       AmpInsPrefactors * amp_prefactors,
-                                       PhenomDStorage * PhenomDQuantities,
-                                       UsefulMfPowers *powers_of_MfAtScale_22_amp,
-                                       double MfAtScale_22_amp
-                                     )
+                                    int ell,
+                                    int mm,
+                                    IMRPhenomDAmplitudeCoefficients *pAmp,
+                                    AmpInsPrefactors * amp_prefactors,
+                                    PhenomDStorage * PhenomDQuantities,
+                                    UsefulMfPowers *powers_of_MfAtScale_22_amp,
+                                    double MfAtScale_22_amp
+                                  )
 {
-
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);
 
     UsefulPowers powers_of_Mf_22;
@@ -519,11 +507,9 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, MfAtScale_22_amp);
 
-    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(Mf_22, ell, mm);
+    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);
 
     double HMamp = PhenDamp * R;
-
-    // LALFree(pAmp);
 
     return HMamp;
 }

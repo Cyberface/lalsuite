@@ -271,7 +271,6 @@ static double amp0Func(double eta) {
 static double rho1_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 3931.8979897196696 - 17395.758706812805*eta
@@ -1061,7 +1060,6 @@ static double sigma2Fit(double eta, double chi) {
 static double sigma3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return 22933.658273436497 + 230960.00814979506*eta
@@ -1076,7 +1074,6 @@ static double sigma3Fit(double eta, double chi) {
 static double sigma4Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
-  double xi3 = xi2*xi;
   double eta2 = eta*eta;
 
   return -14621.71522218357 - 377812.8579387104*eta
