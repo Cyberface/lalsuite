@@ -60,40 +60,48 @@ static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} 
 int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number)
 {
 	XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
-	XLAL_CHECK(number >= 0 , XLAL_EDOM, "number must be non-negative");
+	XLAL_CHECK(!(number < 0) , XLAL_EDOM, "number must be non-negative");
 
 	// consider changing pow(x,1/6.0) to cbrt(x) and sqrt(x) - might be faster
 	p->itself = number;
-	p->sixth = pow(number, 1/6.0);
+        p->sqrt = sqrt(number);
+	//p->sixth = pow(number, 1/6.0); //FP
+	p->sixth = cbrt(p->sqrt);
         p->m_sixth = 1.0/p->sixth;
 	p->third = p->sixth * p->sixth;
 	p->two_thirds = p->third * p->third;
 	p->four_thirds = number * p->third;
-	p->five_thirds = p->four_thirds * p->third;
+	p->five_thirds = number * p->two_thirds;
 	p->two = number * number;
 	p->seven_thirds = p->third * p->two;
 	p->eight_thirds = p->two_thirds * p->two;
         p->m_seven_sixths = p->m_sixth/number;
-        p->m_five_sixths = p->sixth/number;
-        p->sqrt = sqrt(number);
+        p->m_five_sixths = p->m_seven_sixths*p->third;
         p->m_sqrt = 1./p->sqrt;
 
 	return XLAL_SUCCESS;
 }
+
+/* TODO: at this point it is probably unnecessary to have UsefulPowers and
+ * UsefulMfPowers: one struct should suffice */
 
 /* Given a full UsefulMfPowers variable, extract a UsefulPowers one from it */
 int downsize_useful_mf_powers(UsefulPowers *out, UsefulMfPowers *in)
 {
 	XLAL_CHECK(0 != in, XLAL_EFAULT, "in is NULL");
 
-	out->sixth        = in->sixth;
-	out->third        = in->third;
-	out->two_thirds   = in->two_thirds;
-	out->four_thirds  = in->four_thirds;
-	out->five_thirds  = in->five_thirds;
-	out->two          = in->two;
-	out->seven_thirds = in->seven_thirds;
-	out->eight_thirds = in->eight_thirds;
+	out->third          = in->third;
+	out->two_thirds     = in->two_thirds;
+	out->four_thirds    = in->four_thirds;
+	out->five_thirds    = in->five_thirds;
+	out->two            = in->two;
+	out->seven_thirds   = in->seven_thirds;
+	out->eight_thirds   = in->eight_thirds;
+        out->inv            = 1./in->itself; 
+        out->m_seven_sixths = in->m_seven_sixths;
+        out->m_third        = 1./in->third;
+        out->m_two_thirds   = out->m_third*out->m_third;
+        out->m_five_thirds  = out->inv*out->m_two_thirds;
 
 	return XLAL_SUCCESS;
 }
@@ -1080,7 +1088,7 @@ int XLALIMRPhenomHMMultiModehlm(
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min * InvDeltaF);
     size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
-    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+    XLAL_CHECK ( !(ind_max>n) && !(ind_min>ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     const REAL8 MfRef = M_sec * fRef;
 
@@ -1131,7 +1139,7 @@ int XLALIMRPhenomHMMultiModehlm(
          }
 
          double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
-         HMphaseRef = HMphaseRef * 0.;
+         HMphaseRef = HMphaseRef * 0.; //FIXME: This seems unnecessary but maybe it's a placeholder?
 
          /* compute reference phase at reference frequency */
 
@@ -1168,6 +1176,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* loop over frequency */
          /* Now generate the waveform for a single (l,m) mode */
          REAL8 M_sec_dF = M_sec * deltaF;
+         COMPLEX16 It0 = I*t0; 
          #pragma omp parallel for
          for (size_t i = ind_min; i < ind_max; i++)
          {
@@ -1185,7 +1194,7 @@ int XLALIMRPhenomHMMultiModehlm(
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
             // (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
-            (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef) );
+            (hlm->data->data)[i] *= cexp(-It0*(Mf-MfRef)); //FIXME: 2.0-mm is gone, is this intended? If yes, delete this comment.
             /*from phenomD for referene*/
             //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
             //  REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
@@ -1232,11 +1241,11 @@ int XLALIMRPhenomHMMultiModeStrain(
 
     /* sanity checks on input parameters */
 
-    if (!(m1 > 0)) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
-    if (!(m2 > 0)) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
+    if (m1 < 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
+    if (m2 < 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
 
-    if (!(deltaF > 0)) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
-    if (!(f_min > 0)) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
+    if (deltaF < 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
+    if (f_min < 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
     if (f_max < 0) XLAL_ERROR(XLAL_EDOM, "f_max must be greater than 0\n");
 
     /* external: SI; internal: solar masses */
@@ -1287,7 +1296,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min * InvDeltaF);
     size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
-    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+    XLAL_CHECK ( !(ind_max>n) && !(ind_min>ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     /* Allocate hptilde and hctilde */
     *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
@@ -1439,7 +1448,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     /* range that will have actual non-zero waveform values generated */
     size_t ind_min = (size_t) (f_min * InvDeltaF);
     size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
-    XLAL_CHECK ( (ind_max<=n) && (ind_min<=ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+    XLAL_CHECK ( !(ind_max>n) && !(ind_min>ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
 
     /* Allocate hptilde and hctilde */
@@ -1515,10 +1524,12 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
 
      /* loop over frequency */
      /* Now generate the waveform for a single (l,m) mode */
+     REAL8 M_sec_dF = M_sec * deltaF;
+     COMPLEX16 It0 = I*t0; 
      #pragma omp parallel for
      for (size_t i = ind_min; i < ind_max; i++)
      {
-        REAL8 Mf = M_sec * i * deltaF; /* geometric frequency */
+        REAL8 Mf = i * M_sec_dF; /* geometric frequency */
         /* now we can compute the hlm */
         /* TODO: fix phase and time offsets */
         /* TODO: inclusion of reference frequency */
@@ -1530,7 +1541,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn , pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp);
 
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
-        ((*hlmtilde)->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
+        ((*hlmtilde)->data->data)[i] *= cexp(-It0*(Mf-MfRef)*(2.0-mm) );
         /*from phenomD for referene*/
         //  REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
         //  REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
