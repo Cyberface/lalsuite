@@ -778,6 +778,7 @@ static void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
 static void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficients *p, double eta, double chi1, double chi2, double finspin) {
 
   p->eta = eta;
+  p->etaInv = 1./eta;
   p->chi1 = chi1;
   p->chi2 = chi2;
 

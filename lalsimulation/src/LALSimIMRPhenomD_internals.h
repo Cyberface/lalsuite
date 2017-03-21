@@ -113,6 +113,7 @@ of this waveform.
   */
 typedef struct tagIMRPhenomDAmplitudeCoefficients {
   double eta;         // symmetric mass-ratio
+  double etaInv;      // 1/eta
   double chi1, chi2;  // dimensionless aligned spins, convention m1 >= m2.
   double q;           // asymmetric mass-ratio (q>=1)
   double chi;         // PN reduced spin parameter
