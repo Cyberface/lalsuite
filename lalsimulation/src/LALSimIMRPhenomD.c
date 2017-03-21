@@ -297,9 +297,10 @@ static int IMRPhenomDGenerateFD(
 
   int status_in_for = XLAL_SUCCESS;
   /* Now generate the waveform */
+  REAL8 M_sec_deltaF = M_sec*deltaF;
   for (size_t i = ind_min; i < ind_max; i++)
   {
-    REAL8 Mf = M_sec * i * deltaF; // geometric frequency
+    REAL8 Mf = i * M_sec_deltaF; // geometric frequency
 
     UsefulPowers powers_of_f;
     status_in_for = init_useful_powers(&powers_of_f, Mf);

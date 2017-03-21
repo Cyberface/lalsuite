@@ -330,7 +330,7 @@ static int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmpl
 
 	double eta = p->eta;
 
-	prefactors->amp0 = amp0Func(p->eta);
+	prefactors->amp0 = amp0Func(eta);
 
 	double chi1 = p->chi1;
 	double chi2 = p->chi2;
@@ -941,7 +941,7 @@ static double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double R
  */
 static double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm) {
   // return (p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25) + p->alpha4/(p->fDM*(1 + pow_2_of(f - p->alpha5 * p->fRD)/pow_2_of(p->fDM)))) / p->eta;
-  return ( p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25)+ p->alpha4/(p->fDM * Taulm * (1 + pow_2_of(f - p->alpha5 * p->fRD)/(pow_2_of(p->fDM * Taulm * Rholm)))) ) / p->eta;
+  return ( p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25)+ p->alpha4/(p->fDM * Taulm * (1 + pow_2_of(f - p->alpha5 * p->fRD)/(pow_2_of(p->fDM * Taulm * Rholm)))) ) * p->etaInv;
 }
 
 ///////////////////////////// Phase: Intermediate functions /////////////////////////////
@@ -1006,7 +1006,7 @@ static double PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * (this time with 1./eta explicitly factored in)
  */
 static double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
-  return (p->beta1 + p->beta3/pow_4_of(Mf) + p->beta2/Mf) / p->eta;
+  return (p->beta1 + p->beta3/pow_4_of(Mf) + p->beta2/Mf) * p->etaInv;
 }
 
 /**
@@ -1089,6 +1089,7 @@ static double sigma4Fit(double eta, double chi) {
  * as comments in the top of this file
  * Defined by Equation 27 and 28 arXiv:1508.07253
  */
+//FP: remove divisions here and in the next couple of functions!
 static double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
 {
   XLAL_CHECK(0 != pn, XLAL_EFAULT, "pn is NULL");
@@ -1112,7 +1113,7 @@ static double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefa
   phasing += ( prefactors->one * Mf + prefactors->four_thirds * powers_of_Mf->four_thirds
 			   + prefactors->five_thirds * powers_of_Mf->five_thirds
 			   + prefactors->two * powers_of_Mf->two
-			 ) / p->eta;
+			 ) * p->etaInv;
 
   return phasing;
 }
@@ -1188,7 +1189,7 @@ static double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhas
         + sigma2 * v / powers_of_pi.third
         + sigma3 * v2 / powers_of_pi.two_thirds
         + (sigma4/Pi) * v3
-        ) / p->eta;
+        ) * p->etaInv;
 
   return Dphasing;
 }
@@ -1207,7 +1208,7 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
   p->chi1 = chi1;
   p->chi2 = chi2;
 
-  p->q = (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta) / (2.0*eta);
+  p->q = 0.5*(1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta)*p->etaInv;
   p->chi = chiPN(eta, chi1, chi2);
 
   p->sigma1 = sigma1Fit(eta, p->chi);
