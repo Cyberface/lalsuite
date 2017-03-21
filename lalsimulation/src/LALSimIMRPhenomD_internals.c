@@ -781,7 +781,7 @@ static void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficien
   p->chi1 = chi1;
   p->chi2 = chi2;
 
-  p->q = (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta) / (2.0*eta);
+  p->q = 0.5 * (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta) * p->etaInv;
   p->chi = chiPN(eta, chi1, chi2);
 
   p->fRD = fring(eta, chi1, chi2, finspin);
@@ -1142,9 +1142,9 @@ static int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhas
 
   // higher order terms that were calibrated for PhenomD
 	prefactors->one = sigma1;
-	prefactors->four_thirds = sigma2 * 3.0/4.0;
-	prefactors->five_thirds = sigma3 * 3.0/5.0;
-	prefactors->two = sigma4 / 2.0;
+	prefactors->four_thirds = sigma2 * 0.75;
+	prefactors->five_thirds = sigma3 * 0.6;
+	prefactors->two = sigma4 * 0.5;
 
 	return XLAL_SUCCESS;
 }
