@@ -1235,7 +1235,6 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
  */
 static void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
-  double eta = p->eta;
   double etaInv = p->etaInv;
 
   // Transition frequencies

@@ -428,8 +428,8 @@ static double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p);
 
 static double sigma1Fit(double eta, double eta2, double xi);
 static double sigma2Fit(double eta, double eta2, double xi);
-static double sigma3Fit(double eta, double eta2, double xi, double xi2);
-static double sigma4Fit(double eta, double eta2, double xi, double xi2);
+static double sigma3Fit(double eta, double eta2, double xi);
+static double sigma4Fit(double eta, double eta2, double xi);
 static double PhiInsAnsatzInt(double f, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 static double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 
