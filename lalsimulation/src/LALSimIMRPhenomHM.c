@@ -84,6 +84,7 @@ int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number)
  * UsefulMfPowers: one struct should suffice */
 
 /* Given a full UsefulMfPowers variable, extract a UsefulPowers one from it */
+int downsize_useful_mf_powers(UsefulPowers *out, UsefulMfPowers *in);
 int downsize_useful_mf_powers(UsefulPowers *out, UsefulMfPowers *in)
 {
 	XLAL_CHECK(0 != in, XLAL_EFAULT, "in is NULL");
