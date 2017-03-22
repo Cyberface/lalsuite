@@ -145,6 +145,7 @@ static double FinalSpin0815_s(double eta, double s) {
   double s3 = s2*s;
 
 /* FIXME: there are quite a few int's withouth a . in this file */
+//FP: eta2, eta3 can be avoided
 return eta*(3.4641016151377544 - 4.399247300629289*eta +
    9.397292189321194*eta2 - 13.180949901606242*eta3 +
    s*((1 - 0.0850917821418767 - 5.837029316602263*eta) +
@@ -1035,7 +1036,7 @@ static double sigma2Fit(double eta, double eta2, double xi) {
 /**
  * sigma 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-static double sigma3Fit(double eta, double eta2, double xi, double xi2) {
+static double sigma3Fit(double eta, double eta2, double xi) {
 
   return 22933.658273436497 + 230960.00814979506*eta
   + (14961.083974183695 + 1.1940181342318142e6*eta - 3.1042239693052764e6*eta2
@@ -1046,7 +1047,7 @@ static double sigma3Fit(double eta, double eta2, double xi, double xi2) {
 /**
  * sigma 4 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-static double sigma4Fit(double eta, double eta2, double xi, double xi2) {
+static double sigma4Fit(double eta, double eta2, double xi) {
 
   return -14621.71522218357 - 377812.8579387104*eta
   + (-9608.682631509726 - 1.7108925257214056e6*eta + 4.332924601416521e6*eta2
@@ -1185,12 +1186,11 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
   p->q = 0.5*(1.0 + p->Seta - 2.0*eta)*p->etaInv;
   p->chi = chiPN(p->Seta, eta, chi1, chi2);
   double xi = -1.0 + p->chi;
-  double xi2 = xi*xi;
 
   p->sigma1 = sigma1Fit(eta, eta2, xi);
   p->sigma2 = sigma2Fit(eta, eta2, xi);
-  p->sigma3 = sigma3Fit(eta, eta2, xi, xi2);
-  p->sigma4 = sigma4Fit(eta, eta2, xi, xi2);
+  p->sigma3 = sigma3Fit(eta, eta2, xi);
+  p->sigma4 = sigma4Fit(eta, eta2, xi);
 
   p->beta1 = beta1Fit(eta, eta2, xi);
   p->beta2 = beta2Fit(eta, eta2, xi);

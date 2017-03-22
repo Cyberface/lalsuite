@@ -378,7 +378,7 @@ double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
     /* Initialise answer */
     REAL8 ans = 0.0;
 
-    //FP: do a Rholm style thing here for speed up. 
+    //FP: just compute the power in here 
     if ( ell==2 ) {
         if ( mm==2 ) {
             ans = 1.0;
@@ -513,6 +513,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
 
+    //FP: only needs powers_of_Mf22->m_seven_sixths!! Compute it locally? Even better, compute it outside the ell, mm loop
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
     double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp);
@@ -602,6 +603,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
+    // FP: this recomputes eta...
     pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
@@ -1070,6 +1072,7 @@ int XLALIMRPhenomHMMultiModehlm(
     }
 
     // Was not available when PhenomD was tuned.
+    // FP: this recomputes eta...
     pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     //FP: Malloc and free this too?
@@ -1150,7 +1153,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
          to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
          if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
-         //  REAL8 phi_precalc = mm*phi0 + HMphaseRef;
+         // REAL8 phi_precalc = mm*phi0 + HMphaseRef;
          /* FIXME: */
          /* NOTE: Quick and dirty fix to get a reference phase working.*/
          /* NOTE: Moving the reference phase to the spherical harmonic.*/
