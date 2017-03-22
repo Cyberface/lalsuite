@@ -113,8 +113,8 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   p->m1 = m1; /* Inherits units from m1 in function arguments */
   p->m2 = m2; /* Inherits units from m2 in function arguments */
   p->Mtot = m1+m2; /* Inherits units from m1 and m2 in function arguments */
-  REAL8 eta = m1*m2/(p->Mtot*p->Mtot);
-  p->Inv1MinusEradRational0815 = 1.0/(1.0-EradRational0815(eta, chi1z, chi2z));
+  p->eta = m1*m2/(p->Mtot*p->Mtot);
+  p->Inv1MinusEradRational0815 = 1.0/(1.0-EradRational0815(p->eta, chi1z, chi2z));
   p->finspin = XLALSimIMRPhenomDFinalSpin(m1, m2, chi1z, chi2z); /* dimensionless final spin */
   if (p->finspin > 1.0) XLAL_ERROR(XLAL_EDOM, "PhenomD fring function: final spin > 1.0 not supported\n");
 
@@ -148,45 +148,45 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   }
 
   /* A bunch of useful powers used in XLALSimIMRPhenomHMPNAmplitudeLeadingOrder */
-  REAL8 ans;
-  REAL8 sqrteta = sqrt(eta);
-  REAL8 Seta = sqrt( 1.0 - 4.0 * eta );
+  REAL8 sqrteta = sqrt(p->eta);
+  REAL8 Seta = sqrt( 1.0 - 4.0 * p->eta );
+  REAL8 ans = sqrteta;
   for( int j=0; j<NMODES; j++ ){
     int ell = ModeArray[j][0];
     int mm = ModeArray[j][1];
 
     if ( ell==2 ) {
         if (mm==2 ) {
-          ans = 0.674677 * sqrteta;
+          ans *= 0.674677;
         } else { // mm==1
-          ans = 0.329376 * Seta * sqrteta;
+          ans *= 0.329376 * Seta;
         }
     } else if ( ell==3 ) {
         if ( mm==3 ) {
-          ans = 0.767106 * Seta * sqrteta;
+          ans *= 0.767106 * Seta;
         }
         else { // mm==2
-          ans = 0.407703 * sqrteta;
+          ans *= 0.407703;
         }
     } else if ( ell==4 ) {
         if ( mm==4 ) {
-          ans = ( 1.08721 - 3.26162*eta ) * sqrteta;
+          ans *= ( 1.08721 - 3.26162*p->eta );
         } else { // mm==3
-          ans =  ( 0.570006 - 1.14001*eta ) * Seta * sqrteta;
+          ans *=  ( 0.570006 - 1.14001*p->eta ) * Seta;
         }
     } else if ( ell==5 ) {
         if ( mm==5 ) {
-          ans = 3.39713 * (0.5 - eta) * Seta * sqrteta;
+          ans *= 3.39713 * (0.5 - p->eta) * Seta;
         }
         else { // mm==4
-          ans = 0.859267 * sqrteta;
+          ans *= 0.859267;
         }
     } else if ( ell==6 ) {
         if ( mm==6 ) {
-          ans = 2.80361 * sqrteta;
+          ans *= 2.80361;
         }
         else { // mm==5
-          ans = 1.36104 * Seta * sqrteta;
+          ans *= 1.36104 * Seta;
         }
     } else {
         ans = 0.0;
@@ -195,6 +195,22 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   }
 
   return XLAL_SUCCESS;
+}
+
+/**
+ * Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
+ * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but was not
+ * available when PhenomD was tuned.  This is similar to Subtract3PNSS in
+ * LALSimIMRPhenomD_internals.c, but avoids recomputing eta and squaring the chi's.
+ */
+static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2);
+static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2){
+  REAL8 m1M = m1 / M;
+  REAL8 m2M = m2 / M;
+  REAL8 pn_ss3 =  (326.75L/1.12L + 557.5L/1.8L*eta)*eta*chi1*chi2;
+  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m1M-120.L*m1M*m1M) + (-4108.25L/6.72L-108.5L/1.2L*m1M+125.5L/3.6L*m1M*m1M)) *m1M*m1M * chi1*chi1;
+  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m2M-120.L*m2M*m2M) + (-4108.25L/6.72L-108.5L/1.2L*m2M+125.5L/3.6L*m2M*m2M)) *m2M*m2M * chi2*chi2;
+  return pn_ss3;
 }
 
 //mathematica function postfRDflm
@@ -602,8 +618,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    // FP: this recomputes eta...
-    pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, chi1z, chi2z) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSpinSpin(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, eta, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -823,7 +838,7 @@ static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySerie
   else { /* not adding in the -m mode */
     Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
     COMPLEX16 factorp = 0.5*Y;
-    COMPLEX16 factorc = I*0.5*Y;//FP: I*factorp
+    COMPLEX16 factorc = I*factorp;
     //COMPLEX16* datap = hptilde->data->data;
     //COMPLEX16* datac = hctilde->data->data;
     for ( j = 0; j < hlmtilde->data->length; ++j ) {
@@ -1022,9 +1037,8 @@ int XLALIMRPhenomHMMultiModehlm(
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
     
-    //FP: switch to commented expressions
-    const REAL8 M = m1Msun + m2Msun;//PhenomDQuantities.Mtot*LAL_MSUN_SI;
-    const REAL8 eta = m1Msun * m2Msun / (M * M);//PhenomDQuantities.eta;
+    const REAL8 M = PhenomDQuantities.Mtot*LAL_MSUN_SI;
+    const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI;
 
     if (eta > 0.25 || eta < 0.0)
@@ -1068,8 +1082,7 @@ int XLALIMRPhenomHMMultiModehlm(
     }
 
     // Was not available when PhenomD was tuned.
-    // FP: this recomputes eta...
-    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     //FP: Malloc and free this too?
     PhiInsPrefactors phi_prefactors;
@@ -1358,9 +1371,8 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
 
-    //FP: switch to commented expressions
-    const REAL8 M = m1Msun + m2Msun;//PhenomDQuantities.Mtot*LAL_MSUN_SI;
-    const REAL8 eta = m1Msun * m2Msun / (M * M);//PhenomDQuantities.eta;
+    const REAL8 M = PhenomDQuantities.Mtot*LAL_MSUN_SI;//m1Msun + m2Msun;
+    const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI;
 
     if (eta > 0.25 || eta < 0.0)
@@ -1408,7 +1420,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     }
 
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     PhiInsPrefactors phi_prefactors;
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
