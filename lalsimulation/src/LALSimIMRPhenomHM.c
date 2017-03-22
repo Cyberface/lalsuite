@@ -432,15 +432,8 @@ double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
 /* FIXME: returns leading order PN amplitude for given ell and m mode.
  * This is from mma notebook 'leadingPNamp.nb' in /work/projects/PhenomHM
  */
-double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(REAL8 Mf_wf, INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_Mf_wf);
-double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
-                                                INT4 ell,
-                                                INT4 mm,
-                                                PhenomDStorage *PhenomDQuantities,
-                                                UsefulMfPowers *powers_of_Mf_wf ) {
-
-    //taking the absolute value of complex terms
-
+double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_Mf_wf);
+double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_Mf_wf) {
     /* Initialise answer */
     REAL8 pow_Mf_wf_prefactor = PhenomDQuantities->pow_Mf_wf_prefactor[ell][mm];
     REAL8 ans = 0.0;
@@ -493,7 +486,7 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp){
 
     /* See technical document for description of below lines with A_R and R */
-    double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( MfAtScale_wf_amp, ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp );
+    double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp);
     double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * IMRPhenDAmplitude(powers_of_MfAtScale_22_amp->itself, pAmp, downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
 

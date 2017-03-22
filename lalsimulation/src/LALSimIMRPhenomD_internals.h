@@ -359,8 +359,8 @@ static inline double pow_4_of(double number)
 //////////////////////// Final spin, final mass, fring, fdamp ///////////////////////
 
 static double FinalSpin0815_s(double eta, double s);
-//UNUSED static double FinalSpin0815(double eta, double chi1, double chi2);
-static double FinalSpin0815(double eta, double chi1, double chi2);
+UNUSED static double FinalSpin0815(double eta, double chi1, double chi2);
+//static double FinalSpin0815(double eta, double chi1, double chi2);
 static double EradRational0815_s(double eta, double s);
 static double EradRational0815(double eta, double chi1, double chi2);
 static double fring(double eta, double chi1, double chi2, double finalspin);
