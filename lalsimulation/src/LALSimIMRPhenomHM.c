@@ -872,19 +872,18 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
 ) {
 
     /*
-    * In this function we should pass the
-    * phenom model parameters and the (l,m)
-    * mode to return a given hlm, not summed
-    * with spherical harmonics.
-    * Can be evaluated at a single geometric frequency (Mf).
-    */
+     * In this function we should pass the phenom model parameters
+     * and the (l,m) mode to return a given hlm, not summed with
+     * spherical harmonics.
+     * Can be evaluated at a single geometric frequency (Mf).
+     */
 
     double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
-    /* compute reference phase at reference frequency */
+    /* Compute reference phase at reference frequency */
 
-    // factor of m spherical harmonic mode b/c phi0 is orbital phase
+    /* Factor of m spherical harmonic mode b/c phi0 is orbital phase */
     /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
     HMphase -= phi_precalc;
 
@@ -931,7 +930,7 @@ static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf    /**< geometric frequency */,
       return f_max_prime;
 }
 
-// static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin, INT4 ell, INT4 mm);
+/* Compute t0 as the time of the peak of the 22 mode */
 static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin);
 static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
 
@@ -1109,12 +1108,6 @@ int XLALIMRPhenomHMMultiModehlm(
     /* Now we have all the PhenomD model parameters, which actually correspond
      * to the (l,m)=(2,2) parameters, we can feed these into the function
      * IMRPhenomHMSingleModehlm to generate any mode we want. */
-
-    //TODO: Turn t0 computation into a function
-    /* NOTE: We could compute the t0 here as the time of the peak of the
-     * 22 mode and make that the assumtion.
-     */
-
 
     /*
      * NOTE: I'm not sure what Mf should be used for the reference time...
