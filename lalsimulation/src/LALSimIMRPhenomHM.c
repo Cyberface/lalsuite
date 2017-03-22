@@ -199,6 +199,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
 
 //mathematica function postfRDflm
 //double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
+double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
 double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
     double ans = 0.0;
     if ( AmpFlag==1 ) {
@@ -224,6 +225,7 @@ double XLALIMRPhenomHMTi(REAL8 Mf, const INT4 mm){
     return 2.0 * Mf / mm;
 }
 
+void XLALIMRPhenomHMSlopeAmAndBm(double *Am, double *Bm, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities);
 void XLALIMRPhenomHMSlopeAmAndBm(double *Am, double *Bm, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, PhenomDStorage* PhenomDQuantities){
     REAL8 Trd = XLALIMRPhenomHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, PhenomDQuantities);
     REAL8 Ti = XLALIMRPhenomHMTi(fi, mm);
@@ -253,6 +255,7 @@ int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, 
     return XLAL_SUCCESS;
 }
 
+int XLALIMRPhenomHMFreqDomainMapParams(REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, PhenomDStorage *PhenomDQuantities, const int AmpFlag); 
 int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
                                         REAL8 *b,/**< [Out]  */
                                         REAL8 *fi,/**< [Out]  */
@@ -335,6 +338,7 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
  */
+double XLALSimIMRPhenomHMFreqDomainMap(REAL8 Mflm, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities, const int AmpFlag);
 double XLALSimIMRPhenomHMFreqDomainMap(REAL8 Mflm,
                                         const INT4 ell,
                                         const INT4 mm,
@@ -371,6 +375,7 @@ double XLALSimIMRPhenomHMFreqDomainMap(REAL8 Mflm,
  * Calcuated from mathematica function: FrequencyPower[f, {ell, m}] / FrequencyPower[f, {2, 2}]
  * FrequencyPower function just returns the leading order PN term in the amplitude.
  */
+double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p, REAL8 Mf, INT4 ell, INT4 mm);
 double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
                                            REAL8 Mf,
                                            INT4 ell,
@@ -427,6 +432,7 @@ double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
 /* FIXME: returns leading order PN amplitude for given ell and m mode.
  * This is from mma notebook 'leadingPNamp.nb' in /work/projects/PhenomHM
  */
+double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(REAL8 Mf_wf, INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_Mf_wf);
 double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
                                                 INT4 ell,
                                                 INT4 mm,
@@ -483,7 +489,6 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder( REAL8 Mf_wf,
     return ans;
 }
 
-
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
 static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp){
 
@@ -495,8 +500,7 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
     return ampRatio;
 }
 
-double XLALSimIMRPhenomHMAmplitude( double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp );
-
+double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
                                     int mm,
@@ -528,6 +532,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
 
 /*TODO Should also probably add LALDict as a argument here.*/
+int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, PhenomDStorage *PhenomDQuantities);
 int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, PhenomDStorage *PhenomDQuantities)
 {
     /*
@@ -663,8 +668,6 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     return XLAL_SUCCESS;
 
 }
-
-double XLALSimIMRPhenomHMPhase( double Mf_wf, int ell, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
 
 double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric units*/
                                    int ell,
@@ -850,7 +853,6 @@ static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySerie
  *
  */
 
-static COMPLEX16 IMRPhenomHMSingleModehlm(int ell, int mm, double Mf, HMPhasePreComp *z, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors * phi_prefactors, double Rholm, double Taulm, double phi_precalc, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
 /*
  * This returns the hlm of a single (l,m) mode at a single frequency Mf
  */
@@ -997,6 +999,7 @@ int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
 
 /* NOTE: name changed from hlmsphharmfreqseries to hlms */
 /* NOTE: Some code duplication in order to keep this function XLAL */
+int XLALIMRPhenomHMMultiModehlm(SphHarmFrequencySeries **hlms, REAL8 m1Msun, REAL8 m2Msun, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomHMMultiModehlm(
     SphHarmFrequencySeries **hlms, /**< [out] can access multiple modes with units of Mf */
     REAL8 m1Msun,                  /**< primary mass in Msun */

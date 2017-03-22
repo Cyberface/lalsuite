@@ -95,7 +95,3 @@ typedef struct tagHMPhasePreComp {
  double PhDDconst;
  double PhDBAterm;
 } HMPhasePreComp;
-
-
-
-int XLALSimIMRPhenomHMPhasePreComp(struct tagHMPhasePreComp *q, const INT4 ell, const INT4 mm, const REAL8 eta, const REAL8 chi1z, const REAL8 chi2z, PhenomDStorage *PhenomDQuantities);
