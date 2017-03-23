@@ -676,9 +676,8 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
 
 }
 
-double XLALSimIMRPhenomHMPhase( double Mf_wf, int ell, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
+double XLALSimIMRPhenomHMPhase( double Mf_wf, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
 double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric units*/
-                                int ell,
                                 int mm,
                                 HMPhasePreComp *q,
                                 PNPhasingSeries *pn,
@@ -871,7 +870,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
      */
 
     double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
-    double HMphase = XLALSimIMRPhenomHMPhase( Mf, ell, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
+    double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
     /* Compute reference phase at reference frequency */
 
@@ -1121,13 +1120,13 @@ int XLALIMRPhenomHMMultiModehlm(
          /* PhenomHM pre-computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
+         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell,  mm, eta, chi1z, chi2z, &PhenomDQuantities);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
          }
 
-         double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+         double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
          HMphaseRef = HMphaseRef * 0.; //FIXME: This seems unnecessary but maybe it's a placeholder?
 
          /* Compute reference phase at reference frequency */
@@ -1481,7 +1480,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
          XLAL_ERROR(XLAL_EDOM);
      }
 
-     double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, ell, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
+     double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
      // printf("HMphaseRef = %f\n",HMphaseRef);
      /* compute reference phase at reference frequency */
 
