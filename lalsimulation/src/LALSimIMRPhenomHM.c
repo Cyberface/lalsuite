@@ -47,6 +47,15 @@
 static int NMODES = NMODES_MAX;
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
+/* List of phase shifts: the index is the azimuthal number m */
+static const double cShift[7] = {0.0,
+                                 LAL_PI_2 /* i shift */,
+                                 0.0,
+                                 -LAL_PI_2 /* -i shift */,
+                                 LAL_PI /* 1 shift */,
+                                 LAL_PI_2 /* -1 shift */,
+                                 0.0};
+
 /* Dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
 /* Activates amplitude part of the model */
@@ -342,8 +351,7 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
         XLAL_ERROR(XLAL_EDOM);
     }
 
-    REAL8 frfi = 0.5 * ( *fr + *fi );
-    *f2lm = frfi;
+    *f2lm = 0.5 * ( *fr + *fi );
 
     return XLAL_SUCCESS;
 }
@@ -454,7 +462,7 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStora
     REAL8 pow_Mf_wf_prefactor = PhenomDQuantities->pow_Mf_wf_prefactor[ell][mm];
     REAL8 ans = 0.0;
 
-    //FP: do a Rholm style thing here for speed up. 
+    //FP: some of these can be computed directly here rather than for each mm and ll
     if ( ell==2 ) {
         if ( mm==2 ) {
           ans = powers_of_Mf_wf->m_seven_sixths;
@@ -520,7 +528,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     UsefulPowers *downsized_powers_of_MfAtScale_22_amp
                                   )
 {
-    double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);
+    double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
 
     UsefulPowers powers_of_Mf_22;
     int errcode = XLAL_SUCCESS;
@@ -531,7 +539,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp);
 
-    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);
+    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);//FP: pow_Mf_wf_prefactor[ell][mm]
 
     double HMamp = PhenDamp * R;
 
@@ -761,18 +769,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
      */
     /*TODO: Need to have a list at the begining and a function to check the input
     lm mode to see if it is one that is included in the model.*/
-    /* Initialise answer */
-    REAL8 cShift = 0.0;
-    if ( mm==1 ) {
-        cShift = LAL_PI_2; /* i shift */
-    } else if ( mm==3 ) {
-        cShift = -LAL_PI_2; /* -i shift */
-    } else if ( mm==4 ) {
-        cShift = LAL_PI; /* -1 shift */
-    } else if ( mm==5 ) {
-        cShift = LAL_PI_2; /* i shift */
-    }
-    retphase += cShift;
+    retphase += cShift[mm];
 
     // LALFree(pPhi);
     // LALFree(pn);
@@ -869,6 +866,9 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
      * Can be evaluated at a single geometric frequency (Mf).
      */
 
+    //FP: is all of PhenomDQuantities necessary?
+    //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
+    //FP: pow_Mf_wf_prefactor[ell][mm]
     double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
@@ -887,7 +887,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     //     printf("Mf = %.9f Hz = %f mode l = %i, m = %i       HMphase -= phi_precalc = %.9f\n", Mf, Mf/M_sec, ell, mm, HMphase);
     // }
 
-    COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
+    COMPLEX16 hlm = HMamp * cexp(-I * HMphase); //FP
     // printf("Mf = %f     hlm  =  %f + i %f\nx",Mf, creal(hlm), cimag(hlm));
 
     return hlm;
@@ -1120,7 +1120,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* PhenomHM pre-computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell,  mm, eta, chi1z, chi2z, &PhenomDQuantities);
+         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
@@ -1175,6 +1175,9 @@ int XLALIMRPhenomHMMultiModehlm(
             /* construct hlm at single frequency point and return */
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
+    //FP: is all of PhenomDQuantities necessary?
+    //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
+    //FP: pow_Mf_wf_prefactor[ell][mm]
             (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
