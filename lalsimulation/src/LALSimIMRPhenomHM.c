@@ -206,22 +206,6 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   return XLAL_SUCCESS;
 }
 
-/**
- * Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
- * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but was not
- * available when PhenomD was tuned.  This is similar to Subtract3PNSS in
- * LALSimIMRPhenomD_internals.c, but avoids recomputing eta and squaring the chi's.
- */
-static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2);
-static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2){
-  REAL8 m1M = m1 / M;
-  REAL8 m2M = m2 / M;
-  REAL8 pn_ss3 =  (326.75L/1.12L + 557.5L/1.8L*eta)*eta*chi1*chi2;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m1M-120.L*m1M*m1M) + (-4108.25L/6.72L-108.5L/1.2L*m1M+125.5L/3.6L*m1M*m1M)) *m1M*m1M * chi1*chi1;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m2M-120.L*m2M*m2M) + (-4108.25L/6.72L-108.5L/1.2L*m2M+125.5L/3.6L*m2M*m2M)) *m2M*m2M * chi2*chi2;
-  return pn_ss3;
-}
-
 //mathematica function postfRDflm
 //double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
 double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
@@ -625,7 +609,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, eta, chi1z, chi2z) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, eta, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -1062,7 +1046,7 @@ int XLALIMRPhenomHMMultiModehlm(
     }
 
     // Was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     //FP: Malloc and free this too?
     PhiInsPrefactors phi_prefactors;
@@ -1403,7 +1387,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     }
 
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     PhiInsPrefactors phi_prefactors;
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);

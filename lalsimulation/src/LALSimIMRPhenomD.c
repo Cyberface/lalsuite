@@ -268,7 +268,7 @@ static int IMRPhenomDGenerateFD(
   }
 
   // was not available when PhenomD was tuned.
-  pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1, chi2) * pn->v[0])* testGRcor;
+  pn->v[6] -= (Subtract3PNSS(m1, m2, M, eta, chi1, chi2) * pn->v[0])* testGRcor;
 
   PhiInsPrefactors phi_prefactors;
   status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -491,7 +491,7 @@ double XLALSimIMRPhenomDChirpTime(
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1, chi2) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSS(m1, m2, M, eta, chi1, chi2) * pn->v[0]);
 
 
     PhiInsPrefactors phi_prefactors;
