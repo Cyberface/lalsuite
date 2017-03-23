@@ -53,8 +53,8 @@ typedef struct tagUsefulMfPowers
 int init_useful_mf_powers(UsefulMfPowers *p, REAL8 number);
 
 /**
- * Structure storing (2,2) mode quantities and other parameters/properties
- * that are needed to compute all other modes
+ * Structure storing (2,2) mode quantities and other pre-determined,
+ * fix parameters/properties that are needed to compute all other modes
  */
 typedef struct tagPhenomDStorage
 {

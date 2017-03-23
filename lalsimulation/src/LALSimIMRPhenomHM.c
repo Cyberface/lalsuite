@@ -527,7 +527,6 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
 
-    //FP: only needs powers_of_Mf22->m_seven_sixths!! Compute it locally? Even better, compute it outside the ell, mm loop
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
     double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp);
@@ -677,22 +676,21 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
 
 }
 
+double XLALSimIMRPhenomHMPhase( double Mf_wf, int ell, int mm, HMPhasePreComp *q, PNPhasingSeries *pn, IMRPhenomDPhaseCoefficients *pPhi, PhiInsPrefactors *phi_prefactors, double Rholm, double Taulm );
 double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric units*/
-                                   int ell,
-                                   int mm,
-                                   HMPhasePreComp *q,
-                                   PNPhasingSeries *pn,
-                                   IMRPhenomDPhaseCoefficients *pPhi,
-                                   PhiInsPrefactors *phi_prefactors,
-                                   double Rholm,
-                                   double Taulm
-                                )
+                                int ell,
+                                int mm,
+                                HMPhasePreComp *q,
+                                PNPhasingSeries *pn,
+                                IMRPhenomDPhaseCoefficients *pPhi,
+                                PhiInsPrefactors *phi_prefactors,
+                                double Rholm,
+                                double Taulm
+                              )
 {
-
 
     // const INT4 AmpFlagFalse = 0; /* FIXME: Could make this a global variable too */
     // double Mf_22 = XLALSimIMRPhenomHMFreqDomainMap( Mf_wf, ell, mm, eta, chi1z, chi2z, AmpFlagFalse );
-
 
     // UsefulPowers powers_of_Mf_22;
     // status = init_useful_powers(&powers_of_Mf_22, Mf_22);
@@ -700,7 +698,6 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
 
     /* phi_lm(f) = m * phi_22(f_22) / 2.0 */
     // double PhenDphase = mm * IMRPhenDPhase(Mf_22, pPhi, pn, &powers_of_Mf_22, &phi_prefactors, Rholm, Taulm) / 2.0;
-
 
     REAL8 Mf = 0.0;
     REAL8 Mf2lm = 0.0;
@@ -763,35 +760,19 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
      * [L.Blancet, arXiv:1310.1528 (Sec. 9.5)]
      * "Spherical hrmonic modes for numerical relativity"
      */
-    /* Initialise answer */
-    REAL8 cShift = 0.0;
-    //FP: do a Rholm style thing here for speed up. 
-    if ( ell==2 && mm==1 ) {
-        cShift = LAL_PI_2; /* i shift */
-    } else if ( ell==3 && mm==3 ) {
-        cShift = -LAL_PI_2; /* -i shift */
-    } else if ( ell==4 ) {
-        if ( mm==4 ) {
-          cShift = LAL_PI; /* -1 shift */
-        }
-        else { //mm==3
-          cShift = -LAL_PI_2; /* -i shift */
-        }
-    } else if ( ell==5 ) {
-        if ( mm==5 ) {
-          cShift = LAL_PI_2; /* i shift */
-        } else { //mm==4
-          cShift = LAL_PI; /* -1 shift */
-        }
-    } else if ( ell==6 && mm==5 ) {
-        cShift = LAL_PI_2; /* i shift */
-    } /*else {
-        XLALPrintError("XLAL Error (in function XLALSimIMRPhenomHMPhase) - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
-        XLAL_ERROR(XLAL_EDOM);
-    }*/
     /*TODO: Need to have a list at the begining and a function to check the input
     lm mode to see if it is one that is included in the model.*/
-
+    /* Initialise answer */
+    REAL8 cShift = 0.0;
+    if ( mm==1 ) {
+        cShift = LAL_PI_2; /* i shift */
+    } else if ( mm==3 ) {
+        cShift = -LAL_PI_2; /* -i shift */
+    } else if ( mm==4 ) {
+        cShift = LAL_PI; /* -1 shift */
+    } else if ( mm==5 ) {
+        cShift = LAL_PI_2; /* i shift */
+    }
     retphase += cShift;
 
     // LALFree(pPhi);
