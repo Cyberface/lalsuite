@@ -1008,7 +1008,7 @@ int XLALIMRPhenomHMMultiModehlm(
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     /* If no reference frequency given, set it to the starting GW frequency */
@@ -1213,7 +1213,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     /* Sanity checks on input parameters */
     if (m1 < 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
     if (m2 < 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0 )
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0 )
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
     if (deltaF < 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
     if (f_min < 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
@@ -1345,7 +1345,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     // if no reference frequency given, set it to the starting GW frequency
