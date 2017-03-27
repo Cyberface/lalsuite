@@ -47,6 +47,15 @@
 static int NMODES = NMODES_MAX;
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 
+/* List of phase shifts: the index is the azimuthal number m */
+static const double cShift[7] = {0.0,
+                                 LAL_PI_2 /* i shift */,
+                                 0.0,
+                                 -LAL_PI_2 /* -i shift */,
+                                 LAL_PI /* 1 shift */,
+                                 LAL_PI_2 /* -1 shift */,
+                                 0.0};
+
 /* Dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
 /* Activates amplitude part of the model */
@@ -197,22 +206,6 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   return XLAL_SUCCESS;
 }
 
-/**
- * Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
- * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but was not
- * available when PhenomD was tuned.  This is similar to Subtract3PNSS in
- * LALSimIMRPhenomD_internals.c, but avoids recomputing eta and squaring the chi's.
- */
-static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2);
-static double Subtract3PNSpinSpin(double m1, double m2, double M, double eta, double chi1, double chi2){
-  REAL8 m1M = m1 / M;
-  REAL8 m2M = m2 / M;
-  REAL8 pn_ss3 =  (326.75L/1.12L + 557.5L/1.8L*eta)*eta*chi1*chi2;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m1M-120.L*m1M*m1M) + (-4108.25L/6.72L-108.5L/1.2L*m1M+125.5L/3.6L*m1M*m1M)) *m1M*m1M * chi1*chi1;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m2M-120.L*m2M*m2M) + (-4108.25L/6.72L-108.5L/1.2L*m2M+125.5L/3.6L*m2M*m2M)) *m2M*m2M * chi2*chi2;
-  return pn_ss3;
-}
-
 //mathematica function postfRDflm
 //double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities){
 double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
@@ -342,8 +335,7 @@ int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
         XLAL_ERROR(XLAL_EDOM);
     }
 
-    REAL8 frfi = 0.5 * ( *fr + *fi );
-    *f2lm = frfi;
+    *f2lm = 0.5 * ( *fr + *fi );
 
     return XLAL_SUCCESS;
 }
@@ -454,7 +446,7 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStora
     REAL8 pow_Mf_wf_prefactor = PhenomDQuantities->pow_Mf_wf_prefactor[ell][mm];
     REAL8 ans = 0.0;
 
-    //FP: do a Rholm style thing here for speed up. 
+    //FP: some of these can be computed directly here rather than for each mm and ll
     if ( ell==2 ) {
         if ( mm==2 ) {
           ans = powers_of_Mf_wf->m_seven_sixths;
@@ -520,7 +512,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     UsefulPowers *downsized_powers_of_MfAtScale_22_amp
                                   )
 {
-    double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);
+    double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
 
     UsefulPowers powers_of_Mf_22;
     int errcode = XLAL_SUCCESS;
@@ -531,7 +523,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp);
 
-    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);
+    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);//FP: pow_Mf_wf_prefactor[ell][mm]
 
     double HMamp = PhenDamp * R;
 
@@ -617,7 +609,7 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, eta, chi1z, chi2z) * pn->v[0]);
+    pn->v[6] -= (Subtract3PNSS(PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->Mtot, eta, chi1z, chi2z) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     int status = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -761,18 +753,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
      */
     /*TODO: Need to have a list at the begining and a function to check the input
     lm mode to see if it is one that is included in the model.*/
-    /* Initialise answer */
-    REAL8 cShift = 0.0;
-    if ( mm==1 ) {
-        cShift = LAL_PI_2; /* i shift */
-    } else if ( mm==3 ) {
-        cShift = -LAL_PI_2; /* -i shift */
-    } else if ( mm==4 ) {
-        cShift = LAL_PI; /* -1 shift */
-    } else if ( mm==5 ) {
-        cShift = LAL_PI_2; /* i shift */
-    }
-    retphase += cShift;
+    retphase += cShift[mm];
 
     // LALFree(pPhi);
     // LALFree(pn);
@@ -869,6 +850,9 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
      * Can be evaluated at a single geometric frequency (Mf).
      */
 
+    //FP: is all of PhenomDQuantities necessary?
+    //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
+    //FP: pow_Mf_wf_prefactor[ell][mm]
     double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
@@ -887,7 +871,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     //     printf("Mf = %.9f Hz = %f mode l = %i, m = %i       HMphase -= phi_precalc = %.9f\n", Mf, Mf/M_sec, ell, mm, HMphase);
     // }
 
-    COMPLEX16 hlm = HMamp * cexp(-I * HMphase);
+    COMPLEX16 hlm = HMamp * cexp(-I * HMphase); //FP
     // printf("Mf = %f     hlm  =  %f + i %f\nx",Mf, creal(hlm), cimag(hlm));
 
     return hlm;
@@ -1024,7 +1008,7 @@ int XLALIMRPhenomHMMultiModehlm(
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     /* If no reference frequency given, set it to the starting GW frequency */
@@ -1062,7 +1046,7 @@ int XLALIMRPhenomHMMultiModehlm(
     }
 
     // Was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     //FP: Malloc and free this too?
     PhiInsPrefactors phi_prefactors;
@@ -1120,7 +1104,7 @@ int XLALIMRPhenomHMMultiModehlm(
          /* PhenomHM pre-computations */
          /* NOTE: Need to make this an input and NOT part of the frequency loop! */
          HMPhasePreComp z;
-         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell,  mm, eta, chi1z, chi2z, &PhenomDQuantities);
+         int ret = XLALSimIMRPhenomHMPhasePreComp(&z, ell, mm, eta, chi1z, chi2z, &PhenomDQuantities);
          if (ret != XLAL_SUCCESS){
              XLALPrintError("XLAL Error - XLALSimIMRPhenomHMPhasePreComp failed\n");
              XLAL_ERROR(XLAL_EDOM);
@@ -1175,6 +1159,9 @@ int XLALIMRPhenomHMMultiModehlm(
             /* construct hlm at single frequency point and return */
             // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
+    //FP: is all of PhenomDQuantities necessary?
+    //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
+    //FP: pow_Mf_wf_prefactor[ell][mm]
             (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
@@ -1226,7 +1213,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     /* Sanity checks on input parameters */
     if (m1 < 0) XLAL_ERROR(XLAL_EDOM, "m1 must be positive\n");
     if (m2 < 0) XLAL_ERROR(XLAL_EDOM, "m2 must be positive\n");
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0 )
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0 )
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
     if (deltaF < 0) XLAL_ERROR(XLAL_EDOM, "deltaF must be positive\n");
     if (f_min < 0) XLAL_ERROR(XLAL_EDOM, "f_min must be positive\n");
@@ -1358,7 +1345,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
-    if (abs(chi1z) > 1.0 || abs(chi2z) > 1.0)
+    if (fabs(chi1z) > 1.0 || fabs(chi2z) > 1.0)
         XLAL_ERROR(XLAL_EDOM, "Spins outside the range [-1,1] are not supported\n");
 
     // if no reference frequency given, set it to the starting GW frequency
@@ -1400,7 +1387,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     }
 
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSpinSpin(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
+    pn->v[6] -= (Subtract3PNSS(m1Msun, m2Msun, M, eta, chi1z, chi2z) * pn->v[0])* testGRcor;
 
     PhiInsPrefactors phi_prefactors;
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);

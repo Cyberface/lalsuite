@@ -1085,7 +1085,7 @@ static double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefa
   phasing += ( prefactors->one * Mf + prefactors->four_thirds * powers_of_Mf->four_thirds
 			   + prefactors->five_thirds * powers_of_Mf->five_thirds
 			   + prefactors->two * powers_of_Mf->two
-			 ) * p->etaInv;
+                         ) * p->etaInv;
 
   return phasing;
 }
@@ -1309,14 +1309,11 @@ static double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingS
  * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
  * was not available when PhenomD was tuned.
  */
-static double Subtract3PNSS(double m1, double m2, double M, double chi1, double chi2) {
-  REAL8 eta = m1 * m2 / (M * M);
-  REAL8 chi1sq = chi1 * chi1;
-  REAL8 chi2sq = chi2 * chi2;
+static double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, double chi2){
   REAL8 m1M = m1 / M;
   REAL8 m2M = m2 / M;
   REAL8 pn_ss3 =  (326.75L/1.12L + 557.5L/1.8L*eta)*eta*chi1*chi2;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m1M-120.L*m1M*m1M) + (-4108.25L/6.72L-108.5L/1.2L*m1M+125.5L/3.6L*m1M*m1M)) *m1M*m1M * chi1sq;
-  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m2M-120.L*m2M*m2M) + (-4108.25L/6.72L-108.5L/1.2L*m2M+125.5L/3.6L*m2M*m2M)) *m2M*m2M * chi2sq;
+  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m1M-120.L*m1M*m1M) + (-4108.25L/6.72L-108.5L/1.2L*m1M+125.5L/3.6L*m1M*m1M)) *m1M*m1M * chi1*chi1;
+  pn_ss3 += ((4703.5L/8.4L+2935.L/6.L*m2M-120.L*m2M*m2M) + (-4108.25L/6.72L-108.5L/1.2L*m2M+125.5L/3.6L*m2M*m2M)) *m2M*m2M * chi2*chi2;
   return pn_ss3;
 }
