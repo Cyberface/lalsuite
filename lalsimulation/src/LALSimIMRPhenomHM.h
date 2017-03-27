@@ -17,12 +17,15 @@
  *  MA  02111-1307  USA
  */
 
+#ifndef _LALSIM_IMR_PHENOMHM_H
+#define _LALSIM_IMR_PHENOMHM_H
+
 // #define NMODES_MAX 8
 #define NMODES_MAX 5
 #define L_MAX_PLUS_1 6
 // #define NMODES_MAX 4
 
-// #include <LALSimIMRPhenomHM.c>
+//#include "LALSimIMRPhenomHM.c"
 
 /**
   * Useful powers of Mf: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -7/6, -5/6, -1/2, -1/6, 1/2
@@ -96,3 +99,5 @@ typedef struct tagHMPhasePreComp {
  double PhDDconst;
  double PhDBAterm;
 } HMPhasePreComp;
+
+#endif /* _LALSIM_IMR_PHENOMHM_H */

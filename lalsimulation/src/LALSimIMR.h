@@ -93,13 +93,13 @@ double XLALSimIMRPhenomDFinalSpin(const REAL8 m1_in, const REAL8 m2_in, const RE
 //double XLALSimIMRPhenomHMAmplitude(double Mf_wf, double eta, double chi1z, double chi2z, int ell, int mm, PhenomDStorage* PhenomDQuantities);
 //double XLALSimIMRPhenomHMPNFrequencyScale( REAL8 Mf_wf, INT4 ell, INT4 mm );
 //double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(REAL8 Mf_wf, REAL8 eta, INT4 ell, INT4 mm);
-int XLALIMRPhenomHMMultiModehlmOpt(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
+//int XLALIMRPhenomHMMultiModehlmOpt(SphHarmFrequencySeries **hlms, REAL8 m1, REAL8 m2, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF,REAL8 f_min,REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance);
 int XLALIMRPhenomHMMultiModeStrain(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_in,REAL8 m2_in,REAL8 chi1z_in,REAL8 chi2z_in,REAL8 deltaF,REAL8 f_min,REAL8 f_max,REAL8 fRef_in,REAL8 phi0,REAL8 inclination,REAL8 distance);
 //int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities, const int AmpFlag );
 //double XLALIMRPhenomHMpostfRDflm(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
 double XLALIMRPhenomHMTi(REAL8 Mf, const INT4 mm);
 //double XLALIMRPhenomHMTrd(REAL8 Mf, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
-double XLALIMRPhenomHMTm(REAL8 Mf, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
+//double XLALIMRPhenomHMTm(REAL8 Mf, const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
 //double XLALIMRPhenomHMSlopeAm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
 //double XLALIMRPhenomHMSlopeBm(const INT4 mm, REAL8 fi, REAL8 fr, REAL8 Mf_RD_22, REAL8 Mf_RD_lm, const INT4 AmpFlag);
 int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, REAL8 Ai, REAL8 Bi, REAL8 Am, REAL8 Bm, REAL8 Ar, REAL8 Br);
