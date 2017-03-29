@@ -61,6 +61,10 @@ static const double cShift[7] = {0.0,
 /* Activates amplitude part of the model */
 #define AmpFlagTrue 1
 #define MfAtScale_wf_amp 0.0001
+ /* Scale factor multiplying the ringdown frequency for mode (l,m).
+  * Used to estimate the end frequency for each mode.
+  */
+#define F_FACTOR 1.2
 
 /* START: newer functions  */
 
@@ -105,7 +109,7 @@ int downsize_useful_mf_powers(UsefulPowers *out, UsefulMfPowers *in)
 	out->two            = in->two;
 	out->seven_thirds   = in->seven_thirds;
 	out->eight_thirds   = in->eight_thirds;
-        out->inv            = 1./in->itself; 
+        out->inv            = 1./in->itself;
         out->m_seven_sixths = in->m_seven_sixths;
         out->m_third        = 1./in->third;
         out->m_two_thirds   = out->m_third*out->m_third;
@@ -264,7 +268,7 @@ int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, 
     return XLAL_SUCCESS;
 }
 
-int XLALIMRPhenomHMFreqDomainMapParams(REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, PhenomDStorage *PhenomDQuantities, const int AmpFlag); 
+int XLALIMRPhenomHMFreqDomainMapParams(REAL8 *a, REAL8 *b, REAL8 *fi, REAL8 *fr, REAL8 *f1, REAL8 *f2lm, const REAL8 flm, const INT4 ell, const INT4 mm, PhenomDStorage *PhenomDQuantities, const int AmpFlag);
 int XLALIMRPhenomHMFreqDomainMapParams( REAL8 *a,/**< [Out]  */
                                         REAL8 *b,/**< [Out]  */
                                         REAL8 *fi,/**< [Out]  */
@@ -392,7 +396,7 @@ double XLALSimIMRPhenomHMPNFrequencyScale( UsefulPowers *p,
     /* Initialise answer */
     REAL8 ans = 0.0;
 
-    //FP: just compute the power in here 
+    //FP: just compute the power in here
     if ( ell==2 ) {
         if ( mm==2 ) {
             ans = 1.0;
@@ -746,7 +750,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
         XLAL_ERROR(XLAL_EDOM);
     }
 
-    /* 
+    /*
      * Phase shift due to leading order complex amplitude
      * [L.Blancet, arXiv:1310.1528 (Sec. 9.5)]
      * "Spherical hrmonic modes for numerical relativity"
@@ -766,7 +770,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
 /*
  * Helper function to add a mode to hplus, hcross in Fourier domain
  * - copies the function XLALSimAddMode, which was done only for TD structure
- * This function was lifted from the EOBNRv2HM_ROM code 
+ * This function was lifted from the EOBNRv2HM_ROM code
  */
 static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym);
 static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySeries *hctilde, COMPLEX16FrequencySeries *hlmtilde, REAL8 theta, REAL8 phi, INT4 l, INT4 m, INT4 sym) {
@@ -775,9 +779,13 @@ static INT4 FDAddMode(COMPLEX16FrequencySeries *hptilde, COMPLEX16FrequencySerie
   UINT4 j;
   COMPLEX16 hlmtildevalue;
 
+  // printf("ell = %i, m = %i", l, m);
+  // printf("length hlmtilde = %i  \n\n\n\n\n", hlmtilde->data->length);
+  // printf("length hptilde = %i  \n\n\n\n\n", hptilde->data->length);
+  // printf("length hctilde = %i  \n\n\n\n\n", hctilde->data->length);
+
   /* Checks LAL_CHECK_VALID_SERIES and LAL_CHECK_CONSISTENT_TIME_SERIES removed
    * - they do not seem available for frequency series ? */
-
   INT4 minus1l; /* (-1)^l */
   if ( l%2 ) minus1l = -1;
   else minus1l = 1;
@@ -878,6 +886,12 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
 }
 
 /* Given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
+/* ComputeIMRPhenomHMfmax:
+ * given frequency parameters determine ending frequency
+ * if f_max = 0 then return Mf (in Hz)
+ * if f_max > Mf(in Hz) then return Mf(in Hz)
+ * if f_max < Mf(in Hz) then return f_max
+ */
 static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf, REAL8 f_min, REAL8 f_max, REAL8 M);
 static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf    /**< geometric frequency */,
                                     REAL8 f_min /**< low frequency in Hz */,
@@ -896,9 +910,9 @@ static REAL8 ComputeIMRPhenomHMfmax(REAL8 Mf    /**< geometric frequency */,
           XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", fCut, f_min);
 
       /* Default f_max to Cut */
-      REAL8 f_max_prime = f_max;
-      f_max_prime = f_max ? f_max : fCut;
-      f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
+      REAL8 f_max_prime = f_max; // initialise f_max_prime
+      f_max_prime = f_max ? f_max : fCut; // if f_max is zero then default to fCut otherwise use f_max
+      f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime; // if user has asked for a frequency > fCut then return fCut, otherwise use f_max_prime.
       if (!(f_max_prime > f_min))
           XLAL_ERROR(XLAL_EDOM, "f_max <= f_min\n");
 
@@ -1000,7 +1014,7 @@ int XLALIMRPhenomHMMultiModehlm(
     PhenomDStorage PhenomDQuantities;
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
-    
+
     const REAL8 M = PhenomDQuantities.Mtot*LAL_MSUN_SI;
     const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI;
@@ -1013,8 +1027,6 @@ int XLALIMRPhenomHMMultiModehlm(
 
     /* If no reference frequency given, set it to the starting GW frequency */
     REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
-
-    REAL8 f_max_prime = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
 
     /* Compute phenomD amp coefficients */
     IMRPhenomDAmplitudeCoefficients *pAmp;
@@ -1060,15 +1072,9 @@ int XLALIMRPhenomHMMultiModehlm(
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
 
     /* Coalesce at t=0 */
-    REAL8 InvDeltaF = 1./deltaF; 
+    REAL8 InvDeltaF = 1./deltaF;
     /* Shift by overall length in time */
     XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, - InvDeltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
-
-    size_t n = NextPow2(f_max_prime * InvDeltaF) + 1;
-    /* Range that will have actual non-zero waveform values generated */
-    size_t ind_min = (size_t) (f_min * InvDeltaF);
-    size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
-    XLAL_CHECK ( !(ind_max>n) && !(ind_min>ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
 
     const REAL8 MfRef = M_sec * fRef;
 
@@ -1088,12 +1094,53 @@ int XLALIMRPhenomHMMultiModehlm(
      * I think it should be the scaled one. And it should come from the amplitude
      */
 
+
+     /* Size of the final output hptilde and hctilde.
+      All hlms have the same size as the final hptilde and hctilde
+      However only they are non-zero in different ranges
+      which depends on the ringdown frequency of each mode
+      for optimisation purposes */
+     size_t n = NextPow2(f_max * InvDeltaF) + 1;
+
      const REAL8 t0 = Computet0(eta, chi1z, chi2z, PhenomDQuantities.finspin);
 
      for( int j=0; j<NMODES; j++ ){
 
          int ell = ModeArray[j][0];
          int mm = ModeArray[j][1];
+
+        //  printf("ell = %i\n", ell);
+        //  printf("mm = %i\n", mm);
+
+
+         /* we use a variable ending frequency for each mode so that we don't have to compute all the modes to the same high frequency unnecessarily */
+        //  REAL8 f_max_prime = ComputeHigherModeEndingDimensionlessFrequency(ell, mm, &PhenomDQuantities) / M_sec; // Mf -> Hz
+        //  REAL8 f_max_prime = F_FACTOR * PhenomDQuantities.PhenomHMfring[ell][mm] / M_sec;
+        /* ComputeIMRPhenomHMfmax:
+         * given frequency parameters determine ending frequency
+         * if f_max = 0 then return the default proposed_f_end_lm_mf (in Hz)
+         * if f_max > proposed_f_end_lm_mf(in Hz) then return proposed_f_end_lm_mf(in Hz)
+         * if f_max < proposed_f_end_lm_mf(in Hz) then return f_max
+         */
+         REAL8 proposed_f_end_lm_mf = F_FACTOR * PhenomDQuantities.PhenomHMfring[ell][mm]; // (in Mf)
+
+         REAL8 f_max_prime = ComputeIMRPhenomHMfmax(proposed_f_end_lm_mf, f_min, f_max, M);
+        // REAL8 f_max_prime = 0.;
+        //  REAL8 proposed_f_end_lm_hz = proposed_f_end_lm_mf / M_sec; // Mf -> Hz
+        //  if (proposed_f_end_lm_hz < f_max) {
+        //      f_max_prime = proposed_f_end_lm_hz;
+        //  } else {
+        //      f_max_prime = f_max;
+        //  }
+        //  printf("proposed_f_end_lm_hz = %f \n", proposed_f_end_lm_hz);
+        //  printf("f_max_prime = %f \n", f_max_prime);
+
+
+         /* Range that will have actual non-zero waveform values generated */
+         /* These ranges depend on the l,m mode for optimisation purposes */
+         size_t ind_min_lm = (size_t) (f_min * InvDeltaF);
+         size_t ind_max_lm = (size_t) (f_max_prime * InvDeltaF);
+         XLAL_CHECK ( !(ind_max_lm>n) && !(ind_min_lm>ind_max_lm), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min_lm<=ind_max_lm<=hptilde->data>length=%zu.", ind_min_lm, ind_max_lm, n);
 
          double Rholm = PhenomDQuantities.Rholm[ell][mm];
          double Taulm = PhenomDQuantities.Taulm[ell][mm];
@@ -1136,6 +1183,10 @@ int XLALIMRPhenomHMMultiModehlm(
          errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_22_amp);
          XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "downsized_init_useful_powers failed");
 
+
+         //The size of this COMPLEX16FrequencySeries *hlm needs to be the same as the final hptilde, hctilde
+         //The for loop over frequencies needs to be over the indices for the particular (l,m) mode
+
          /* We loop over (l,m) and use a temporary hlm frequency series to store the results of a single mode */
          COMPLEX16FrequencySeries *hlm = NULL;
          hlm = XLALCreateCOMPLEX16FrequencySeries("hlm: single mode", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
@@ -1147,9 +1198,9 @@ int XLALIMRPhenomHMMultiModehlm(
          /* Now generate the waveform for a single (l,m) mode, i.e. compute hlm*/
          /* Loop over frequency */
          REAL8 M_sec_dF = M_sec * deltaF;
-         COMPLEX16 It0 = I*t0; 
+         COMPLEX16 It0 = I*t0;
          #pragma omp parallel for
-         for (size_t i = ind_min; i < ind_max; i++)
+         for (size_t i = ind_min_lm; i < ind_max_lm; i++)
          {
             REAL8 Mf = i * M_sec_dF; /* geometric frequency */
             /* TODO: fix phase and time offsets */
@@ -1241,7 +1292,20 @@ int XLALIMRPhenomHMMultiModeStrain(
     /* If no reference frequency given, set it to the starting GW frequency */
     REAL8 fRef = (fRef_in == 0.0) ? f_min : fRef_in;
 
-    REAL8 f_max_prime = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
+    /* Given the final frequency in Mf and the total mass, calculate the final frequency in Hz */
+    /* ComputeIMRPhenomHMfmax:
+     * given frequency parameters determine ending frequency
+     * if f_max = 0 then return the default Mf_CUT_HM (in Hz)
+     * if f_max > Mf_CUT_HM(in Hz) then return Mf_CUT_HM(in Hz)
+     * if f_max < Mf_CUT_HM(in Hz) then return f_max
+     */
+    //f_max_strain : this is the final frequency to be used in hptilde and hctilde
+    REAL8 f_max_strain = ComputeIMRPhenomHMfmax(Mf_CUT_HM, f_min, f_max, M);
+    /* The aim of this line is to determine the ending frequency for waveform
+     * generation.
+     * We only want to compute each mode up to approx 1.2*fRDlm
+     * For frequencies higher than this we fill with zeros.
+     */
 
     /* Evaluate XLALIMRPhenomHMMultiModehlm */
 
@@ -1250,7 +1314,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     *hlms=NULL;
 
     /*TODO: Add LALDict as an argument to XLALIMRPhenomHMMultiModehlm */
-    ret = XLALIMRPhenomHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_prime, fRef, phi0, distance);
+    ret = XLALIMRPhenomHMMultiModehlm(hlms, m1, m2, chi1z, chi2z, deltaF, f_min, f_max_strain, fRef, phi0, distance);
     XLAL_CHECK(XLAL_SUCCESS == ret, ret, "XLALIMRPhenomHMMultiModehlm(&hlms) failed");
 
     LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
@@ -1261,11 +1325,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     XLAL_CHECK ( XLALGPSAdd(&ligotimegps_zero, - InvDeltaF), XLAL_EFUNC, "Failed to shift coalescence time to t=0, tried to apply shift of -1.0/deltaF with deltaF=%g.", deltaF);
 
     /* Compute array sizes */
-    size_t n = NextPow2(f_max_prime * InvDeltaF) + 1;
-    /* Range that will have actual non-zero waveform values generated */
-    size_t ind_min = (size_t) (f_min * InvDeltaF);
-    size_t ind_max = (size_t) (f_max_prime * InvDeltaF);
-    XLAL_CHECK ( !(ind_max>n) && !(ind_min>ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=hptilde->data>length=%zu.", ind_min, ind_max, n);
+    size_t n = NextPow2(f_max_strain * InvDeltaF) + 1;
 
     /* Allocate hptilde and hctilde */
     *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
@@ -1284,6 +1344,10 @@ int XLALIMRPhenomHMMultiModeStrain(
     for( int i=0; i<NMODES; i++){
       INT4 ell = ModeArray[i][0];
       INT4 mm = ModeArray[i][1];
+
+    //   printf("ell = %i\n", ell);
+    //   printf("mm = %i\n", mm);
+
       COMPLEX16FrequencySeries* hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
       if (!(hlm)) XLAL_ERROR(XLAL_EFUNC);
 
@@ -1297,8 +1361,23 @@ int XLALIMRPhenomHMMultiModeStrain(
     FDAddMode( *hptilde, *hctilde, hlm, inclination, phi0, ell, mm, sym); /* Added phi0 here as a quick fix for the reference phase. not sure if it should be m * phi0 or m/2*phi0 . */
     }
 
+
+
     XLALDestroySphHarmFrequencySeries(*hlms);
     XLALFree(hlms);
+
+    //TODO: Add something like this from phenomD
+    // if (f_max_strain < f_max) {
+    //   // The user has requested a higher f_max than Mf=fCut.
+    //   // Resize the frequency series to fill with zeros beyond the cutoff frequency.
+    //   size_t n = (*htilde)->data->length;
+    //   size_t n_full = NextPow2(f_max / deltaF) + 1; // we actually want to have the length be a power of 2 + 1
+    //   *htilde = XLALResizeCOMPLEX16FrequencySeries(*htilde, 0, n_full);
+    //   XLAL_CHECK ( *htilde, XLAL_ENOMEM, "Failed to resize waveform COMPLEX16FrequencySeries of length %zu (for internal fCut=%f) to new length %zu (for user-requested f_max=%f).", n, fCut, n_full, f_max );
+    // }
+
+
+
 
     return XLAL_SUCCESS;
 }
@@ -1493,7 +1572,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      /* LOOP OVER FREQUENCY */
      /* Now generate the waveform for a single (l,m) mode */
      REAL8 M_sec_dF = M_sec * deltaF;
-     COMPLEX16 It0 = I*t0; 
+     COMPLEX16 It0 = I*t0;
      #pragma omp parallel for
      for (size_t i = ind_min; i < ind_max; i++)
      {
