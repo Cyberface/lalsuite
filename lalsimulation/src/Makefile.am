@@ -66,6 +66,7 @@ pkginclude_HEADERS = \
 	LALSimBurst.h \
 	LALSimIMR.h \
 	LALSimInspiral.h \
+	LALSimInspiralFDPrecAngles.h \
 	LALSimInspiralPrecess.h \
 	LALSimInspiralTestGRParams.h \
 	LALSimInspiralWaveformCache.h \
@@ -135,6 +136,8 @@ noinst_HEADERS = \
 	LALSimIMRSpinEOBHcapNumericalDerivativePrec.c \
 	LALSimIMRSpinEOBInitialConditions.c \
 	LALSimIMRSpinEOBInitialConditionsPrec.c \
+	LALSimInspiralFDPrecAngles_internals.c \
+	LALSimInspiralFDPrecAngles_internals.h \
 	LALSimInspiralPNCoefficients.c \
 	LALSimInspiraldEnergyFlux.c \
 	LALSimNeutronStarEOSPiecewisePolytrope.c \
@@ -171,6 +174,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimInspiralWaveformParams.c \
 	LALSimInspiralPrecess.c \
 	LALSimInspiral.c \
+	LALSimInspiralFDPrecAngles.c \
 	LALSimInspiralPNMode.c \
 	LALSimInspiralSpinTaylor.c \
 	LALSimInspiralSpinTaylorF2.c \
