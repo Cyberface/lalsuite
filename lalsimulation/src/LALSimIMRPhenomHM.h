@@ -87,16 +87,14 @@ int init_PhenomD_Storage(PhenomDStorage *p, const REAL8 m1, const REAL8 m2, cons
 typedef struct tagHMPhasePreComp {
  double ai;
  double bi;
- double a2lm;
- double b2lm;
+ double am;
+ double bm;
  double ar;
  double br;
  double fi;
- double f2lm;
  double fr;
  double PhDBconst;
  double PhDCconst;
- double PhDDconst;
  double PhDBAterm;
 } HMPhasePreComp;
 
