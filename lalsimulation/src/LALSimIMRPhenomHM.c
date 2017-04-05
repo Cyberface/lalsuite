@@ -636,7 +636,6 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     status = init_useful_powers(&powers_of_PhDBAMf, PhDBAMf);
     XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_PhDBAMf failed");
     q->PhDBAterm = IMRPhenDPhase(PhDBAMf, pPhi, pn, &powers_of_PhDBAMf, &phi_prefactors, Rholm, Taulm)/ai;
-
     LALFree(pPhi);
     LALFree(pn);
 
@@ -687,7 +686,7 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, phi_prefactors, Rholm, Taulm) / q->am - q->PhDBconst + q->PhDBAterm;
     } else if ( Mf_wf > q->fr ) { // in mathematica -> IMRPhenDPhaseC
 
-        Mfr = q->am*Mf_wf + q->bm;
+        Mfr = q->am*q->fr + q->bm;
         UsefulPowers powers_of_Mfr;
         status = init_useful_powers(&powers_of_Mfr, Mfr);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mfr failed");
