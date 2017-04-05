@@ -966,10 +966,10 @@ int XLALIMRPhenomHMMultiModehlm(
 
     /* Compute quantities/parameters related to PhenomD only once and store them */
     PhenomDStorage PhenomDQuantities;
-    errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
+    errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun, m2Msun, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
 
-    const REAL8 M = PhenomDQuantities.Mtot*LAL_MSUN_SI;
+    const REAL8 M = PhenomDQuantities.Mtot;
     const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI;
 
@@ -1368,10 +1368,10 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     // printf(" chi2z= %f\n",chi2z);
 
     PhenomDStorage PhenomDQuantities;
-    errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun/LAL_MSUN_SI, m2Msun/LAL_MSUN_SI, chi1z, chi2z);
+    errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun, m2Msun, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
 
-    const REAL8 M = PhenomDQuantities.Mtot*LAL_MSUN_SI;//m1Msun + m2Msun;
+    const REAL8 M = PhenomDQuantities.Mtot;//m1Msun + m2Msun;
     const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI; // Add M_sec to PhenomDQuantities?
 
