@@ -163,43 +163,43 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   /* A bunch of useful powers used in XLALSimIMRPhenomHMPNAmplitudeLeadingOrder */
   REAL8 sqrteta = sqrt(p->eta);
   REAL8 Seta = sqrt( 1.0 - 4.0 * p->eta );
-  REAL8 ans = sqrteta;
+  REAL8 ans = 0.;
   for( int j=0; j<NMODES; j++ ){
     int ell = ModeArray[j][0];
     int mm = ModeArray[j][1];
 
     if ( ell==2 ) {
         if (mm==2 ) {
-          ans *= 0.674677;
+          ans = sqrteta * 0.674677;
         } else { // mm==1
-          ans *= 0.329376 * Seta;
+          ans = sqrteta * 0.329376 * Seta;
         }
     } else if ( ell==3 ) {
         if ( mm==3 ) {
-          ans *= 0.767106 * Seta;
+            ans = sqrteta * 0.767106 * Seta;
         }
         else { // mm==2
-          ans *= 0.407703;
+          ans = sqrteta * 0.407703;
         }
     } else if ( ell==4 ) {
         if ( mm==4 ) {
-          ans *= ( 1.08721 - 3.26162*p->eta );
+          ans = sqrteta * ( 1.08721 - 3.26162*p->eta );
         } else { // mm==3
-          ans *=  ( 0.570006 - 1.14001*p->eta ) * Seta;
+          ans = sqrteta * ( 0.570006 - 1.14001*p->eta ) * Seta;
         }
     } else if ( ell==5 ) {
         if ( mm==5 ) {
-          ans *= 3.39713 * (0.5 - p->eta) * Seta;
+          ans = sqrteta * 3.39713 * (0.5 - p->eta) * Seta;
         }
         else { // mm==4
-          ans *= 0.859267;
+          ans = sqrteta * 0.859267;
         }
     } else if ( ell==6 ) {
         if ( mm==6 ) {
-          ans *= 2.80361;
+          ans = sqrteta * 2.80361;
         }
         else { // mm==5
-          ans *= 1.36104 * Seta;
+          ans = sqrteta * 1.36104 * Seta;
         }
     } else {
         ans = 0.0;
@@ -1369,7 +1369,6 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     PhenomDStorage PhenomDQuantities;
     errcode = init_PhenomD_Storage(&PhenomDQuantities, m1Msun, m2Msun, chi1z, chi2z);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomD_Storage failed");
-
     const REAL8 M = PhenomDQuantities.Mtot;//m1Msun + m2Msun;
     const REAL8 eta = PhenomDQuantities.eta;
     const REAL8 M_sec = M * LAL_MTSUN_SI; // Add M_sec to PhenomDQuantities?
