@@ -96,7 +96,7 @@ of this waveform.
  */
 static double chiPN(double Seta, double eta, double chi1, double chi2) {
   // Convention m1 >= m2 and chi1 is the spin on m1
-  // The 0.5 factor imissing in the definitions of chi_s and chi_a is 
+  // The 0.5 factor imissing in the definitions of chi_s and chi_a is
   // recovered in the return expresion
   double chi_s = (chi1 + chi2);
   double chi_a = (chi1 - chi2);
@@ -147,11 +147,11 @@ static double FinalSpin0815_s(double eta, double s) {
 /* FIXME: there are quite a few int's withouth a . in this file */
 //FP: eta2, eta3 can be avoided
 return eta*(3.4641016151377544 - 4.399247300629289*eta +
-   9.397292189321194*eta2 - 13.180949901606242*eta3 +
-   s*((1 - 0.0850917821418767 - 5.837029316602263*eta) +
-   (0.1014665242971878 - 2.0967746996832157*eta)*s +
-   (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
-   (-0.8676969352555539 + 2.064046835273906*eta)*s3));
+      9.397292189321194*eta2 - 13.180949901606242*eta3 +
+      s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) +
+      (0.1014665242971878 - 2.0967746996832157*eta)*s +
+      (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
+      (-0.8676969352555539 + 2.064046835273906*eta)*s3));
 }
 
 /**
@@ -252,12 +252,12 @@ static int init_useful_powers(UsefulPowers *p, REAL8 number)
 	p->two = number * number;
 	p->seven_thirds = p->third * p->two;
 	p->eight_thirds = p->two_thirds * p->two;
-        p->inv = 1./number; 
+        p->inv = 1./number;
 	double m_sixth = 1.0/sixth;
         p->m_seven_sixths = p->inv * m_sixth;
         p->m_third = m_sixth * m_sixth;
         p->m_two_thirds = p->m_third * p->m_third;
-        p->m_five_thirds = p->inv * p->m_two_thirds; 
+        p->m_five_thirds = p->inv * p->m_two_thirds;
 
 	return XLAL_SUCCESS;
 }
@@ -777,8 +777,8 @@ static void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficien
   p->eta2 = eta2;
   p->eta3 = eta*eta2;
   double Seta = sqrt(1.0 - 4.0*eta);
-  p->Seta = Seta; 
-  p->SetaPlus1 = 1.0 + Seta; 
+  p->Seta = Seta;
+  p->SetaPlus1 = 1.0 + Seta;
 
   p->q = 0.5 * (1.0 + Seta - 2.0*eta) * p->etaInv;
   p->chi = chiPN(Seta, eta, chi1, chi2);
@@ -1195,7 +1195,7 @@ static void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients *p, d
   p->beta1 = beta1Fit(eta, eta2, xi);
   p->beta2 = beta2Fit(eta, eta2, xi);
   p->beta3 = beta3Fit(eta, eta2, xi);
-  
+
   p->alpha1 = alpha1Fit(eta, eta2, xi);
   p->alpha2 = alpha2Fit(eta, eta2, xi);
   p->alpha3 = alpha3Fit(eta, eta2, xi);
