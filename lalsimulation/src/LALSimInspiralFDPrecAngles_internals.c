@@ -221,8 +221,8 @@ static void InitializeSystem()
     c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
 
     double factor_a = nu/csix_over_Gsquare;
-    double a0, a2, a3, a4, a5, a6, a6log, a7;
-    double c0, c2, c3, c4, c5, c6, c6log, c7;
+    double a0, a2, a3, a4, a5;
+    double c0, c2, c3, c4, c5;
     
     
     //computed with initial spin couplings, they're not exactly accurate for generic precession, but the correction should be 4PN
@@ -232,16 +232,10 @@ static void InitializeSystem()
     a3 = factor_a*(domegadt_csts_nonspin[3] + beta(domegadt_csts_spinorbit[0]/Msquare, domegadt_csts_spinorbit[1]*nu));
     a4 = factor_a*(domegadt_csts_nonspin[4] + nu*(domegadt_csts_nonspin[5] + nu*(domegadt_csts_nonspin[6])) + sigma(domegadt_csts_spinspin[0]/(Msquare*Msquare*nu), domegadt_csts_spinspin[1]/(Msquare*Msquare*nu)) + tau(domegadt_csts_spinspin[2]/Msquare, domegadt_csts_spinspin[3]/Msquare));
     a5 = factor_a*(domegadt_csts_nonspin[7] + nu*(domegadt_csts_nonspin[8]) + beta((domegadt_csts_spinorbit[2] + nu*(domegadt_csts_spinorbit[3]))/Msquare, (domegadt_csts_spinorbit[4] + nu*(domegadt_csts_spinorbit[5]))*nu));
-    a6 = factor_a*(domegadt_csts_nonspin[9] + nu*(domegadt_csts_nonspin[10] + nu*(domegadt_csts_nonspin[11] + nu*(domegadt_csts_nonspin[12]))) + beta(domegadt_csts_spinorbit[6]/Msquare, domegadt_csts_spinorbit[7]*nu));
-    a6log = factor_a*domegadt_csts_nonspin[13];
-    a7 = factor_a*(domegadt_csts_nonspin[14] + nu*(domegadt_csts_nonspin[15] + nu*(domegadt_csts_nonspin[16])) + beta((domegadt_csts_spinorbit[8] + nu*(domegadt_csts_spinorbit[9] + nu*(domegadt_csts_spinorbit[10])))/Msquare, (domegadt_csts_spinorbit[11] + nu*(domegadt_csts_spinorbit[12] + nu*(domegadt_csts_spinorbit[13])))*nu));
     
     double a0_2 = a0*a0;
     double a0_3 = a0_2*a0;
-    double a0_4 = a0_3*a0;
     double a2_2 = a2*a2;
-    double a2_3 = a2_2*a2;
-    double a3_2 = a3*a3;
 
     //these constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
     c0 = 1./a0;
@@ -249,15 +243,10 @@ static void InitializeSystem()
     c3 = -a3/a0_2;
     c4 = (a2_2 - a0*a4)/a0_3;
     c5 = (2.*a2*a3 - a0*a5)/a0_3;
-    c6 = (-a2_3 + a0*a3_2 + 2.*a0*a2*a4 - a0_2*a6)/a0_4;
-    c6log = -a6log/a0_2;
-    c7 = (-3.*a2_2*a3 + 2.*a0*a3*a4 + 2.*a0*a2*a5 - a0_2*a7)/a0_4;
 
     c_1 /= nu;
     double nu_4 = nu_2*nu_2;
     double c1_2 = c_1*c_1;
-    double c1_3 = c1_2*c_1;
-    double c1_4 = c1_3*c_1;
     double Delta = sqrt((4.*c1_2*one_p_q_sq - 8.*c_1*q*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S1_normalized_2-q_2*Seff_2))*(4.*c1_2*q_2*one_p_q_sq - 8.*c_1*q_2*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S2_normalized_2-q_2*Seff_2)));
     
     constants_u[0] = -c0;
@@ -267,8 +256,6 @@ static void InitializeSystem()
     Ssqave = 0.5*(A3+A2);
     c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
     c1_2 = c_1*c_1;
-    c1_3 = c1_2*c_1;
-    c1_4 = c1_3*c_1;
     
     double Rm = A3 - A2;
     double Rm_2 = Rm*Rm;
