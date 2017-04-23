@@ -33,7 +33,6 @@ void XLALComputeAngles(
     REAL8Sequence *phiz_of_f,
     REAL8Sequence *zeta_of_f,
     REAL8Sequence *costhetaL_of_f,
-    REAL8Sequence *costhetaL3PN_of_f,
     const REAL8Sequence *f,
     const double m1,
     const double m2,
@@ -51,12 +50,49 @@ void XLALComputeAngles(
     
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
+    vector angles;
     
     for(UINT4 i = 0; i < (*f).length; i++){
          xi = pow(((*f).data[i])*twopiGM_over_cthree, system.onethird);
-        (*phiz_of_f).data[i] = phiz_of_xi(xi,&system);
-        (*zeta_of_f).data[i] = zeta_of_xi(xi,&system);
-        (*costhetaL3PN_of_f).data[i] = costhetaL_3PN(xi,&system);
-        (*costhetaL_of_f).data[i] = costhetaL(xi,&system);
+        angles = compute_phiz_zeta_costhetaL(xi,&system);
+        (*phiz_of_f).data[i] = angles.x;
+        (*zeta_of_f).data[i] = angles.y;
+        (*costhetaL_of_f).data[i] = angles.z;
+    }
+}
+
+/* *********************************************************************************/
+/* XLAL function that does everything at 3PN.                                             */
+/* *********************************************************************************/
+
+void XLALComputeAngles3PN(
+                       REAL8Sequence *phiz_of_f,
+                       REAL8Sequence *zeta_of_f,
+                       REAL8Sequence *costhetaL_of_f,
+                       const REAL8Sequence *f,
+                       const double m1,
+                       const double m2,
+                       const double mul,
+                       const double phl,
+                       const double mu1,
+                       const double ph1,
+                       const double ch1,
+                       const double mu2,
+                       const double ph2,
+                       const double ch2,
+                       const double f_0
+                       ){
+    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
+    
+    double xi;
+    const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
+    vector angles;
+    
+    for(UINT4 i = 0; i < (*f).length; i++){
+        xi = pow(((*f).data[i])*twopiGM_over_cthree, system.onethird);
+        angles = compute_phiz_zeta_costhetaL3PN(xi,&system);
+        (*phiz_of_f).data[i] = angles.x;
+        (*zeta_of_f).data[i] = angles.y;
+        (*costhetaL_of_f).data[i] = angles.z;
     }
 }
