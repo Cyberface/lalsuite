@@ -33,40 +33,38 @@
 
 #include "LALSimInspiralFDPrecAngles.h"
 
-static void InitializePrecession(void);
-static void FreePrecession(void);
-static void InitializeSystem(void);
+static sysq InitializeSystem(const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, const double ch2, const double f_0);
 
-static double DotProd(vector vec1, vector vec2);
-static double Norm(vector vec1);
-static vector CreateSphere(double r, double th, double ph);
-static vector ScalarProd(double c, vector vec);
-static vector Sum(vector vec1, vector vec2);
-static vector CrossProd(vector vec1, vector vec2);
+static double DotProd(const vector vec1, const vector vec2);
+static double Norm(const vector vec1);
+static vector CreateSphere(const double r, const double th, const double ph);
+static vector ScalarProd(const double c, const vector vec);
+static vector Sum(const vector vec1, const vector vec2);
+static vector CrossProd(const vector vec1, const vector vec2);
 
-static vector Roots(double xi, double J_norm);
-static vector BCDcoeff(double xi, double J_norm);
+static vector Roots(const double xi, const double J_norm, const sysq *system);
+static vector BCDcoeff(const double xi, const double J_norm, const sysq *system);
 
-static double beta(double a, double b);
-static double sigma(double a, double b);
-static double tau(double a, double b);
+static double beta(const double a, const double b, const sysq *system);
+static double sigma(const double a, const double b, const sysq *system);
+static double tau(const double a, const double b, const sysq *system);
 
-static double J_norm_of_xi(double xi);
-static double S_norm_of_xi(double xi);
-static double J_norm_3PN_of_xi(double xi);
-static double L_norm_3PN_of_xi(double xi);
+static double J_norm_of_xi(const double xi, const sysq *system);
+static double S_norm_of_xi(const double xi, const sysq *system);
+static double J_norm_3PN_of_xi(const double xi, const sysq *system);
+static double L_norm_3PN_of_xi(const double xi, const sysq *system);
 
-static vector c(double xi);
-static vector d(double xi);
+static vector c(const double xi, const sysq *system);
+static vector d(const double xi, const sysq *system);
 
-static double costhetaL(double xi);
-static double costhetaL_3PN(double xi);
+static double costhetaL(const double xi, const sysq *system);
+static double costhetaL_3PN(const double xi, const sysq *system);
 
-static double u_of_xi(double xi);
-static double psidot(double xi);
+static double u_of_xi(const double xi, const sysq *system);
+static double psidot(const double xi,  const sysq *system);
 
-static double phiz_MS_corr(double xi);
-static double zeta_MS_corr(double xi);
-static double phiz_of_xi(double xi);
-static double zeta_of_xi(double xi);
+static double phiz_MS_corr(const double xi, const sysq *system);
+static double zeta_MS_corr(const double xi, const sysq *system);
+static double phiz_of_xi(const double xi, const sysq *system);
+static double zeta_of_xi(const double xi, const sysq *system);
 

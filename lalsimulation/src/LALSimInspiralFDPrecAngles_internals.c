@@ -19,185 +19,79 @@
 
 #include "LALSimInspiralFDPrecAngles_internals.h"
 
-/* **********************************************************************************/
-/* Internal function that initalizes all constants needed for the precession angles.*/
-/* It needs to be called only once at the beginning.                                */
-/* **********************************************************************************/
-
-static void InitializePrecession()
+static sysq InitializeSystem(const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, const double ch2, const double f_0)
 {
-    onethird = 1./3.;
-    onesixth = 1./6.;
-    twotothe_onethird = pow(2.,onethird);
-    sqrt_three = sqrt(3.);
-    pi = 3.141592653589793238463;
-    pi_over_two = 0.5*pi;
-    pi_over_four = 0.25*pi;
-    pisquare = pi*pi;
-    pi_four = pisquare*pisquare;
-    log_2 = log(2.);
-    log_2_2 = log_2*log_2;
-    log_3 = log(3.);
-    log_3_2 = log_3*log_3;
-    log_5 = log(5.);
-    log_7 = log(7.);
-    log_3_over_2 = log(1.5);
-    twopi = 2.*pi;
-    gamma_Euler = 0.57721566490153286060;
-    Light_vel = 299792458.;
-    Newton_c = 6.67384e-11;
-    SOLAR_MASS = 1.9891e30;
-    G_over_c = Newton_c/Light_vel;
-    G_over_csquare = G_over_c/Light_vel;
-    G_over_cthree = G_over_csquare/Light_vel;
-    cthree_over_G = 1./G_over_cthree;
-    csix_over_Gsquare = cthree_over_G*cthree_over_G;
-    cseven_over_Gthree = csix_over_Gsquare/G_over_c;
-    ceight_over_Gfour = cseven_over_Gthree/G_over_c;
+    sysq system = {0,0.,{0.},{0.},{0.},{0.},0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0., 0.};
     
-    double domegadt_csts_nonspin_internal[17] = {
-        csix_over_Gsquare*96./5., // 0 0
-        -csix_over_Gsquare*1486./35., // 1 2
-        -csix_over_Gsquare*264./5.,
-        csix_over_Gsquare*384.*pi/5., // 3 3
-        csix_over_Gsquare*34103./945., // 4 4
-        csix_over_Gsquare*13661./105.,
-        csix_over_Gsquare*944./15.,
-        csix_over_Gsquare*pi*(-4159./35.), // 7 5
-        csix_over_Gsquare*pi*(-2268./5.),
-        csix_over_Gsquare*(16447322263./7276500. + pisquare*512./5. - log_2*109568./175. - gamma_Euler*54784./175.), // 9 6
-        csix_over_Gsquare*(-56198689./11340. + pisquare*902./5.),
-        csix_over_Gsquare*1623./140.,
-        -csix_over_Gsquare*1121./27.,
-        -csix_over_Gsquare*54784./525., // 13 6l
-        -csix_over_Gsquare*pi*883./42., // 14 7
-        csix_over_Gsquare*pi*71735./63.,
-        csix_over_Gsquare*pi*73196./63.,
-    };
+    system.onethird = 1./3.;
     
-    double domegadt_csts_spinorbit_internal[18] = {
-        -cseven_over_Gthree*904./5.,
-        -cseven_over_Gthree*120.,
-        -cseven_over_Gthree*62638./105.,
-        cseven_over_Gthree*4636./5.,
-        -cseven_over_Gthree*6472./35.,
-        cseven_over_Gthree*3372./5.,
-        -cseven_over_Gthree*pi*720.,
-        -cseven_over_Gthree*pi*2416./5.,
-        -cseven_over_Gthree*208520./63.,
-        cseven_over_Gthree*796069./105.,
-        -cseven_over_Gthree*100019./45.,
-        -cseven_over_Gthree*1195759./945.,
-        cseven_over_Gthree*514046./105.,
-        -cseven_over_Gthree*8709./5.,
-        -cseven_over_Gthree*pi*307708./105.,
-        cseven_over_Gthree*pi*44011./7.,
-        -cseven_over_Gthree*pi*7992./7.,
-        cseven_over_Gthree*pi*151449./35.
-    };
+    const double domegadt_csts_nonspin[17] = {96./5.,-1486./35.,-264./5.,384.*LAL_PI/5.,34103./945.,13661./105.,944./15.,LAL_PI*(-4159./35.),LAL_PI*(-2268./5.),(16447322263./7276500. + LAL_PI*LAL_PI*512./5. - LAL_LN2*109568./175. -LAL_GAMMA*54784./175.),(-56198689./11340. + LAL_PI*LAL_PI*902./5.),1623./140.,-1121./27.,-54784./525.,-LAL_PI*883./42.,LAL_PI*71735./63.,LAL_PI*73196./63.};
+    const double domegadt_csts_spinorbit[18] = {-904./5.,-120.,-62638./105.,4636./5.,-6472./35.,3372./5.,-LAL_PI*720.,-LAL_PI*2416./5.,-208520./63.,796069./105.,-100019./45.,-1195759./945.,514046./105.,-8709./5.,-LAL_PI*307708./105.,LAL_PI*44011./7.,-LAL_PI*7992./7.,LAL_PI*151449./35.};
+    const double domegadt_csts_spinspin[4] = {-494./5.,-1442./5.,-233./5.,-719./5.};
+    const double L_csts_nonspin[9] = {3./2.,1./6.,27./8.,-19./8.,1./24.,135./16.,-6889/144.+ 41./24.*LAL_PI*LAL_PI,31./24.,7./1296.};
+    const double L_csts_spinorbit[6] = {-14./6.,-3./2.,-11./2.,133./72.,-33./8.,7./4.};
     
+//    if(ch1 < 0.){
+//        ch1 = -ch1;
+//        mu1 = -mu1;
+//        if(ph1 >= LAL_PI) ph1 -= LAL_PI;
+//        else ph1 += LAL_PI;
+//    }
+//    if(ch2 < 0.){
+//        ch2 = -ch2;
+//        mu2 = -mu2;
+//        if(ph2 >= LAL_PI) ph2 -= LAL_PI;
+//        else ph2 += LAL_PI;
+//    }
     
-    double domegadt_csts_spinspin_internal[4] = {
-        -ceight_over_Gfour*494./5.,
-        -ceight_over_Gfour*1442./5.,
-        -ceight_over_Gfour*233./5.,
-        -ceight_over_Gfour*719./5.
-    };
+    const double G_over_c = LAL_G_SI/LAL_C_SI;
+    const double M = m1 + m2;
+    const double Msquare = M*M;
+    system.nu = m1*m2/Msquare;
+    const double nu = system.nu;
+    system.nu_2 = nu*nu;
+    const double nu_2 = system.nu_2;
+    system.q = m2/m1;
+    const double q = system.q;
+    const double m1square = m1*m1;
+    const double m2square = m2*m2;
+    const double M_4_nu = Msquare*Msquare*nu;
+    const double piGM_over_cthree = LAL_PI*G_over_c/LAL_C_SI/LAL_C_SI*M;
+    system.deltam_over_M = (m1 - m2)/M;
+    const double deltam_over_M = system.deltam_over_M;
+    system.GMsquare_over_c = G_over_c*Msquare;
+    const double GMsquare_over_c = system.GMsquare_over_c;
+    system.Mfour_in_L = GMsquare_over_c*GMsquare_over_c;
     
-    double L_csts_nonspin_internal[9] = {
-        3./2.,
-        1./6.,
-        27./8.,
-        -19./8.,
-        1./24.,
-        135./16.,
-        -6889/144.+ 41./24.*pisquare,
-        31./24.,
-        7./1296.
-    };
-    
-    double L_csts_spinorbit_internal[6] = {
-        -14./6.,
-        -3./2.,
-        -11./2.,
-        133./72.,
-        -33./8.,
-        7./4.
-    };
-    
-    
-    memcpy(domegadt_csts_spinorbit, domegadt_csts_spinorbit_internal, 18*sizeof(double));
-    memcpy(domegadt_csts_nonspin, domegadt_csts_nonspin_internal, 17*sizeof(double));
-    memcpy(domegadt_csts_spinspin, domegadt_csts_spinspin_internal, 4*sizeof(double));
-    memcpy(L_csts_spinorbit, L_csts_spinorbit_internal, 6*sizeof(double));
-    memcpy(L_csts_nonspin, L_csts_nonspin_internal, 9*sizeof(double));
-    
-}
+    const double S1_norm = fabs(ch1)*m1square*G_over_c;
+    const double S2_norm = fabs(ch2)*m2square*G_over_c;
+    system.S1_norm_square = S1_norm*S1_norm;
+    system.S2_norm_square = S2_norm*S2_norm;
 
-/* *********************************************************************************/
-/* XLAL function that initalizes all constants that depend on the particular       */
-/* system. It needs to be called once when the system parameters have been defined.*/
-/* *********************************************************************************/
+    const double xi_0 = pow(piGM_over_cthree*f_0, system.onethird);
+    const vector Lhat_0 = CreateSphere(1.,acos(mul),phl);
+    const vector S1_0 = CreateSphere(S1_norm,acos(mu1),ph1);
+    const vector S2_0 = CreateSphere(S2_norm,acos(mu2),ph2);
+    const vector L_0 = ScalarProd(GMsquare_over_c*nu/xi_0,Lhat_0);
+    
+    system.dot1 = DotProd(S1_0,Lhat_0);
+    system.dot2 = DotProd(S2_0,Lhat_0);
+    system.dot12 = DotProd(S1_0,S2_0);
 
-static void InitializeSystem()
-{
-    if(ch1 < 0.){
-        ch1 = -ch1;
-        mu1 = -mu1;
-        if(ph1 >= pi) ph1 -= pi;
-        else ph1 += pi;
-    }
-    if(ch2 < 0.){
-        ch2 = -ch2;
-        mu2 = -mu2;
-        if(ph2 >= pi) ph2 -= pi;
-        else ph2 += pi;
-    }
-
-    th1 = acos(mu1);
-    th2 = acos(mu2);
-    thl = acos(mul);
+    system.Seff = ((system.dot1)/m1 +(system.dot2)/m2)/M/G_over_c;
     
-    M = m1 + m2;
-    mu = m1 * m2 / M;
-    nu = mu / M;
-    nu_2 = nu*nu;
-    Msquare = M*M;
-    Mthree = Msquare*M;
-    m1square = m1*m1;
-    m2square = m2*m2;
-    q = m2/m1;
-    deltam = (m1 - m2);
-    deltam_over_M = deltam/M;
-    one_over_m1_square = 1. / m1square;
-    one_over_m2_square = 1. / m2square;
-    double GM_over_cthree = G_over_cthree*M;
-    double GM_over_csquare = G_over_csquare*M;
-    GMsquare_over_c = GM_over_csquare*M*Light_vel;
-    double piGM_over_cthree = pi*GM_over_cthree;
-    twopiGM_over_cthree = 2*piGM_over_cthree;
+    const vector S_0 = Sum(S1_0,S2_0);
+    const vector J_0 = Sum(L_0,S_0);
     
-    S1_norm = fabs(ch1) * m1square * G_over_c;
-    S2_norm = fabs(ch2) * m2square * G_over_c;
-    S1_norm_square = S1_norm*S1_norm;
-    S2_norm_square = S2_norm*S2_norm;
-
-    xi_0 = pow(piGM_over_cthree*f_0, onethird);
-    Lhat_0 = CreateSphere(1.,thl,phl);
-    S1_0 = CreateSphere(S1_norm,th1,ph1);
-    S2_0 = CreateSphere(S2_norm,th2,ph2);
-    L_0 = ScalarProd(GMsquare_over_c*nu/xi_0,Lhat_0);
-
-    Seff = (DotProd(S1_0,Lhat_0)/m1 + DotProd(S2_0,Lhat_0)/m2)/M/G_over_c;
+    const double S_0_norm = Norm(S_0);
+    const double J_0_norm = Norm(J_0);
+    const double L_0_norm = Norm(L_0);
+    const double S1_normalized = S1_norm/GMsquare_over_c;
+    const double S2_normalized = S2_norm/GMsquare_over_c;
+    system.S1_normalized_2 = S1_normalized*S1_normalized;
+    system.S2_normalized_2 = S2_normalized*S2_normalized;
     
-    vector S_0 = Sum(S1_0,S2_0);
-    vector J_0 = Sum(L_0,S_0);
-    
-    double S_0_norm = Norm(S_0);
-    double J_0_norm = Norm(J_0);
-    double L_0_norm = Norm(L_0);
-    
-    vector roots = Roots(xi_0,J_0_norm);
+    const vector roots = Roots(xi_0,J_0_norm,&system);
     double A1, A2, A3;
 
     A3 = fmax(fmax(roots.x,roots.y),roots.z);
@@ -206,80 +100,83 @@ static void InitializeSystem()
     else if((A3 - roots.x) > 0 && (A1 - roots.x) < 0) A2 = roots.x;
     else A2 = roots.y;
 
-    double q_2 = q*q;
-    double one_m_q_sq = (1.-q)*(1.-q);
-    double one_m_q_4 = one_m_q_sq*one_m_q_sq;
-    double one_p_q_sq = (1.+q)*(1.+q);
-    double S1_normalized = S1_norm/GMsquare_over_c;
-    double S2_normalized = S2_norm/GMsquare_over_c;
-    double Save_square = 0.5*(A3+A2)*GMsquare_over_c*GMsquare_over_c;
-    double Save_square_normalized = 0.5*(A3+A2);
-    double S1_normalized_2 = S1_normalized*S1_normalized;
-    double S2_normalized_2 = S2_normalized*S2_normalized;
-    double Seff_2 = Seff*Seff;
-
-    c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
-
-    double factor_a = nu/csix_over_Gsquare;
-    double a0, a2, a3, a4, a5;
-    double c0, c2, c3, c4, c5;
+    const double q_2 = q*q;
+    const double one_m_q_sq = (1.-q)*(1.-q);
+    const double one_m_q_4 = one_m_q_sq*one_m_q_sq;
+    const double one_p_q_sq = (1.+q)*(1.+q);
     
+    const double Save_square = 0.5*(A3+A2)*GMsquare_over_c*GMsquare_over_c;
+    const double Save_square_normalized = 0.5*(A3+A2);
+    const double S1_normalized_2 = system.S1_normalized_2;
+    const double S2_normalized_2 = system.S2_normalized_2;
+    const double Seff = system.Seff;
+    const double Seff_2 = Seff*Seff;
+
+    system.c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
+
+    const double factor_a = nu;
     
     //computed with initial spin couplings, they're not exactly accurate for generic precession, but the correction should be 4PN
     //these constants are used in TaylorT1 where domega/dt is expressed as a polynomial
-    a0 = factor_a*domegadt_csts_nonspin[0];
-    a2 = factor_a*(domegadt_csts_nonspin[1] + nu*(domegadt_csts_nonspin[2]));
-    a3 = factor_a*(domegadt_csts_nonspin[3] + beta(domegadt_csts_spinorbit[0]/Msquare, domegadt_csts_spinorbit[1]*nu));
-    a4 = factor_a*(domegadt_csts_nonspin[4] + nu*(domegadt_csts_nonspin[5] + nu*(domegadt_csts_nonspin[6])) + sigma(domegadt_csts_spinspin[0]/(Msquare*Msquare*nu), domegadt_csts_spinspin[1]/(Msquare*Msquare*nu)) + tau(domegadt_csts_spinspin[2]/Msquare, domegadt_csts_spinspin[3]/Msquare));
-    a5 = factor_a*(domegadt_csts_nonspin[7] + nu*(domegadt_csts_nonspin[8]) + beta((domegadt_csts_spinorbit[2] + nu*(domegadt_csts_spinorbit[3]))/Msquare, (domegadt_csts_spinorbit[4] + nu*(domegadt_csts_spinorbit[5]))*nu));
+    const double a0 = factor_a*domegadt_csts_nonspin[0];
+    const double a2 = factor_a*(domegadt_csts_nonspin[1] + nu*(domegadt_csts_nonspin[2]));
+    const double a3 = factor_a*(domegadt_csts_nonspin[3] + beta(domegadt_csts_spinorbit[0]/Msquare, domegadt_csts_spinorbit[1]/Msquare, &system));
+    const double a4 = factor_a*(domegadt_csts_nonspin[4] + nu*(domegadt_csts_nonspin[5] + nu*(domegadt_csts_nonspin[6])) + sigma(domegadt_csts_spinspin[0]/M_4_nu, domegadt_csts_spinspin[1]/M_4_nu, &system) + tau(domegadt_csts_spinspin[2]/M_4_nu, domegadt_csts_spinspin[3]/M_4_nu, &system));
+    const double a5 = factor_a*(domegadt_csts_nonspin[7] + nu*(domegadt_csts_nonspin[8]) + beta((domegadt_csts_spinorbit[2] + nu*(domegadt_csts_spinorbit[3]))/Msquare, (domegadt_csts_spinorbit[4] + nu*(domegadt_csts_spinorbit[5]))/Msquare, &system));
     
-    double a0_2 = a0*a0;
-    double a0_3 = a0_2*a0;
-    double a2_2 = a2*a2;
+    const double a0_2 = a0*a0;
+    const double a0_3 = a0_2*a0;
+    const double a2_2 = a2*a2;
 
     //these constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
-    c0 = 1./a0;
-    c2 = -a2/a0_2;
-    c3 = -a3/a0_2;
-    c4 = (a2_2 - a0*a4)/a0_3;
-    c5 = (2.*a2*a3 - a0*a5)/a0_3;
+    const double c0 = 1./a0;
+    const double c2 = -a2/a0_2;
+    const double c3 = -a3/a0_2;
+    const double c4 = (a2_2 - a0*a4)/a0_3;
+    const double c5 = (2.*a2*a3 - a0*a5)/a0_3;
 
-    c_1 /= nu;
-    double nu_4 = nu_2*nu_2;
-    double c1_2 = c_1*c_1;
-    double Delta = sqrt((4.*c1_2*one_p_q_sq - 8.*c_1*q*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S1_normalized_2-q_2*Seff_2))*(4.*c1_2*q_2*one_p_q_sq - 8.*c_1*q_2*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S2_normalized_2-q_2*Seff_2)));
+    system.c_1 /= nu;
+    double c_1 = system.c_1;
+    system.nu_4 = nu_2*nu_2;
+    const double nu_4 = system.nu_4;
+    system.c1_2 = c_1*c_1;
+    double c1_2 = system.c1_2;
+    const double Delta = sqrt((4.*c1_2*one_p_q_sq - 8.*c_1*q*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S1_normalized_2-q_2*Seff_2))*(4.*c1_2*q_2*one_p_q_sq - 8.*c_1*q_2*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S2_normalized_2-q_2*Seff_2)));
     
-    constants_u[0] = -c0;
-    constants_u[1] = 6.*Seff*nu/deltam_over_M/deltam_over_M - 3.*c_1/deltam_over_M/deltam_over_M;
-    constants_u[2] = 3.*c2/c0 + 0.75*one_p_q_sq/one_m_q_4*(-20.*c1_2*q_2*one_p_q_sq + 2.*(1.-q_2)*(1.-q_2)*(q*(2.+q)*S1_normalized_2 + (1.+2.*q)*S2_normalized_2 -2.*q*Save_square_normalized) + 2.*q_2*(7.+6.*q+7.*q_2)*2.*c_1*Seff - 2.*q_2*(3.+4.*q+3.*q_2)*Seff_2 + q*Delta);
+    system.constants_u[0] = -c0;
+    system.constants_u[1] = 6.*Seff*nu/deltam_over_M/deltam_over_M - 3.*c_1/deltam_over_M/deltam_over_M;
+    system.constants_u[2] = 3.*c2/c0 + 0.75*one_p_q_sq/one_m_q_4*(-20.*c1_2*q_2*one_p_q_sq + 2.*(1.-q_2)*(1.-q_2)*(q*(2.+q)*S1_normalized_2 + (1.+2.*q)*S2_normalized_2 -2.*q*Save_square_normalized) + 2.*q_2*(7.+6.*q+7.*q_2)*2.*c_1*Seff - 2.*q_2*(3.+4.*q+3.*q_2)*Seff_2 + q*Delta);
     
-    Ssqave = 0.5*(A3+A2);
-    c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
-    c1_2 = c_1*c_1;
+    system.Ssqave = 0.5*(A3+A2);
+    system.sqrtSsqave = sqrt(system.Ssqave);
+    system.c_1 = 0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm/GMsquare_over_c*nu;
+    c_1 = system.c_1;
+    system.c1_2 = c_1*c_1;
+    c1_2 = system.c1_2;
     
-    double Rm = A3 - A2;
-    double Rm_2 = Rm*Rm;
-    double cp = A3*nu_2 - c1_2;
-    double cm = cp-Rm*nu_2;
-    double S0m = S1_normalized_2 - S2_normalized_2;
-    double cpcm = fabs(cp*cm);
-    double sqrt_cpcm = sqrt(cpcm);
+    const double Rm = A3 - A2;
+    const double Rm_2 = Rm*Rm;
+    const double cp = A3*nu_2 - c1_2;
+    const double cm = cp-Rm*nu_2;
+    const double S0m = S1_normalized_2 - S2_normalized_2;
+    const double cpcm = fabs(cp*cm);
+    const double sqrt_cpcm = sqrt(cpcm);
     
-    double A1t = 0.5+0.75/nu;//xi^6
-    double A2t = -0.75*Seff/nu;//xi^7
-    double A1ave = (cp-sqrt_cpcm)/nu_2 ;
-    double Bave = -0.5*Rm*sqrt_cpcm/nu_2 - cp/nu_4*(sqrt_cpcm-cp);
+    const double A1t = 0.5+0.75/nu;//xi^6
+    const double A2t = -0.75*Seff/nu;//xi^7
+    const double A1ave = (cp-sqrt_cpcm)/nu_2 ;
+    const double Bave = -0.5*Rm*sqrt_cpcm/nu_2 - cp/nu_4*(sqrt_cpcm-cp);
     
-    double aw = (-3.*(1. + q)/q*(2.*(1. + q)*nu_2*Seff*c_1 - (1. + q)*c1_2 + (1. - q)*nu_2*S0m));
-    double cw = 3./32./nu*Rm_2;
-    double dw = 4.*cp - 4.*A1ave*nu_2;
-    double hw = -2*(2*A1ave - Rm)*c_1;
-    double fw = Rm*A1ave-Bave-0.25*Rm_2;
+    const double aw = (-3.*(1. + q)/q*(2.*(1. + q)*nu_2*Seff*c_1 - (1. + q)*c1_2 + (1. - q)*nu_2*S0m));
+    const double cw = 3./32./nu*Rm_2;
+    const double dw = 4.*cp - 4.*A1ave*nu_2;
+    const double hw = -2*(2*A1ave - Rm)*c_1;
+    const double fw = Rm*A1ave-Bave-0.25*Rm_2;
     
-    double ad = aw/dw;
-    double hd = hw/dw;
-    double cd = cw/dw;
-    double fd = fw/dw;
+    const double ad = aw/dw;
+    const double hd = hw/dw;
+    const double cd = cw/dw;
+    const double fd = fw/dw;
     
     double Omegaz0 = A1t + ad;
     double Omegaz1 = A2t - ad*Seff - ad*hd;
@@ -288,15 +185,15 @@ static void InitializeSystem()
     double Omegaz4 = -(2*ad*fd*hd - ad*hd*hd*hd - cd*hd)*Seff + ad*fd*fd - cd*fd + cd*hd*hd - 3*ad*fd*hd*hd + ad*hd*hd*hd*hd;
     double Omegaz5 = -(ad*fd*fd - cd*fd + cd*hd*hd - 3*ad*fd*hd*hd + ad*hd*hd*hd*hd)*Seff + hd*(2*cd*fd - 3*ad*fd*fd - cd*hd*hd + 4*ad*fd*hd*hd - ad*hd*hd*hd*hd);
     
-    constants_phiz[0] = 3.*Omegaz0*c0;
-    constants_phiz[1] = 3.*Omegaz1*c0;
-    constants_phiz[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
-    constants_phiz[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
-    constants_phiz[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
-    constants_phiz[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
+    system.constants_phiz[0] = 3.*Omegaz0*c0;
+    system.constants_phiz[1] = 3.*Omegaz1*c0;
+    system.constants_phiz[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
+    system.constants_phiz[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
+    system.constants_phiz[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
+    system.constants_phiz[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
 
-    double gw = 3./16./nu_2/nu*Rm_2*(c_1 - nu_2*Seff);
-    double gd = gw/dw;
+    const double gw = 3./16./nu_2/nu*Rm_2*(c_1 - nu_2*Seff);
+    const double gd = gw/dw;
     
     Omegaz5 += Omegaz4*c_1/nu_2 - fd*gd + gd*hd*hd + gd*hd*Seff;
     Omegaz4 += Omegaz3*c_1/nu_2 - gd*hd - gd*Seff;
@@ -304,63 +201,68 @@ static void InitializeSystem()
     Omegaz2 += Omegaz1*c_1/nu_2;
     Omegaz1 += Omegaz0*c_1/nu_2;
     
-    constants_zeta[0] = 3.*Omegaz0*c0;
-    constants_zeta[1] = 3.*Omegaz1*c0;
-    constants_zeta[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
-    constants_zeta[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
-    constants_zeta[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
-    constants_zeta[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
+    system.constants_zeta[0] = 3.*Omegaz0*c0;
+    system.constants_zeta[1] = 3.*Omegaz1*c0;
+    system.constants_zeta[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
+    system.constants_zeta[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
+    system.constants_zeta[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
+    system.constants_zeta[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
     
-    double m = sqrt((A2 - A3)/(A1 - A3));
+    const double m = sqrt((A2 - A3)/(A1 - A3));
     
-    double B = (S_0_norm*S_0_norm/GMsquare_over_c/GMsquare_over_c-A3)/(A2-A3);
-    double volumeellement = DotProd(CrossProd(L_0,S1_0),S2_0);
-    double sign_num = (volumeellement > 0) - (volumeellement < 0);
+    const double B = (S_0_norm*S_0_norm/GMsquare_over_c/GMsquare_over_c-A3)/(A2-A3);
+    const double volumeellement = DotProd(CrossProd(L_0,S1_0),S2_0);
+    const int sign_num = (volumeellement > 0) - (volumeellement < 0);
     
-    if(S1_norm ==0 || S2_norm ==0) constant_of_S = 0;
+    if(S1_norm ==0 || S2_norm ==0) system.constant_of_S = 0;
     else{
         if(B < 0. || B > 1.) {
-            //std::cout<<std::setprecision(30)<<B<<"\n";
-            if(B > 1 && B-1. < 0.00001) constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(1.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0);
-            if(B < 0 && B > -0.00001) constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(0.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0);
+            if(B > 1 && B-1. < 0.00001) system.constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(1.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0,&system);
+            if(B < 0 && B > -0.00001) system.constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(0.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0,&system);
         }
-        else constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(B)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0);
+        else system.constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(B)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0,&system);
     }
     
-    phiz_0 = 0.;
-    phiz_0 = - phiz_of_xi(xi_0);
-    zeta_0 = 0.;
-    zeta_0 = - zeta_of_xi(xi_0);
+    system.constants_L[0] = (L_csts_nonspin[0] + nu*L_csts_nonspin[1]);
+    system.constants_L[1] = beta(L_csts_spinorbit[0]/Msquare, L_csts_spinorbit[1]/Msquare, &system);
+    system.constants_L[2] = (L_csts_nonspin[2] + nu*L_csts_nonspin[3] + nu*nu*L_csts_nonspin[4]);
+    system.constants_L[3] = beta((L_csts_spinorbit[2]+L_csts_spinorbit[3]*nu)/Msquare, (L_csts_spinorbit[4]+L_csts_spinorbit[5]*nu)/Msquare, &system);
+    system.constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*nu +L_csts_nonspin[7]*nu*nu+L_csts_nonspin[8]*nu*nu*nu);
     
-    constants_L[0] = (L_csts_nonspin[0] + nu*L_csts_nonspin[1]);
-    constants_L[1] = beta(L_csts_spinorbit[0]/GMsquare_over_c, L_csts_spinorbit[1]*nu/G_over_c);
-    constants_L[2] = (L_csts_nonspin[2] + nu*L_csts_nonspin[3] + nu*nu*L_csts_nonspin[4]);
-    constants_L[3] = beta((L_csts_spinorbit[2]+L_csts_spinorbit[3]*nu)/GMsquare_over_c, (L_csts_spinorbit[4]+L_csts_spinorbit[5]*nu)*nu/G_over_c);
-    constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*nu +L_csts_nonspin[7]*nu*nu+L_csts_nonspin[8]*nu*nu*nu);
+    system.flag = 0;
+    if(S1_norm == 0 || S2_norm ==0 || (fabs(DotProd(S1_0,Lhat_0)/S1_norm) == 1 && fabs(DotProd(S2_0,Lhat_0)/S2_norm) == 1)) system.flag = 1;
+    
+    system.phiz_0 = 0.;
+    system.phiz_0 = - phiz_of_xi(xi_0,&system);
+    system.zeta_0 = 0.;
+    system.zeta_0 = - zeta_of_xi(xi_0,&system);
+    
+    
+    return system;
 }
 
 /* *********************************************************************************/
 /* Internal function that computes the roots of Eq. 22 in arxiv:1703.03967         */
 /* *********************************************************************************/
 
-static vector Roots(double xi, double J_norm)
+static vector Roots(const double xi, const double J_norm, const sysq *system)
 {
     vector out;
-    vector coeffs = BCDcoeff(xi, J_norm);
-    double B_2 = coeffs.x*coeffs.x;
-    double B_3 = B_2*coeffs.x;
-    double B_C =  coeffs.x*coeffs.y;
+    vector coeffs = BCDcoeff(xi, J_norm,system);
+    const double B_2 = coeffs.x*coeffs.x;
+    const double B_3 = B_2*coeffs.x;
+    const double B_C =  coeffs.x*coeffs.y;
     
-    double p = coeffs.y - onethird*B_2;
-    double qc = 2./27.*B_3 - onethird*B_C + coeffs.z;
-    double sqrtarg = sqrt(-3./p);
+    const double p = coeffs.y - ((*system).onethird)*B_2;
+    const double qc = 2./27.*B_3 - ((*system).onethird)*B_C + coeffs.z;
+    const double sqrtarg = sqrt(-3./p);
     double acosarg = 1.5*qc/p*sqrtarg;
     if((acosarg + 1) < 0.00000000001) acosarg = -1;
     
     if(p < 0 && acosarg <= 1 && acosarg >= -1.){
-        out.x = 2./sqrtarg*cos(onethird*acos(acosarg)) - onethird*coeffs.x;
-        out.y = 2./sqrtarg*cos(onethird*acos(acosarg) - twopi*onethird) - onethird*coeffs.x;
-        out.z = 2./sqrtarg*cos(onethird*acos(acosarg) - 2.*twopi*onethird) - onethird*coeffs.x;
+        out.x = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg)) - ((*system).onethird)*coeffs.x;
+        out.y = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg) - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        out.z = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg) - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
     }
     else{
         printf("complex roots, %f, %f\n",p, acosarg);
@@ -375,22 +277,19 @@ static vector Roots(double xi, double J_norm)
 /* Internal function that computes the coefficients of Eq. 22 in arxiv:1703.03967  */
 /* *********************************************************************************/
 
-static vector BCDcoeff(double xi, double J_norm)
+static vector BCDcoeff(const double xi, const double J_norm, const sysq *system)
 {
     vector out;
-    double L_norm = GMsquare_over_c*nu/xi;
-    double L_norm_2 = L_norm*L_norm;
-    double J_norm_2 = J_norm*J_norm;
-    double Mfour_in_L = GMsquare_over_c*GMsquare_over_c;
-    double S1_square_normalized = S1_norm_square/Mfour_in_L;
-    double S2_square_normalized = S2_norm_square/Mfour_in_L;
-    double L_square_normalized = L_norm_2/Mfour_in_L;
-    double J_square_normalized = J_norm_2/Mfour_in_L;
-    double L_normalized = L_norm/GMsquare_over_c;
+    const double L_normalized = ((*system).nu)/xi;
+    const double J_norm_2 = J_norm*J_norm;
+    const double L_square_normalized = L_normalized*L_normalized;
+    const double J_square_normalized = J_norm_2/((*system).Mfour_in_L);
     
-    out.x = (L_square_normalized+S1_square_normalized)*q + (L_square_normalized+S2_square_normalized)/q + 2.*L_normalized*Seff - 2.*J_square_normalized - S1_square_normalized - S2_square_normalized;
-    out.y = (L_square_normalized - J_square_normalized)*(L_square_normalized - J_square_normalized) + 2.*Seff*L_normalized*(L_square_normalized - J_square_normalized) - 2.*L_square_normalized*(S1_square_normalized - S2_square_normalized*q)*deltam/m2 + 4.*nu*Seff*Seff*L_square_normalized - 2.*Seff*L_normalized*(S1_square_normalized-S2_square_normalized)*deltam_over_M + 2.*J_square_normalized*(S1_square_normalized*q - S2_square_normalized)*deltam/m2;
-    out.z = -(L_square_normalized - J_square_normalized)*(L_square_normalized - J_square_normalized)*(S1_square_normalized*q - S2_square_normalized)*deltam/m2 - 2.*Seff*deltam_over_M*(S1_square_normalized - S2_square_normalized)*L_normalized*(L_square_normalized - J_square_normalized) + (S1_square_normalized - S2_square_normalized)*(S1_square_normalized - S2_square_normalized)*L_square_normalized*deltam_over_M*deltam_over_M/nu;
+    out.x = (L_square_normalized+((*system).S1_normalized_2))*((*system).q) + (L_square_normalized+((*system).S2_normalized_2))/((*system).q) + 2.*L_normalized*((*system).Seff) - 2.*J_square_normalized - ((*system).S1_normalized_2) - ((*system).S2_normalized_2);
+    
+    out.y = (L_square_normalized - J_square_normalized)*(L_square_normalized - J_square_normalized) + 2.*((*system).Seff)*L_normalized*(L_square_normalized - J_square_normalized) - 2.*L_square_normalized*(((*system).S1_normalized_2) - ((*system).S2_normalized_2)*((*system).q))*(1./((*system).q)-1) + 4.*((*system).nu)*((*system).Seff)*((*system).Seff)*L_square_normalized - 2.*((*system).Seff)*L_normalized*(((*system).S1_normalized_2)-((*system).S2_normalized_2))*((*system).deltam_over_M) + 2.*J_square_normalized*(((*system).S1_normalized_2)*((*system).q) - ((*system).S2_normalized_2))*(1./((*system).q)-1);
+    
+    out.z = -(L_square_normalized - J_square_normalized)*(L_square_normalized - J_square_normalized)*(((*system).S1_normalized_2)*((*system).q) - ((*system).S2_normalized_2))*(1./((*system).q)-1) - 2.*((*system).Seff)*((*system).deltam_over_M)*(((*system).S1_normalized_2) - ((*system).S2_normalized_2))*L_normalized*(L_square_normalized - J_square_normalized) + (((*system).S1_normalized_2) - ((*system).S2_normalized_2))*(((*system).S1_normalized_2) - ((*system).S2_normalized_2))*L_square_normalized*((*system).deltam_over_M)*((*system).deltam_over_M)/((*system).nu);
     
     return out;
 }
@@ -399,25 +298,24 @@ static vector BCDcoeff(double xi, double J_norm)
 /* Internal function that returns the magnitude of J to Newtonian order            */
 /* *********************************************************************************/
 
-static double J_norm_of_xi(double xi)
+static double J_norm_of_xi(const double xi, const sysq *system)
 {
-    double L_norm = nu/xi;
-    double constant_1=c_1/nu;
+    const double L_norm = ((*system).nu)/xi;
+    const double constant_1=(*system).c_1/((*system).nu);
     
-    return sqrt(L_norm*L_norm + 2.*L_norm*constant_1 + Ssqave)*GMsquare_over_c;
+    return sqrt(L_norm*L_norm + 2.*L_norm*constant_1 + (*system).Ssqave)*((*system).GMsquare_over_c);
 }
 
 /* *********************************************************************************/
 /* Internal function that returns the magnitude of S                               */
 /* *********************************************************************************/
 
-static double S_norm_of_xi(double xi)
+static double S_norm_of_xi(const double xi, const sysq *system)
 {
-    double J_norm = J_norm_of_xi(xi);
-    vector roots = Roots(xi,J_norm);
+    const double J_norm = J_norm_of_xi(xi,system);
+    const vector roots = Roots(xi,J_norm,system);
     double A1, A2, A3;
     double sn, cn, dn;
-    double u, m;
     
     
     A3 = fmax(fmax(roots.x,roots.y),roots.z);
@@ -426,40 +324,40 @@ static double S_norm_of_xi(double xi)
     else if((A3 - roots.x) > 0 && (A1 - roots.x) < 0) A2 = roots.x;
     else A2 = roots.y;
     
-    m = (A2 - A3)/(A1 - A3);
-    u = u_of_xi(xi)+constant_of_S;
+    const double m = (A2 - A3)/(A1 - A3);
+    const double u = u_of_xi(xi,system)+(*system).constant_of_S;
     
     gsl_sf_elljac_e(u, m, &sn, &cn, &dn);
     
-    if(S1_norm == 0. || S2_norm == 0.) sn = 0.;
+    if((*system).S1_norm_square == 0. || (*system).S2_norm_square == 0.) sn = 0.;
     
-    double S_norm_square_bar = A3 + (A2 - A3)*sn*sn;
-    return sqrt(S_norm_square_bar)*GMsquare_over_c;
+    const double S_norm_square_bar = A3 + (A2 - A3)*sn*sn;
+    return sqrt(S_norm_square_bar)*((*system).GMsquare_over_c);
 }
 
 /* *********************************************************************************/
 /* Internal function that returns the magnitude of J to 3PN order                  */
 /* *********************************************************************************/
 
-static double J_norm_3PN_of_xi(double xi)
+static double J_norm_3PN_of_xi(const double xi, const sysq *system)
 {
-    double L_norm = L_norm_3PN_of_xi(xi)/GMsquare_over_c;
-    double constant_1=c_1/nu;
+    const double L_norm = L_norm_3PN_of_xi(xi,system)/((*system).GMsquare_over_c);
+    const double constant_1=(*system).c_1/((*system).nu);
     
-    return sqrt(L_norm*L_norm + 2.*L_norm*constant_1 + Ssqave)*GMsquare_over_c;
+    return sqrt(L_norm*L_norm + 2.*L_norm*constant_1 + (*system).Ssqave)*((*system).GMsquare_over_c);
 }
 
 /* *********************************************************************************/
 /* Internal function that returns the magnitude of L to 3PN order                  */
 /* *********************************************************************************/
 
-static double L_norm_3PN_of_xi(double xi)
+static double L_norm_3PN_of_xi(const double xi, const sysq *system)
 {
-    double L_norm_0PN = GMsquare_over_c*nu/xi;
-    double xi_2 = xi*xi;
+    const double L_norm_0PN = ((*system).GMsquare_over_c)*((*system).nu)/xi;
+    const double xi_2 = xi*xi;
     
     //from 0605140 and Blanchet LRR
-    return L_norm_0PN*(1. + xi_2*(constants_L[0] + xi*constants_L[1] + xi_2*(constants_L[2] + xi*constants_L[3] + xi_2*(constants_L[4]))));
+    return L_norm_0PN*(1. + xi_2*((*system).constants_L[0] + xi*(*system).constants_L[1] + xi_2*((*system).constants_L[2] + xi*(*system).constants_L[3] + xi_2*((*system).constants_L[4]))));
 }
 
 /* *********************************************************************************/
@@ -467,15 +365,15 @@ static double L_norm_3PN_of_xi(double xi)
 /* what it is right now.                                                           */
 /* *********************************************************************************/
 
-static vector c(double xi)
+static vector c(const double xi, const sysq *system)
 {
-    double xi_2 = xi*xi;
-    double xi_3 = xi_2*xi;
-    double xi_4 = xi_3*xi;
-    double xi_6 = xi_3*xi_3;
+    const double xi_2 = xi*xi;
+    const double xi_3 = xi_2*xi;
+    const double xi_4 = xi_3*xi;
+    const double xi_6 = xi_3*xi_3;
     
-    double J_norm = J_norm_of_xi(xi);
-    vector roots = Roots(xi,J_norm);
+    const double J_norm = J_norm_of_xi(xi,system);
+    const vector roots = Roots(xi,J_norm,system);
     double A1, A2, A3;
     
     A3 = fmax(fmax(roots.x,roots.y),roots.z);
@@ -484,17 +382,14 @@ static vector c(double xi)
     else if((A3 - roots.x) > 0 && (A1 - roots.x) < 0) A2 = roots.x;
     else A2 = roots.y;
     
-    double J_normalized = J_norm/GMsquare_over_c;
-    double J_normalized_2 = J_normalized*J_normalized;
-    double Mfour_in_L = GMsquare_over_c*GMsquare_over_c;
-    double S1_square_normalized = S1_norm_square/Mfour_in_L;
-    double S2_square_normalized = S2_norm_square/Mfour_in_L;
+    const double J_normalized = J_norm/((*system).GMsquare_over_c);
+    const double J_normalized_2 = J_normalized*J_normalized;
     
     vector out;
     
-    out.x = -0.75*((J_normalized_2-A3)*(J_normalized_2-A3)*xi_4/nu - 4.*nu*Seff*(J_normalized_2-A3)*xi_3-2.*(J_normalized_2-A3+2*(S1_square_normalized-S2_square_normalized)*deltam_over_M)*nu*xi_2+(4.*Seff*xi+1)*nu*nu*nu)*J_normalized*xi_2*(Seff*xi-1.);
-    out.y = 1.5*(A2-A3)*J_normalized*((J_normalized*J_normalized-A3)/nu*xi_2-2.*nu*Seff*xi-nu)*(Seff*xi-1.)*xi_4;
-    out.z = -0.75*J_normalized*(Seff*xi-1.)*(A3-A2)*(A3-A2)*xi_6/nu;
+    out.x = -0.75*((J_normalized_2-A3)*(J_normalized_2-A3)*xi_4/((*system).nu) - 4.*((*system).nu)*((*system).Seff)*(J_normalized_2-A3)*xi_3-2.*(J_normalized_2-A3+2*(((*system).S1_normalized_2)-((*system).S2_normalized_2))*((*system).deltam_over_M))*((*system).nu)*xi_2+(4.*((*system).Seff)*xi+1)*((*system).nu)*((*system).nu_2))*J_normalized*xi_2*(((*system).Seff)*xi-1.);
+    out.y = 1.5*(A2-A3)*J_normalized*((J_normalized*J_normalized-A3)/((*system).nu)*xi_2-2.*((*system).nu)*((*system).Seff)*xi-((*system).nu))*(((*system).Seff)*xi-1.)*xi_4;
+    out.z = -0.75*J_normalized*(((*system).Seff)*xi-1.)*(A3-A2)*(A3-A2)*xi_6/((*system).nu);
     
     return out;
 }
@@ -504,10 +399,10 @@ static vector c(double xi)
 /* what it is right now.                                                           */
 /* *********************************************************************************/
 
-static vector d(double xi)
+static vector d(const double xi, const sysq *system)
 {
-    double J_norm = J_norm_of_xi(xi);
-    vector roots = Roots(xi,J_norm);
+    const double J_norm = J_norm_of_xi(xi,system);
+    const vector roots = Roots(xi,J_norm,system);
     double A1, A2, A3;
     
     A3 = fmax(fmax(roots.x,roots.y),roots.z);
@@ -516,8 +411,8 @@ static vector d(double xi)
     else if((A3 - roots.x) > 0 && (A1 - roots.x) < 0) A2 = roots.x;
     else A2 = roots.y;
     
-    double L_normalized = nu/xi;
-    double J_normalized = J_norm/GMsquare_over_c;
+    const double L_normalized = ((*system).nu)/xi;
+    const double J_normalized = J_norm/((*system).GMsquare_over_c);
     vector out;
     
     out.x = -((L_normalized+J_normalized)*(L_normalized+J_normalized)-A3)*((L_normalized-J_normalized)*(L_normalized-J_normalized)-A3);
@@ -532,11 +427,11 @@ static vector d(double xi)
 /* and J                                                                           */
 /* *********************************************************************************/
 
-static double costhetaL(double xi)
+static double costhetaL(const double xi, const sysq *system)
 {
-    double L_norm = GMsquare_over_c*nu/xi;
-    double J_norm = J_norm_of_xi(xi);
-    double S_norm = S_norm_of_xi(xi);
+    const double L_norm = ((*system).GMsquare_over_c)*((*system).nu)/xi;
+    const double J_norm = J_norm_of_xi(xi,system);
+    const double S_norm = S_norm_of_xi(xi,system);
     
     return 0.5*(J_norm*J_norm + L_norm*L_norm - S_norm*S_norm)/L_norm/J_norm;
 }
@@ -545,11 +440,11 @@ static double costhetaL(double xi)
 /* Internal function that returns the cosine of the angle between the 3PN L and J  */
 /* *********************************************************************************/
 
-static double costhetaL_3PN(double xi)
+static double costhetaL_3PN(const double xi, const sysq *system)
 {
-    double L_norm = L_norm_3PN_of_xi(xi);
-    double J_norm = J_norm_3PN_of_xi(xi);
-    double S_norm = S_norm_of_xi(xi);
+    const double L_norm = L_norm_3PN_of_xi(xi,system);
+    const double J_norm = J_norm_3PN_of_xi(xi,system);
+    const double S_norm = S_norm_of_xi(xi,system);
     
     return 0.5*(J_norm*J_norm + L_norm*L_norm - S_norm*S_norm)/L_norm/J_norm;
 }
@@ -558,100 +453,103 @@ static double costhetaL_3PN(double xi)
 /* Internal function that returns the phase of the magnitude of S                  */
 /* *********************************************************************************/
 
-static double u_of_xi(double xi)
+static double u_of_xi(const double xi, const sysq *system)
 {
-    double xi_square = xi*xi;
-    return 0.75*deltam_over_M*constants_u[0]/xi_square/xi*(1. + xi*(constants_u[1] + xi*(constants_u[2])));
+    const double xi_2 = xi*xi;
+    return 0.75*((*system).deltam_over_M)*(*system).constants_u[0]/xi_2/xi*(1. + xi*((*system).constants_u[1] + xi*((*system).constants_u[2])));
 }
 
 /* *********************************************************************************/
 /* Internal function that returns the derivative of the phase of the magnitude of S*/
 /* *********************************************************************************/
 
-static double psidot(double xi)
+static double psidot(const double xi,  const sysq *system)
 {
-    double J_norm = J_norm_of_xi(xi);
-    vector roots = Roots(xi,J_norm);
-    double A1, A3;
+    const double J_norm = J_norm_of_xi(xi,system);
+    const vector roots = Roots(xi,J_norm,system);
     
-    A3 = fmax(fmax(roots.x,roots.y),roots.z);
-    A1 = fmin(fmin(roots.x,roots.y),roots.z);
+    const double A3 = fmax(fmax(roots.x,roots.y),roots.z);
+    const double A1 = fmin(fmin(roots.x,roots.y),roots.z);
     
-    double xi_2 = xi*xi;
-    double xi_3 = xi_2*xi;
-    double xi_6 = xi_3*xi_3;
+    const double xi_2 = xi*xi;
+    const double xi_3 = xi_2*xi;
+    const double xi_6 = xi_3*xi_3;
     
-    return 0.75/sqrt(nu)*(1.-Seff*xi)*xi_6*sqrt(A3-A1);
+    return 0.75/sqrt((*system).nu)*(1.-(*system).Seff*xi)*xi_6*sqrt(A3-A1);
 }
 
 /* *********************************************************************************/
 /* Internal function that returns phiz                                             */
 /* *********************************************************************************/
 
-static double phiz_of_xi(double xi)
+static double phiz_of_xi(const double xi, const sysq *system)
 {
-    double J_norm = J_norm_of_xi(xi);
-    double xi_2 = xi*xi;
-    double J_norm_normalized = J_norm/GMsquare_over_c;
-    double log1 = log(fabs(c_1 + J_norm_normalized*nu+nu_2/xi));
-    double log2 = log(fabs(c_1 + J_norm_normalized*sqrt(Ssqave)*xi + Ssqave*xi));
-    double c1_2 = c_1*c_1;
-    double nu_4 = nu_2*nu_2;
+    const double J_norm = J_norm_of_xi(xi,system);
+    const double xi_2 = xi*xi;
+    const double J_norm_normalized = J_norm/((*system).GMsquare_over_c);
+    const double log1 = log(fabs(((*system).c_1) + J_norm_normalized*((*system).nu)+((*system).nu_2)/xi));
+    const double log2 = log(fabs(((*system).c_1) + J_norm_normalized*((*system).sqrtSsqave)*xi + ((*system).Ssqave)*xi));
     
-    double phiz0 = J_norm_normalized*(0.5*c1_2/nu_4 - onesixth*c_1/xi/nu_2 - onethird*Ssqave/nu_2 - onethird/xi_2) - 0.5*c_1*(c1_2/nu_4 - Ssqave/nu_2)/nu*log1;
-    double phiz1 = -J_norm_normalized*0.5*(c_1/nu_2 + 1./xi) + 0.5*(c1_2/nu_2 - Ssqave)/nu*log1 ;
-    double phiz2 = -J_norm_normalized + sqrt(Ssqave)*log2 - c_1/nu*log1;
-    double phiz3 = J_norm_normalized*xi -nu*log1 + c_1/sqrt(Ssqave)*log2;
-    double phiz4 = J_norm_normalized*0.5*xi*(c_1/Ssqave + xi) - 0.5*(c1_2/Ssqave - nu_2)/sqrt(Ssqave)*log2;
-    double phiz5 = J_norm_normalized*xi*(-0.5*c1_2/Ssqave/Ssqave + onesixth*c_1*xi/Ssqave + onethird*(xi_2 + nu_2/Ssqave)) + 0.5*c_1*(c1_2/Ssqave - nu_2)/Ssqave/sqrt(Ssqave)*log2;
+    const double phiz0 = J_norm_normalized*(0.5*((*system).c1_2)/((*system).nu_4) - 0.5*((*system).onethird)*((*system).c_1)/xi/((*system).nu_2) - ((*system).onethird)*((*system).Ssqave)/((*system).nu_2) - ((*system).onethird)/xi_2) - 0.5*((*system).c_1)*(((*system).c1_2)/((*system).nu_4) - ((*system).Ssqave)/((*system).nu_2))/((*system).nu)*log1;
+    const double phiz1 = -J_norm_normalized*0.5*(((*system).c_1)/((*system).nu_2) + 1./xi) + 0.5*(((*system).c1_2)/((*system).nu_2) - ((*system).Ssqave))/((*system).nu)*log1 ;
+    const double phiz2 = -J_norm_normalized + ((*system).sqrtSsqave)*log2 - ((*system).c_1)/((*system).nu)*log1;
+    const double phiz3 = J_norm_normalized*xi -((*system).nu)*log1 + ((*system).c_1)/((*system).sqrtSsqave)*log2;
+    const double phiz4 = J_norm_normalized*0.5*xi*(((*system).c_1)/((*system).Ssqave) + xi) - 0.5*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).sqrtSsqave)*log2;
+    const double phiz5 = J_norm_normalized*xi*(-0.5*((*system).c1_2)/((*system).Ssqave)/((*system).Ssqave) + 0.5*((*system).onethird)*((*system).c_1)*xi/((*system).Ssqave) + ((*system).onethird)*(xi_2 + ((*system).nu_2)/((*system).Ssqave))) + 0.5*((*system).c_1)*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).Ssqave)/((*system).sqrtSsqave)*log2;
     
-    return phiz0*constants_phiz[0] + phiz1*constants_phiz[1] + phiz2*constants_phiz[2] + phiz3*constants_phiz[3] + phiz4*constants_phiz[4] + phiz5*constants_phiz[5] + phiz_0 + phiz_MS_corr(xi);
+    double phMS;
+    if((*system).flag == 0) phMS = phiz_MS_corr(xi,system);
+    else phMS = 0;
+    
+    return phiz0*(*system).constants_phiz[0] + phiz1*(*system).constants_phiz[1] + phiz2*(*system).constants_phiz[2] + phiz3*(*system).constants_phiz[3] + phiz4*(*system).constants_phiz[4] + phiz5*(*system).constants_phiz[5] + (*system).phiz_0 + phMS;
 }
 
 /* *********************************************************************************/
 /* Internal function that returns zeta                                             */
 /* *********************************************************************************/
 
-static double zeta_of_xi(double xi)
+static double zeta_of_xi(const double xi, const sysq *system)
 {
-    double logxi = log(xi);
-    double xi_2 = xi*xi;
-    double xi_3 = xi_2*xi;
+    const double logxi = log(xi);
+    const double xi_2 = xi*xi;
+    const double xi_3 = xi_2*xi;
     
-    return nu*(-onethird*constants_zeta[0]/xi_3 - 0.5*constants_zeta[1]/xi_2 - constants_zeta[2]/xi + constants_zeta[3]*logxi + constants_zeta[4]*xi  + 0.5*constants_zeta[5]*xi_2) + zeta_0 + zeta_MS_corr(xi);
+    double zMS;
+    if((*system).flag == 0) zMS = zeta_MS_corr(xi,system);
+    else zMS = 0;
+    
+    return ((*system).nu)*(-(*system).onethird*(*system).constants_zeta[0]/xi_3 - 0.5*(*system).constants_zeta[1]/xi_2 - (*system).constants_zeta[2]/xi + (*system).constants_zeta[3]*logxi + (*system).constants_zeta[4]*xi  + 0.5*(*system).constants_zeta[5]*xi_2) + (*system).zeta_0 + zMS;
 }
 
 /* *********************************************************************************/
 /* Internal function that returns the MS corrections of phiz                       */
 /* *********************************************************************************/
 
-static double phiz_MS_corr(double xi)
+static double phiz_MS_corr(const double xi, const sysq *system)
 {
-    double c0 = c(xi).x;
-    double c2 = c(xi).y;
-    double c4 = c(xi).z;
-    double d0 = d(xi).x;
-    double d2 = d(xi).y;
-    double d4 = d(xi).z;
+    const double c0 = c(xi,system).x;
+    const double c2 = c(xi,system).y;
+    const double c4 = c(xi,system).z;
+    const double d0 = d(xi,system).x;
+    const double d2 = d(xi,system).y;
+    const double d4 = d(xi,system).z;
     
-    double sqt = sqrt(fabs(d2*d2-4.*d0*d4));
+    const double sqt = sqrt(fabs(d2*d2-4.*d0*d4));
     
-    double n3 = (2.*(d0+d2+d4)/(2.*d0+d2+sqt));
-    double n4 = ((2*d0+d2+sqt)/(2.*d0));
-    double sqtn3 = sqrt(fabs(n3));
-    double sqtn4 = sqrt(fabs(n4));
+    const double n3 = (2.*(d0+d2+d4)/(2.*d0+d2+sqt));
+    const double n4 = ((2*d0+d2+sqt)/(2.*d0));
+    const double sqtn3 = sqrt(fabs(n3));
+    const double sqtn4 = sqrt(fabs(n4));
     
-    double u = u_of_xi(xi)+constant_of_S;
+    const double u = u_of_xi(xi,system)+(*system).constant_of_S;
     
     double L3, L4;
     if(n3 == 1) L3 = 0;
-    else L3 = -fabs((c4*d0*(2.*d0+d2+sqt)-c2*d0*(d2+2.*d4-sqt)-c0*(2.*d0*d4-(d2+d4)*(d2-sqt)))/(2.*d0*(d0+d2+d4)*sqt))*(sqtn3/(n3-1.)*(atan(tan(u)) - atan(sqtn3*tan(u))))/psidot(xi);
+    else L3 = -fabs((c4*d0*(2.*d0+d2+sqt)-c2*d0*(d2+2.*d4-sqt)-c0*(2.*d0*d4-(d2+d4)*(d2-sqt)))/(2.*d0*(d0+d2+d4)*sqt))*(sqtn3/(n3-1.)*(atan(tan(u)) - atan(sqtn3*tan(u))))/psidot(xi,system);
     if(n4 == 1) L4 = 0;
-    else L4 = -fabs((-c4*d0*(2.*d0+d2-sqt)+c2*d0*(d2+2.*d4+sqt)-c0*(-2.*d0*d4+(d2+d4)*(d2+sqt))))/(2.*d0*(d0+d2+d4)*sqt)*(sqtn4/(n4-1.)*(atan(tan(u)) - atan(sqtn4*tan(u))))/psidot(xi);
+    else L4 = -fabs((-c4*d0*(2.*d0+d2-sqt)+c2*d0*(d2+2.*d4+sqt)-c0*(-2.*d0*d4+(d2+d4)*(d2+sqt))))/(2.*d0*(d0+d2+d4)*sqt)*(sqtn4/(n4-1.)*(atan(tan(u)) - atan(sqtn4*tan(u))))/psidot(xi,system);
     
-    double corr;
-    if(S1_norm == 0 || S2_norm ==0 || (fabs(DotProd(S1_0,Lhat_0)/S1_norm) == 1 && fabs(DotProd(S2_0,Lhat_0)/S2_norm) == 1)) corr = 0;
-    else corr = L3+L4;
+    double corr = L3+L4;
     if (corr != corr) corr=0;
     return corr;
 }
@@ -660,17 +558,17 @@ static double phiz_MS_corr(double xi)
 /* Internal function that returns the MS corrections of zeta                       */
 /* *********************************************************************************/
 
-static double zeta_MS_corr(double xi)
+static double zeta_MS_corr(const double xi, const sysq *system)
 {
-    double J_norm = J_norm_of_xi(xi);
-    double c0 = c(xi).x;
-    double c2 = c(xi).y;
-    double c4 = c(xi).z;
-    double d0 = d(xi).x;
-    double d2 = d(xi).y;
-    double d4 = d(xi).z;
+    const double J_norm = J_norm_of_xi(xi,system);
+    const double c0 = c(xi,system).x;
+    const double c2 = c(xi,system).y;
+    const double c4 = c(xi,system).z;
+    const double d0 = d(xi,system).x;
+    const double d2 = d(xi,system).y;
+    const double d4 = d(xi,system).z;
     
-    vector roots = Roots(xi,J_norm);
+    const vector roots = Roots(xi,J_norm,system);
     double A1, A2, A3;
     
     A3 = fmax(fmax(roots.x,roots.y),roots.z);
@@ -679,82 +577,65 @@ static double zeta_MS_corr(double xi)
     else if((A3 - roots.x) > 0 && (A1 - roots.x) < 0) A2 = roots.x;
     else A2 = roots.y;
     
-    double J_normalized = J_norm/GMsquare_over_c;
-    double L_normalized = nu/xi;
+    const double J_normalized = J_norm/((*system).GMsquare_over_c);
+    const double L_normalized = ((*system).nu)/xi;
     
-    double Aa = 0.5*(J_normalized/L_normalized + L_normalized/J_normalized - A3/J_normalized/L_normalized);
-    double Bb = 0.5*(A3 - A2)/L_normalized/J_normalized;
-    double sqt = sqrt(d2*d2-4.*d0*d4);
-    double n3 = 2.*(d0+d2+d4)/(2.*d0+d2+sqt);
-    double n4 = (2*d0+d2+sqt)/(2.*d0);
-    double sqtn3 = sqrt(fabs(n3));
-    double sqtn4 = sqrt(fabs(n4));
+    const double Aa = 0.5*(J_normalized/L_normalized + L_normalized/J_normalized - A3/J_normalized/L_normalized);
+    const double Bb = 0.5*(A3 - A2)/L_normalized/J_normalized;
+    const double sqt = sqrt(d2*d2-4.*d0*d4);
+    const double n3 = 2.*(d0+d2+d4)/(2.*d0+d2+sqt);
+    const double n4 = (2*d0+d2+sqt)/(2.*d0);
+    const double sqtn3 = sqrt(fabs(n3));
+    const double sqtn4 = sqrt(fabs(n4));
     
-    double u = u_of_xi(xi)+constant_of_S;
+    const double u = u_of_xi(xi,system)+(*system).constant_of_S;
     
     double L3, L4;
     if(n3 == 1) L3 = 0;
-    else L3 = -fabs((c4*d0*(2.*d0+d2+sqt)-c2*d0*(d2+2.*d4-sqt)-c0*(2.*d0*d4-(d2+d4)*(d2-sqt)))/(2.*d0*(d0+d2+d4)*sqt))*(sqtn3/(n3-1.)*(atan(tan(u)) - atan(sqtn3*tan(u))))/psidot(xi);
+    else L3 = -fabs((c4*d0*(2.*d0+d2+sqt)-c2*d0*(d2+2.*d4-sqt)-c0*(2.*d0*d4-(d2+d4)*(d2-sqt)))/(2.*d0*(d0+d2+d4)*sqt))*(sqtn3/(n3-1.)*(atan(tan(u)) - atan(sqtn3*tan(u))))/psidot(xi,system);
     if(n4 == 1) L4 = 0;
-    else L4 = -fabs((-c4*d0*(2.*d0+d2-sqt)+c2*d0*(d2+2.*d4+sqt)-c0*(-2.*d0*d4+(d2+d4)*(d2+sqt))))/(2.*d0*(d0+d2+d4)*sqt)*(sqtn4/(n4-1.)*(atan(tan(u)) - atan(sqtn4*tan(u))))/psidot(xi);
+    else L4 = -fabs((-c4*d0*(2.*d0+d2-sqt)+c2*d0*(d2+2.*d4+sqt)-c0*(-2.*d0*d4+(d2+d4)*(d2+sqt))))/(2.*d0*(d0+d2+d4)*sqt)*(sqtn4/(n4-1.)*(atan(tan(u)) - atan(sqtn4*tan(u))))/psidot(xi,system);
     
-    double corr;
-    if(S1_norm == 0 || S2_norm ==0 || (fabs(DotProd(S1_0,Lhat_0)/S1_norm) == 1 && fabs(DotProd(S2_0,Lhat_0)/S2_norm) == 1)) corr = 0;
-    else corr = Aa*phiz_MS_corr(xi) + 2.*Bb*d0*(L3/(sqt-d2)-L4/(sqt+d2));
+    double corr = Aa*phiz_MS_corr(xi,system) + 2.*Bb*d0*(L3/(sqt-d2)-L4/(sqt+d2));
     if (corr != corr) corr=0;
     return corr;
 }
-
 
 /* *********************************************************************************/
 /* Internal function that computes the spin-orbit couplings                        */
 /* *********************************************************************************/
 
-static double beta(double a, double b)
+static double beta(const double a, const double b, const sysq *system)
 {
-    return (DotProd(S1_0,Lhat_0)*(a + b*one_over_m1_square)) + (DotProd(S2_0,Lhat_0)*(a + b*one_over_m2_square));
+    double coeff = LAL_G_SI/LAL_C_SI;
+    return ((((*system).dot1)*(a + b*((*system).q))) + (((*system).dot2)*(a + b/((*system).q))))/coeff;
 }
 
 /* *********************************************************************************/
 /* Internal function that computes the spin-spin couplings                         */
 /* *********************************************************************************/
 
-static double sigma(double a, double b)
+static double sigma(const double a, const double b, const sysq *system)
 {
-    return a*DotProd(S1_0,S2_0) - b*DotProd(Lhat_0,S1_0)*DotProd(Lhat_0,S2_0);
+    double coeff = LAL_G_SI/LAL_C_SI*LAL_G_SI/LAL_C_SI;
+    return (a*((*system).dot12) - b*((*system).dot1)*((*system).dot2))/coeff;
 }
 
 /* *********************************************************************************/
 /* Internal function that computes the spin-spin couplings                         */
 /* *********************************************************************************/
 
-static double tau(double a, double b)
+static double tau(const double a, const double b, const sysq *system)
 {
-    double cos1 = DotProd(Lhat_0,S1_0);
-    double cos2 = DotProd(Lhat_0,S2_0);
-    return one_over_m1_square*(S1_norm_square*a - b*cos1*cos1) + one_over_m2_square*(S2_norm_square*a - b*cos2*cos2);
+    double coeff = LAL_G_SI/LAL_C_SI*LAL_G_SI/LAL_C_SI;
+    return (((*system).q)*((*system).S1_norm_square*a - b*((*system).dot1)*((*system).dot1)) + ((*system).S2_norm_square*a - b*((*system).dot2)*((*system).dot2))/((*system).q))/coeff;
 }
-
-
-/* *********************************************************************************/
-/* Internal function that frees the memory allocated in XALInitializeAngles        */
-/* *********************************************************************************/
-
-static void FreePrecession()
-{
-//    free(domegadt_csts_nonspin);
-//    free(domegadt_csts_spinorbit);
-//    free(domegadt_csts_spinspin);
-//    free(L_csts_nonspin);
-//    free(L_csts_spinorbit);
-}
-
 
 /* *********************************************************************************/
 /* Internal function that returns the dot product of two vectors                   */
 /* *********************************************************************************/
 
-static double DotProd(vector vec1, vector vec2)
+static double DotProd(const vector vec1, const vector vec2)
 {
     return vec1.x*vec2.x + vec1.y*vec2.y + vec1.z*vec2.z;
 }
@@ -763,7 +644,7 @@ static double DotProd(vector vec1, vector vec2)
 /* Internal function that returns the norm of a vector                             */
 /* *********************************************************************************/
 
-static double Norm(vector vec)
+static double Norm(const vector vec)
 {
     return sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
@@ -772,10 +653,10 @@ static double Norm(vector vec)
 /* Internal function that calculates a vector fro its spherical components         */
 /* *********************************************************************************/
 
-static vector CreateSphere(double r, double th, double ph)
+static vector CreateSphere(const double r, const double th, const double ph)
 {
     vector out;
-    double fact = r*sin(th);
+    const double fact = r*sin(th);
     out.x = fact*cos(ph);
     out.y = fact*sin(ph);
     out.z = r*cos(th);
