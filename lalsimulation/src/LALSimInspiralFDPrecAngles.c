@@ -25,96 +25,38 @@
 
 #include "LALSimInspiralFDPrecAngles_internals.c"
 
-
 /* *********************************************************************************/
-/* XLAL function that initalizes all constants needed for the precession angles. It*/
-/* needs to be called only once at the beginning.                                  */
+/* XLAL function that does everything.                                             */
 /* *********************************************************************************/
 
-void XLALInitializePrecession()
-{
-    InitializePrecession();
-}
-
-
-/* *********************************************************************************/
-/* XLAL function that initalizes all constants that depend on the particular       */
-/* system. It needs to be called once when the system parameters have been defined.*/
-/* *********************************************************************************/
-
-void XLALInitializeSystem(
-    double m1_in,                  /**< mass of body 1 in SI */
-    double m2_in,                  /**< mass of body 2 in SI */
-    double costhetaL_in,           /**< declination of the orbital angular momentum */
-    double phiL_in,                /**< right ascension of the orbital angular momentum  */
-    double costheta1_in,           /**< declination of the spin S1 */
-    double phi1_in,                /**< right ascension of the spin S1 */
-    double chi1_in,                /**< magnitude of the spin S1 (between 0 and 1) */
-    double costheta2_in,           /**< declination of the spin S2 */
-    double phi2_in,                /**< right ascension of the spin S2 */
-    double chi2_in,                /**< magnitude of the spin S2 (between 0 and 1) */
-    double f0_in                   /**< reference frequency (Hz) */
+void XLALComputeAngles(
+    REAL8Sequence *phiz_of_f,
+    REAL8Sequence *zeta_of_f,
+    REAL8Sequence *costhetaL_of_f,
+    REAL8Sequence *costhetaL3PN_of_f,
+    const REAL8Sequence *f,
+    const double m1,
+    const double m2,
+    const double mul,
+    const double phl,
+    const double mu1,
+    const double ph1,
+    const double ch1,
+    const double mu2,
+    const double ph2,
+    const double ch2,
+    const double f_0
 ){
-    m1 = m1_in;
-    m2 = m2_in;
-    mul = costhetaL_in;
-    phl = phiL_in;
-    mu1 = costheta1_in;
-    ph1 = phi1_in;
-    ch1 = chi1_in;
-    mu2 = costheta2_in;
-    ph2 = phi2_in;
-    ch2 = chi2_in;
-    f_0 = f0_in;
+    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
     
-    InitializeSystem();
-}
-
-/* *********************************************************************************/
-/* XLAL function that returns the cosine of the angle between the Newtonian L and J*/
-/* *********************************************************************************/
-
-double XLALcosthetaL(double f)
-{
-    double xi = pow(f*twopiGM_over_cthree, onethird);
-    return costhetaL(xi);
-}
-
-/* *********************************************************************************/
-/* XLAL function that returns the cosine of the angle between the 3PN L and J      */
-/* *********************************************************************************/
-
-double XLALcosthetaL_3PN(double f)
-{
-    double xi = pow(f*twopiGM_over_cthree, onethird);
-    return costhetaL_3PN(xi);
-}
-
-/* *********************************************************************************/
-/* XLAL function that returns phiz                                                 */
-/* *********************************************************************************/
-
-double XLALphiz_of_xi(double f)
-{
-    double xi = pow(f*twopiGM_over_cthree, onethird);
-    return phiz_of_xi(xi);
-}
-
-/* *********************************************************************************/
-/* XLAL function that returns zeta                                                 */
-/* *********************************************************************************/
-
-double XLALzeta_of_xi(double f)
-{
-    double xi = pow(f*twopiGM_over_cthree, onethird);
-    return zeta_of_xi(xi);
-}
-
-/* *********************************************************************************/
-/* XLAL function that frees the memory allocated in XALInitializeAngles            */
-/* *********************************************************************************/
-
-void XLALFreePrecession()
-{
-    FreePrecession();
+    double xi;
+    const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
+    
+    for(UINT4 i = 0; i < (*f).length; i++){
+         xi = pow(((*f).data[i])*twopiGM_over_cthree, system.onethird);
+        (*phiz_of_f).data[i] = phiz_of_xi(xi,&system);
+        (*zeta_of_f).data[i] = zeta_of_xi(xi,&system);
+        (*costhetaL3PN_of_f).data[i] = costhetaL_3PN(xi,&system);
+        (*costhetaL_of_f).data[i] = costhetaL(xi,&system);
+    }
 }
