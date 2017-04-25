@@ -45,7 +45,10 @@
 
 /* List of modelled modes */
 static int NMODES = NMODES_MAX;
-static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
+static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
 
 /* List of phase shifts: the index is the azimuthal number m */
 static const double cShift[7] = {0.0,
@@ -64,7 +67,8 @@ static const double cShift[7] = {0.0,
  /* Scale factor multiplying the ringdown frequency for mode (l,m).
   * Used to estimate the end frequency for each mode.
   */
-#define F_FACTOR 1.2
+#define F_FACTOR 2. /*NOTE: this can cause little jumps in the strain because of sudden termination of some modes */
+
 
 /* START: newer functions  */
 
@@ -157,7 +161,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
     int mm = ModeArray[j][1];
     p->Rholm[ell][mm] = p->Mf_RD_22/p->PhenomHMfring[ell][mm];
     p->Taulm[ell][mm] = p->PhenomHMfdamp[ell][mm]/p->Mf_DM_22;
-
+    // printf("p->Rholm[%i][%i] = %f, p->Taulm[%i][%i] = %f\n",ell, mm, p->Rholm[ell][mm],ell, mm, p->Taulm[ell][mm]);
   }
 
   /* A bunch of useful powers used in XLALSimIMRPhenomHMPNAmplitudeLeadingOrder */
@@ -594,6 +598,13 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->fi = fi;
     q->fr = fr;
 
+    // printf("q->ai = %f\n", q->ai);
+    // printf("q->bi = %f\n", q->bi);
+    // printf("q->am = %f\n", q->am);
+    // printf("q->bm = %f\n", q->bm);
+    // printf("q->ar = %f\n", q->ar);
+    // printf("q->br = %f\n", q->br);
+
     const LALSimInspiralTestGRParam *extraParams = NULL;
     IMRPhenomDPhaseCoefficients *pPhi;
     pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
@@ -670,22 +681,24 @@ double XLALSimIMRPhenomHMPhase( double Mf_wf, /**< input frequency in geometric 
     REAL8 retphase = 0.0;
     REAL8 tmpphaseC = 0.0;
     int status = 0;
-
+    // printf("Mf_wf = %f, IMRPhenDPhaseA(Mf = q->ai * Mf_wf + q->bi;) = %f, IMRPhenDPhaseB(Mf = q->am*Mf_wf + q->bm) = %f, IMRPhenDPhaseC(Mf = q->ar*Mf_wf + q->br) = %f \n",Mf_wf, q->ai * Mf_wf + q->bi, q->am*Mf_wf + q->bm, q->ar*Mf_wf + q->br);
     // This if ladder is in the mathematica function HMPhase. PhenomHMDev.nb
     if ( !(Mf_wf > q->fi) ){ // in mathematica -> IMRPhenDPhaseA
+        // printf("IMRPhenDPhaseA\n");
         Mf = q->ai * Mf_wf + q->bi;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, phi_prefactors, Rholm, Taulm) / q->ai;
     } else if ( !(Mf_wf > q->fr) ){ // in mathematica -> IMRPhenDPhaseB
+        // printf("IMRPhenDPhaseB\n");
         Mf = q->am*Mf_wf + q->bm;
         UsefulPowers powers_of_Mf;
         status = init_useful_powers(&powers_of_Mf, Mf);
         XLAL_CHECK(XLAL_SUCCESS == status, status, "init_useful_powers for powers_of_Mf failed");
         retphase = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_Mf, phi_prefactors, Rholm, Taulm) / q->am - q->PhDBconst + q->PhDBAterm;
     } else if ( Mf_wf > q->fr ) { // in mathematica -> IMRPhenDPhaseC
-
+        // printf("IMRPhenDPhaseC\n");
         Mfr = q->am*q->fr + q->bm;
         UsefulPowers powers_of_Mfr;
         status = init_useful_powers(&powers_of_Mfr, Mfr);
@@ -816,6 +829,8 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     //FP: pow_Mf_wf_prefactor[ell][mm]
     double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
+
+    // printf("f(Hz) = %f, Mf = %f, HMamp = %.10e, HMphase = %f\n", Mf / (PhenomDQuantities->Mtot * LAL_MTSUN_SI), Mf, HMamp, HMphase);
 
     /* Compute reference phase at reference frequency */
 
