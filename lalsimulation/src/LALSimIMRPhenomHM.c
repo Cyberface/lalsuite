@@ -47,6 +47,7 @@
 static int NMODES = NMODES_MAX;
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {4,3} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
 
@@ -183,7 +184,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
             ans = sqrteta * 0.767106 * Seta;
         }
         else { // mm==2
-          ans = sqrteta * 0.407703;
+          ans = sqrteta * (0.407703 - 1.223109*p->eta);
         }
     } else if ( ell==4 ) {
         if ( mm==4 ) {
