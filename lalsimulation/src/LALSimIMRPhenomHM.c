@@ -496,18 +496,18 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStora
     return ans;
 }
 
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp){
+static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp);
+static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp){
 
     /* See technical document for description of below lines with A_R and R */
-    double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp);
+    double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(ell, mm, PhenomDQuantities, powers_of_MfAtScale_wf_amp);
     double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * IMRPhenDAmplitude(powers_of_MfAtScale_22_amp->itself, pAmp, downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
     double ampRatio = A_R_num/A_R_den;
 
     return ampRatio;
 }
 
-double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp);
+double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp);
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
                                     int mm,
@@ -515,7 +515,8 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     AmpInsPrefactors * amp_prefactors,
                                     PhenomDStorage * PhenomDQuantities,
                                     UsefulMfPowers *powers_of_MfAtScale_22_amp,
-                                    UsefulPowers *downsized_powers_of_MfAtScale_22_amp
+                                    UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
+                                    UsefulMfPowers *powers_of_MfAtScale_wf_amp
                                   )
 {
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
@@ -527,7 +528,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp);
+    double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp);
 
     double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);//FP: pow_Mf_wf_prefactor[ell][mm]
 
@@ -815,7 +816,8 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
         double phi_precalc, /**< m*phi0 + HMphaseRef*/
         PhenomDStorage *PhenomDQuantities,
         UsefulMfPowers *powers_of_MfAtScale_22_amp,
-        UsefulPowers *downsized_powers_of_MfAtScale_22_amp
+        UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
+        UsefulMfPowers *powers_of_MfAtScale_wf_amp
 ) {
 
     /*
@@ -828,7 +830,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     //FP: is all of PhenomDQuantities necessary?
     //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
     //FP: pow_Mf_wf_prefactor[ell][mm]
-    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp );
+    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
     // printf("f(Hz) = %f, Mf = %f, HMamp = %.10e, HMphase = %f\n", Mf / (PhenomDQuantities->Mtot * LAL_MTSUN_SI), Mf, HMamp, HMphase);
@@ -1152,6 +1154,10 @@ int XLALIMRPhenomHMMultiModehlm(
          errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_22_amp);
          XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "downsized_init_useful_powers failed");
 
+         UsefulMfPowers powers_of_MfAtScale_wf_amp;
+         errcode = init_useful_mf_powers(&powers_of_MfAtScale_wf_amp, MfAtScale_wf_amp);
+         XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_mf_powers failed for MfAtScale_wf_amp");
+
 
          //The size of this COMPLEX16FrequencySeries *hlm needs to be the same as the final hptilde, hctilde
          //The for loop over frequencies needs to be over the indices for the particular (l,m) mode
@@ -1182,7 +1188,7 @@ int XLALIMRPhenomHMMultiModehlm(
     //FP: is all of PhenomDQuantities necessary?
     //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
     //FP: pow_Mf_wf_prefactor[ell][mm]
-            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp);
+            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
@@ -1535,6 +1541,10 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      errcode = downsize_useful_mf_powers(&downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_22_amp);
      XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "downsized_init_useful_powers failed");
 
+     UsefulMfPowers powers_of_MfAtScale_wf_amp;
+     errcode = init_useful_mf_powers(&powers_of_MfAtScale_wf_amp, MfAtScale_wf_amp);
+     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_mf_powers failed for MfAtScale_wf_amp");
+
      /* NOTE: Do I need this bit? */
      /* XLALUnitMultiply(hlm->sampleUnits, hlm->sampleUnits, &lalSecondUnit); */
 
@@ -1554,7 +1564,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         /* construct hlm at single frequency point and return */
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp);
+        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
 
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
         // ((*hlmtilde)->data->data)[i] *= cexp(-It0*(Mf-MfRef)*(2.0-mm) );
