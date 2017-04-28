@@ -321,7 +321,7 @@ typedef enum tagApproximant {
                          * @remarks Implemented in lalsimulation (time domain). */
    SEOBNRv3_opt_rk4,        /**< USE RK4 Optimized Spin precessing EOBNR model v3
                          * @todo Fix implementation in lalsimulation (time domain). */
-   SEOBNRv4,		/**< Spin nonprecessing EOBNR model v4 
+   SEOBNRv4,		/**< Spin nonprecessing EOBNR model v4
                          * @remarks Implemented in lalsimulation (time domain). */
    SEOBNRv4_opt,	/**< Optimized Spin-aligned EOBNR model v4
                          * @remarks Implemented in lalsimulation (time domain). */
@@ -356,6 +356,8 @@ typedef enum tagApproximant {
    IMRPhenomP,		/**< Frequency domain (generic spins) inspiral-merger-ringdown templates of Hannam et al., arXiv:1308.3271 [gr-qc]. Based on IMRPhenomC.
                          * @remarks Implemented in lalsimulation (frequency domain).  */
    IMRPhenomPv2,		/**< Frequency domain (generic spins) inspiral-merger-ringdown templates of Hannam et al., arXiv:1308.3271 [gr-qc]. Based on IMRPhenomD, arXiv:1508.07250 and arXiv:1508.07253.
+                         * @remarks Implemented in lalsimulation (frequency domain).  */
+   IMRPhenomPv3,    /**< Frequency domain (generic spins) inspiral-merger-ringdown templates of Hannam et al., arXiv:1308.3271 [gr-qc]. Based on IMRPhenomD, arXiv:1508.07250 and arXiv:1508.07253. But updated the precession angles to use the ones in arXiv 1703.03967.
                          * @remarks Implemented in lalsimulation (frequency domain).  */
    IMRPhenomFC,		/**< Frequency domain (non-precessing spins) inspiral-merger-ringdown templates of Santamaria et al [Santamaria:2010yb] with phenomenological coefficients defined in the Table II of [Santamaria:2010yb]
                          * @attention Not implemented in lalsimulation.*/

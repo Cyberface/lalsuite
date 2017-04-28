@@ -62,7 +62,8 @@ extern "C" {
 
 typedef enum tagIMRPhenomP_version_type {
  IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
- IMRPhenomPv2_V  /**< version 2: based on IMRPhenomD */
+ IMRPhenomPv2_V,  /**< version 2: based on IMRPhenomD */
+ IMRPhenomPv3_V  /**< version 3: Same as IMRPhenomPv2_V but the precession angles have been changed to use arXiv 1703.03967 */
 } IMRPhenomP_version_type;
 
 /** @} */
