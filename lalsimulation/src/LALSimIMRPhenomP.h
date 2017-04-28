@@ -2,7 +2,7 @@
 #define _LALSIM_IMR_PHENOMP_H
 
 /*
- *  Copyright (C) 2013,2014,2015 Michael Puerrer, Alejandro Bohe
+ *  Copyright (C) 2013,2014,2015,2016,2017 Michael Puerrer, Alejandro Bohe, Sebastian Khan
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -97,7 +97,7 @@ static int PhenomPCore(
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
    * Then we will use deltaF = 0 to create the frequency series we return. */
-  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
+  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 is same as IMRPhenomPv2 but uses the precession angles from arXiv 1703.03967. */
   LALDict *extraParams /**< linked list containing the extra testing GR parameters */
 );
 

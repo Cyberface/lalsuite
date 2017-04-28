@@ -1,3 +1,6 @@
+#ifndef _LALSIM_INS_FD_PREC_ANGLES_INTERNALS
+#define _LALSIM_INS_FD_PREC_ANGLES_INTERNALS
+
 /*
  * Copyright (C) 2017 Katerina Chatziioannou, Sebastian Khan
  *
@@ -68,3 +71,4 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
 static double phiz_of_xi(const double xi, const double xi_2, const double J_norm, const sysq *system);
 static double zeta_of_xi(const double xi, const double xi_2, const sysq *system);
 
+#endif	// of #ifndef _LALSIM_INS_FD_PREC_ANGLES_INTERNALS

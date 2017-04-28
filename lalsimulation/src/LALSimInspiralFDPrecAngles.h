@@ -1,3 +1,6 @@
+#ifndef _LALSIM_INS_FD_PREC_ANGLES
+#define _LALSIM_INS_FD_PREC_ANGLES
+
 /*
  * Copyright (C) 2017 Katerina Chatziioannou, Sebastian Khan
  *
@@ -16,9 +19,6 @@
  *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  *  MA  02111-1307  USA
  */
-
-#ifndef _LALSIM_INS_FD_PREC_ANGLES
-#define _LALSIM_INS_FD_PREC_ANGLES
 
 #include <lal/LALConstants.h>
 
