@@ -62,8 +62,7 @@ extern "C" {
 
 typedef enum tagIMRPhenomP_version_type {
  IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
- IMRPhenomPv2_V,  /**< version 2: based on IMRPhenomD */
- IMRPhenomPv3_V  /**< version 3: Same as IMRPhenomPv2_V but the precession angles have been changed to use arXiv 1703.03967 */
+ IMRPhenomPv2_V  /**< version 2: based on IMRPhenomD */
 } IMRPhenomP_version_type;
 
 /** @} */
@@ -93,6 +92,10 @@ int XLALSimIMRPhenomP(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeri
 int XLALSimIMRPhenomPFrequencySequence(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8Sequence *freqs, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, LALDict *extraParams);
 int XLALSimIMRPhenomPCalculateModelParametersOld(REAL8 *chi1_l, REAL8 *chi2_l, REAL8 *chip, REAL8 *thetaJ, REAL8 *alpha0, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 f_ref, const REAL8 lnhatx, const REAL8 lnhaty, const REAL8 lnhatz, const REAL8 s1x, const REAL8 s1y, const REAL8 s1z, const REAL8 s2x, const REAL8 s2y, const REAL8 s2z, IMRPhenomP_version_type IMRPhenomP_version);
 int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(REAL8 *chi1_l, REAL8 *chi2_l, REAL8 *chip, REAL8 *thetaJN, REAL8 *alpha0, REAL8 *phi_aligned, REAL8 *zeta_polariz, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 f_ref, const REAL8 phiRef, const REAL8 incl, const REAL8 s1x, const REAL8 s1y, const REAL8 s1z, const REAL8 s2x, const REAL8 s2y, const REAL8 s2z, IMRPhenomP_version_type IMRPhenomP_version);
+
+/* IMRPhenomPv3 XLAL functions */
+int XLALSimIMRPhenomPv3(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 S1x, const REAL8 S1y, const REAL8 S1z, const REAL8 S2x, const REAL8 S2y, const REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, LALDict *extraParams);
+
 
 /* in module LALSimIMREOBNRv2.c */
 

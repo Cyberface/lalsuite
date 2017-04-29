@@ -190,4 +190,45 @@ static REAL8 FinalSpinBarausse2009(  /* Barausse & Rezzolla, Astrophys.J.Lett.70
 static bool approximately_equal(REAL8 x, REAL8 y, REAL8 epsilon);
 static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
 
+/* BEGIN IMRPhenomPv3 */
+
+/**
+ * Structure storing (2,2) mode quantities and other pre-determined,
+ * fix parameters/properties that are needed to compute all other modes
+ */
+typedef struct tagPhenomPv3Storage
+{
+    REAL8 m1_SI; /**< mass of primary in SI (kg) */
+    // REAL8 m2_SI; /**< mass of secondary in SI (kg) */
+    // REAL8 m1_Msun; /**< mass of primary in solar masses */
+    // REAL8 m2_Msun; /**< mass of secondary in solar masses */
+    // REAL8 Mtot;
+    // REAL8 eta;
+} PhenomPv3Storage;
+
+// /**
+//  * must be called before the first usage of *p
+//  */
+// int init_PhenomPv3_Storage(PhenomPv3Storage *p, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 S1x, const REAL8 S1y, const REAL8 S1z, const REAL8 S2x, const REAL8 S2y, const REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
+int init_PhenomPv3_Storage(PhenomPv3Storage *p, const REAL8 m1_SI);
+//
+// /* Internal core function to calculate PhenomP version 3 polarizations.
+//  * This function computes all quantities that are independent of frequency
+//  * to be passed into PhenomPv3CoreOneFrequency
+//  */
+// static int PhenomPv3Core(
+//   COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
+//   COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
+//   PhenomPv3Storage PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+//   const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
+//   double deltaF,                             /**< Sampling frequency (Hz).
+//    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
+//    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
+//    * Then we will use deltaF = 0 to create the frequency series we return. */
+//   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
+//   );
+
+
+/* END IMRPhenomPv3 */
+
 #endif	// of #ifndef _LALSIM_IMR_PHENOMP_H
