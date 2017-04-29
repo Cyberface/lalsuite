@@ -1425,7 +1425,15 @@ int XLALSimInspiralChooseFDWaveform(
             /* Tranform to model parameters */
             if(f_ref==0.0)
                 f_ref = f_min; /* Default reference frequency is minimum frequency */
-			ret = XLAL_SUCCESS;
+			ret = XLALSimIMRPhenomPv3(hptilde, hctilde,
+								m1, m2,
+								S1x, S1y, S1z,
+								S2x, S2y, S2z,
+								distance, inclination, phiRef,
+								deltaF, f_min, f_max, f_ref,
+								LALparams);
+			if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
+			// ret = XLAL_SUCCESS;
             // XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
             //     &chi1_l, &chi2_l, &chip, &thetaJN, &alpha0, &phi_aligned, &zeta_polariz,
             //     m1, m2, f_ref, phiRef, inclination,
