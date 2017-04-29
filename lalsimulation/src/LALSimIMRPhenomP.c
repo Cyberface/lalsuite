@@ -87,13 +87,13 @@ const double sqrt_6 = 2.44948974278317788;
  * @brief Functions for producing IMRPhenomP waveforms for precessing binaries,
  * as described in Hannam et al., arXiv:1308.3271 [gr-qc].
  *
- * @note Two versions of IMRPhenomP are available (selected by IMRPhenomP_version):
+ * @note Three versions of IMRPhenomP are available (selected by IMRPhenomP_version):
  *    * version 1 ("IMRPhenomP"): based on IMRPhenomC
  *      (outdated, not reviewed!)
  *    * version 2 ("IMRPhenomPv2"): based on IMRPhenomD
- *      (to be used, currently under review as of Dec 2015)
  *      (to be used, Reviewed https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/Waveforms/Overview)
  *    * version 3 ("IMRPhenomPv3"): based on IMRPhenomD and precession angles from arXiv 1703.03967.
+ *      Note that this version has different driver functions than version 1 and version 2.
  *      (not reviewed)
  *
  * Each IMRPhenomP version inherits its range of validity
@@ -143,7 +143,7 @@ int XLALSimIMRPhenomPCalculateModelParametersOld(
     const REAL8 s2x,                /**< Initial value of s2x: dimensionless spin of BH 2 */
     const REAL8 s2y,                /**< Initial value of s2y: dimensionless spin of BH 2 */
     const REAL8 s2z,                /**< Initial value of s2z: dimensionless spin of BH 2 */
-    IMRPhenomP_version_type IMRPhenomP_version /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+    IMRPhenomP_version_type IMRPhenomP_version /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
 )
 {
   // Note that the angle phiJ defined below and alpha0 are degenerate. Therefore we do not output phiJ.
@@ -202,11 +202,6 @@ int XLALSimIMRPhenomPCalculateModelParametersOld(
       L0 = M*M * L2PNR_v1(v_ref, eta); /* Use 2PN approximation for L. */
       break;
     case IMRPhenomPv2_V:
-      L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
-      break;
-    case IMRPhenomPv3_V:
-      /* FIXME: IMRPhenomPv3  */
-      /* FIXME: UPDATE TO USE CITA ANGLE FUNCTIONS  */
       L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
       break;
     default:
@@ -284,7 +279,7 @@ int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
     const REAL8 s2x,                /**< Initial value of s2x: dimensionless spin of BH 2 */
     const REAL8 s2y,                /**< Initial value of s2y: dimensionless spin of BH 2 */
     const REAL8 s2z,                /**< Initial value of s2z: dimensionless spin of BH 2 */
-    IMRPhenomP_version_type IMRPhenomP_version /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+    IMRPhenomP_version_type IMRPhenomP_version /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
 )
 {
   // Note that the angle phiJ defined below and alpha0 are degenerate. Therefore we do not output phiJ.
@@ -342,11 +337,6 @@ int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
       L0 = M*M * L2PNR_v1(v_ref, eta); /* Use 2PN approximation for L. */
       break;
     case IMRPhenomPv2_V:
-      L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
-      break;
-    case IMRPhenomPv3_V:
-      /*FIXME: IMRPhenomPv3*/
-      /* FIXME: UPDATE TO USE CITA ANGLE FUNCTIONS  */
       L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
       break;
     default:
@@ -490,7 +480,7 @@ int XLALSimIMRPhenomP(
   const REAL8 f_min,                          /**< Starting GW frequency (Hz) */
   const REAL8 f_max,                          /**< End frequency; 0 defaults to ringdown cutoff freq */
   const REAL8 f_ref,                          /**< Reference frequency */
-  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
   LALDict *extraParams) /**<linked list containing the extra testing GR parameters */
 {
   // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
@@ -544,7 +534,7 @@ int XLALSimIMRPhenomPFrequencySequence(
   const REAL8 alpha0,                         /**< Initial value of alpha angle (azimuthal precession angle) */
   const REAL8 phic,                           /**< Orbital phase at the peak of the underlying non precessing model (rad) */
   const REAL8 f_ref,                          /**< Reference frequency */
-  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
   LALDict *extraParams) /**<linked list containing the extra testing GR parameters */
 {
   // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
@@ -588,7 +578,7 @@ static int PhenomPCore(
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
    * Then we will use deltaF = 0 to create the frequency series we return. */
-  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomPv1 uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
   )
 {
@@ -683,13 +673,6 @@ static int PhenomPCore(
           XLAL_ERROR(XLAL_EDOM, "IMRPhenomPv2: Mass ratio q > 100 which is way outside the calibration range q <= 18.\n");
       CheckMaxOpeningAngle(m1, m2, chi1_l, chi2_l, chip);
       break;
-    case IMRPhenomPv3_V:
-      if (q > 18.0)
-        XLAL_PRINT_WARNING("IMRPhenomPv3: Warning: The underlying non-precessing model is calibrated up to m1/m2 <= 18.\n");
-      else if (q > 100.0)
-          XLAL_ERROR(XLAL_EDOM, "IMRPhenomPv3: Mass ratio q > 100 which is way outside the calibration range q <= 18.\n");
-      CheckMaxOpeningAngle(m1, m2, chi1_l, chi2_l, chip);
-      break;
     default:
       XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
       break;
@@ -700,35 +683,25 @@ static int PhenomPCore(
     nudge(&q, 1.0, 1e-6);
   }
 
-  // if (IMRPhenomP_version == IMRPhenomPv1_V || IMRPhenomP_version == IMRPhenomPv2_V || IMRPhenomP_version == IMRPhenomPv3_V) {
-      NNLOanglecoeffs angcoeffs; /* Next-to-next-to leading order PN coefficients for Euler angles alpha and epsilon */
-      ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
+  NNLOanglecoeffs angcoeffs; /* Next-to-next-to leading order PN coefficients for Euler angles alpha and epsilon */
+  ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
 
-      /* Compute the offsets due to the choice of integration constant in alpha and epsilon PN formula */
-      const REAL8 omega_ref = piM * f_ref;
-      const REAL8 logomega_ref = log(omega_ref);
-      const REAL8 omega_ref_cbrt = cbrt(piM * f_ref); // == v0
-      const REAL8 omega_ref_cbrt2 = omega_ref_cbrt*omega_ref_cbrt;
-      const REAL8 alphaNNLOoffset = (angcoeffs.alphacoeff1/omega_ref
-                                  + angcoeffs.alphacoeff2/omega_ref_cbrt2
-                                  + angcoeffs.alphacoeff3/omega_ref_cbrt
-                                  + angcoeffs.alphacoeff4*logomega_ref
-                                  + angcoeffs.alphacoeff5*omega_ref_cbrt);
+  /* Compute the offsets due to the choice of integration constant in alpha and epsilon PN formula */
+  const REAL8 omega_ref = piM * f_ref;
+  const REAL8 logomega_ref = log(omega_ref);
+  const REAL8 omega_ref_cbrt = cbrt(piM * f_ref); // == v0
+  const REAL8 omega_ref_cbrt2 = omega_ref_cbrt*omega_ref_cbrt;
+  const REAL8 alphaNNLOoffset = (angcoeffs.alphacoeff1/omega_ref
+                              + angcoeffs.alphacoeff2/omega_ref_cbrt2
+                              + angcoeffs.alphacoeff3/omega_ref_cbrt
+                              + angcoeffs.alphacoeff4*logomega_ref
+                              + angcoeffs.alphacoeff5*omega_ref_cbrt);
 
-      const REAL8 epsilonNNLOoffset = (angcoeffs.epsiloncoeff1/omega_ref
-                                    + angcoeffs.epsiloncoeff2/omega_ref_cbrt2
-                                    + angcoeffs.epsiloncoeff3/omega_ref_cbrt
-                                    + angcoeffs.epsiloncoeff4*logomega_ref
-                                    + angcoeffs.epsiloncoeff5*omega_ref_cbrt);
-
-    // } /*else if ( IMRPhenomP_version == IMRPhenomPv3_V ) {*/
-        /*FIXME: REMEMBER TO REDO THIS*/
-        /*FIXME FIXME FIXME: THESE ARE OLD FUNCTIONS */
-        /* evaluuating the angles at the reference frequency */
-        // f_ref_Hz_Orb = 0.5 * f_ref / m_sec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
-        // const REAL8 alphaNNLOoffset = XLALphiz_of_xi(f_ref_Hz_Orb)
-        // const REAL8 epsilonNNLOoffset = XLALzeta_of_xi(f_ref_Hz_Orb);
-    // }
+  const REAL8 epsilonNNLOoffset = (angcoeffs.epsiloncoeff1/omega_ref
+                                + angcoeffs.epsiloncoeff2/omega_ref_cbrt2
+                                + angcoeffs.epsiloncoeff3/omega_ref_cbrt
+                                + angcoeffs.epsiloncoeff4*logomega_ref
+                                + angcoeffs.epsiloncoeff5*omega_ref_cbrt);
 
   /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
   SpinWeightedSphericalHarmonic_l2 Y2m;
@@ -787,44 +760,6 @@ static int PhenomPCore(
       pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1_l, chi2_l) * pn->v[0]);
 
       PhiInsPrefactors phi_prefactors;
-      errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
-      XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors failed");
-
-      ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
-      // This should be the same as the ending frequency in PhenomD
-      fCut = f_CUT / m_sec;
-      f_final = pAmp->fRD / m_sec;
-      break;
-    case IMRPhenomPv3_V:
-      XLAL_PRINT_INFO("*** IMRPhenomP version 3: based on IMRPhenomD and precession angles of arXiv 1703.03967 ***");
-      /* NOTE: CURRENTLY THIS IS CURRENTLY IDENTICAL TO THE ABOVE IMRPhenomPv2_V CASE */
-      // PhenomD uses FinalSpin0815() to calculate the final spin if the spins are aligned.
-      // We use a generalized version of FinalSpin0815() that includes the in-plane spin chip.
-      finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(m1, m2, chi1_l, chi2_l, chip);
-      if( fabs(finspin) > 1.0 ) {
-        XLAL_PRINT_WARNING("Warning: final spin magnitude %g > 1. Setting final spin magnitude = 1.", finspin);
-        finspin = copysign(1.0, finspin);
-      }
-      // IMRPhenomD assumes that m1 >= m2.
-      pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi2_l, chi1_l, finspin);
-      pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi2_l, chi1_l, finspin, extraParams);
-      if (extraParams==NULL)
-      {
-              extraParams=XLALCreateDict();
-      }
-      XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
-      XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1_l, chi2_l, extraParams);
-
-      if (!pAmp || !pPhi || !pn) {
-        errcode = XLAL_EFUNC;
-        goto cleanup;
-      }
-
-      // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
-      // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
-      // was not available when PhenomD was tuned.
-      pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1_l, chi2_l) * pn->v[0]);
-
       errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
       XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors failed");
 
@@ -949,7 +884,7 @@ static int PhenomPCore(
   AmpInsPrefactors amp_prefactors;
   PhiInsPrefactors phi_prefactors;
 
-  if (IMRPhenomP_version == IMRPhenomPv2_V || IMRPhenomP_version == IMRPhenomPv3_V) {
+  if (IMRPhenomP_version == IMRPhenomPv2_V) {
     errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -1142,7 +1077,7 @@ static int PhenomPCoreOneFrequency(
   COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
   COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
   REAL8 *phasing,                             /**< [out] overall phasing */
-  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
+  IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
   AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
   PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/)
 {
@@ -1186,18 +1121,6 @@ static int PhenomPCoreOneFrequency(
       phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
       SL = chi1_l*m1*m1 + chi2_l*m2*m2;        /* Dimensionfull aligned spin. */
       break;
-    case IMRPhenomPv3_V:
-      XLAL_CHECK(pAmp != NULL, XLAL_EFAULT);
-      XLAL_CHECK(pPhi != NULL, XLAL_EFAULT);
-      XLAL_CHECK(PNparams != NULL, XLAL_EFAULT);
-      XLAL_CHECK(amp_prefactors != NULL, XLAL_EFAULT);
-      XLAL_CHECK(phi_prefactors != NULL, XLAL_EFAULT);
-      errcode = init_useful_powers(&powers_of_f, f);
-      XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for f");
-      aPhenom = IMRPhenDAmplitude(f, pAmp, &powers_of_f, amp_prefactors);
-      phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
-      SL = chi1_l*m1*m1 + chi2_l*m2*m2;        /* Dimensionfull aligned spin. */
-      break;
     default:
       XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
       break;
@@ -1227,21 +1150,11 @@ static int PhenomPCoreOneFrequency(
 
   /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
   REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
-  // REAL8 cBeta = 0.0; /* cos(beta) */
-  // REAL8 fHz_Orb = 0.0; /* orbital frequency in Hz */
   switch (IMRPhenomP_version) {
     case IMRPhenomPv1_V:
       WignerdCoefficients_SmallAngleApproximation(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
       break;
     case IMRPhenomPv2_V:
-      WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
-      break;
-    case IMRPhenomPv3_V:
-      /* FIXME: UPDATE TO USE CITA ANGLE FUNCTIONS  */
-    //   fHz_Orb = fHz / 2.0;
-    //   cBeta = XLALcosthetaL_3PN(fHz_Orb); /* returns cos(beta) */
-    //   cBetah = sqrt(0.5 * (1.0 + cBeta)); /* half angle formula */
-    //   sBetah = sqrt(0.5 * (1.0 - cBeta)); /* half angle formula */
       WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
       break;
   default:
@@ -1721,3 +1634,165 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
       *x = X;
   }
 }
+
+/* BEGIN IMRPhenomPv3 */
+
+// static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z);
+/**
+ * function to convert from 3d cartesian components to polar angles and vector magnitude.
+ * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
+ */
+// static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z){
+//     *magnitude = sqrt( x*x + y*y + z*z );
+//     *polar = acos( z / *magnitude );
+//     *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
+// }
+
+
+// IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967.
+
+
+// } else if ( IMRPhenomP_version == IMRPhenomPv3_V ) {
+    // REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *dummy = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
+    /* evaluating the angles at the reference frequency */
+    // f_ref_Orb_Hz_Seq.data[0] = 0.5 * f_ref / m_sec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
+
+    // XLALComputeAngles3PN(&alphaRefSeq, &epsilonRefSeq, &dummy, f_ref_Orb_Hz_Seq, m1_SI, m2_SI,  )
+    // const REAL8 alphaNNLOoffset = XLALphiz_of_xi(f_ref_Hz_Orb);
+    // const REAL8 epsilonNNLOoffset = XLALzeta_of_xi(f_ref_Hz_Orb);
+// }
+
+
+int init_PhenomPv3_Storage(PhenomPv3Storage *p,
+                            const REAL8 m1_SI/*,*/
+                            // const REAL8 m2_SI,
+                            // const REAL8 S1x,
+                            // const REAL8 S1y,
+                            // const REAL8 S1z,
+                            // const REAL8 S2x,
+                            // const REAL8 S2y,
+                            // const REAL8 S2z,
+                            // const REAL8 distance,
+                            // const REAL8 inclination,
+                            // const REAL8 phiRef,
+                            // const REAL8 deltaF,
+                            // const REAL8 f_min,
+                            // const REAL8 f_max,
+                            // const REAL8 f_ref
+){
+    XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
+    p->m1_SI = m1_SI; /* Inherits units from m1 in function arguments */
+    return XLAL_SUCCESS;
+}
+
+
+/**
+ * Driver routine to compute the precessing inspiral-merger-ringdown
+ * phenomenological waveform IMRPhenomPv3 in the frequency domain.
+ *
+ * Reference:
+ * - Hannam et al., arXiv:1308.3271 [gr-qc]
+ * - Bohe et al., PhenomPv2 technical document LIGO-T1500602
+ * - Chatziioannou et al., arXiv 1703.03967 [gr-qc]
+ *
+ * This function can be used for equally-spaced frequency series.
+ * For unequal spacing, use \ref XLALSimIMRPhenomPv3FrequencySequence instead.
+ * (NOT IMPLEMENTED YET, ON SEBASTIAN KHAN'S TODO LIST.)
+ */
+UNUSED int XLALSimIMRPhenomPv3(
+  COMPLEX16FrequencySeries UNUSED **hptilde,         /**< [out] Frequency-domain waveform h+ */
+  COMPLEX16FrequencySeries UNUSED **hctilde,         /**< [out] Frequency-domain waveform hx */
+  const REAL8 UNUSED m1_SI,                          /**< mass of companion 1 (kg) */
+  const REAL8 UNUSED m2_SI,                          /**< mass of companion 2 (kg) */
+  const REAL8 UNUSED S1x,                            /**< x-component of the dimensionless spin of object 1 */
+  const REAL8 UNUSED S1y,                            /**< y-component of the dimensionless spin of object 1 */
+  const REAL8 UNUSED S1z,                            /**< z-component of the dimensionless spin of object 1 */
+  const REAL8 UNUSED S2x,                            /**< x-component of the dimensionless spin of object 2 */
+  const REAL8 UNUSED S2y,                            /**< y-component of the dimensionless spin of object 2 */
+  const REAL8 UNUSED S2z,                            /**< z-component of the dimensionless spin of object 2 */
+  const REAL8 UNUSED distance,                       /**< distance of source (m) */
+  const REAL8 UNUSED inclination,                    /**< inclination of source (rad) */
+  const REAL8 UNUSED phiRef,                         /**< reference orbital phase (rad) */
+  const REAL8 UNUSED deltaF,                         /**< Sampling frequency (Hz) */
+  const REAL8 UNUSED f_min,                          /**< Starting GW frequency (Hz) */
+  const REAL8 UNUSED f_max,                          /**< End frequency; 0 defaults to ringdown cutoff freq */
+  const REAL8 UNUSED f_ref,                          /**< Reference frequency */
+  LALDict UNUSED *extraParams) /**<linked list containing the extra testing GR parameters */
+{
+
+    /*
+    * 1. perform checks on input parameters
+    * 2. populate interal phenompv3 parameters struct
+    *
+    *
+    */
+
+
+    // const REAL8 chi1_l,                         /**< Dimensionless aligned spin on companion 1 */
+    // const REAL8 chi2_l,                         /**< Dimensionless aligned spin on companion 2 */
+    // const REAL8 chip,                           /**< Effective spin in the orbital plane */
+    // const REAL8 thetaJ,                         /**< Angle between J0 and line of sight (z-direction) */
+    // const REAL8 alpha0,                         /**< Initial value of alpha angle (azimuthal precession angle) */
+    // const REAL8 phic,                           /**< Orbital phase at the peak of the underlying non precessing model (rad) */
+
+
+  // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
+  // Note that the angles phiJ which is calculated internally in XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame
+  // and alpha0 are degenerate. Therefore phiJ is not passed to this function.
+
+  // Use f_min, f_max, deltaF to compute freqs sequence
+  // Instead of building a full sequency we only transfer the boundaries and let
+  // the internal core function do the rest (and properly take care of corner cases).
+  // XLAL_CHECK (f_min > 0, XLAL_EDOM, "Minimum frequency must be positive.");
+  // XLAL_CHECK (f_max >= 0, XLAL_EDOM, "Maximum frequency must be non-negative.");
+  // XLAL_CHECK ( ( f_max == 0 ) || ( f_max > f_min ), XLAL_EDOM, "f_max <= f_min");
+  // REAL8Sequence *freqs = XLALCreateREAL8Sequence(2);
+  // XLAL_CHECK(freqs != NULL, XLAL_EFAULT);
+  // freqs->data[0] = f_min;
+  // freqs->data[1] = f_max;
+
+  /* Here masses are in Msun */
+  // errcode = EnforcePrimaryIsm1(&m1_Msun, &m2_Msun, &chi1x, &chi1y, &chi1z, &chi2x, &chi2y, &chi2z);
+  // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
+
+  PhenomPv3Storage PhenomPv3Variables;
+  // int errcode = init_PhenomPv3_Storage(&PhenomPv3Variables, m1_SI, m2_SI, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, deltaF, f_min, f_max, f_ref);
+  int errcode = init_PhenomPv3_Storage(&PhenomPv3Variables, m1_SI);
+  XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomPv3_Storage failed");
+
+  // int retcode = PhenomPv3Core(hptilde, hctilde, PhenomPv3Variables, freqs, deltaF, extraParams);
+  // XLAL_CHECK(retcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");
+  // XLALDestroyREAL8Sequence(freqs);
+  // return retcode;
+  return XLAL_SUCCESS;
+}
+
+// /**
+//  * Internal core function to calculate
+//  * plus and cross polarizations of the PhenomP version 3 model
+//  * for a set of frequencies.
+//  * This can handle either user-specified frequency points
+//  * or create an equally-spaced frequency series.
+//  * This function computes all quantities that are independent of frequency
+//  * to be passed into PhenomPv3CoreOneFrequency
+//  */
+// UNUSED static int PhenomPv3Core(
+//   COMPLEX16FrequencySeries UNUSED **hptilde,        /**< [out] Frequency-domain waveform h+ */
+//   COMPLEX16FrequencySeries UNUSED **hctilde,        /**< [out] Frequency-domain waveform hx */
+//   PhenomPv3Storage UNUSED PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+//   const REAL8Sequence UNUSED *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
+//   double UNUSED deltaF,                             /**< Sampling frequency (Hz).
+//    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
+//    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
+//    * Then we will use deltaF = 0 to create the frequency series we return. */
+//   LALDict UNUSED *extraParams /**<linked list containing the extra testing GR parameters */
+//   )
+// {
+//
+//     return 0;
+// }
+
+/* END IMRPhenomPv3 */

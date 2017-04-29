@@ -1408,22 +1408,23 @@ int XLALSimInspiralChooseFDWaveform(
             /* Tranform to model parameters */
             if(f_ref==0.0)
                 f_ref = f_min; /* Default reference frequency is minimum frequency */
-            XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
-                &chi1_l, &chi2_l, &chip, &thetaJN, &alpha0, &phi_aligned, &zeta_polariz,
-                m1, m2, f_ref, phiRef, inclination,
-                S1x, S1y, S1z,
-                S2x, S2y, S2z, IMRPhenomPv3_V);
-            /* Call the waveform driver routine */
-            ret = XLALSimIMRPhenomP(hptilde, hctilde,
-              chi1_l, chi2_l, chip, thetaJN,
-              m1, m2, distance, alpha0, phi_aligned, deltaF, f_min, f_max, f_ref, IMRPhenomPv3_V, LALparams);
-            if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
-            for (UINT4 idx=0;idx<(*hptilde)->data->length;idx++) {
-                PhPpolp=(*hptilde)->data->data[idx];
-                PhPpolc=(*hctilde)->data->data[idx];
-                (*hptilde)->data->data[idx] =cos(2.*zeta_polariz)*PhPpolp+sin(2.*zeta_polariz)*PhPpolc;
-                (*hctilde)->data->data[idx]=cos(2.*zeta_polariz)*PhPpolc-sin(2.*zeta_polariz)*PhPpolp;
-            }
+			ret = XLAL_SUCCESS;
+            // XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
+            //     &chi1_l, &chi2_l, &chip, &thetaJN, &alpha0, &phi_aligned, &zeta_polariz,
+            //     m1, m2, f_ref, phiRef, inclination,
+            //     S1x, S1y, S1z,
+            //     S2x, S2y, S2z, IMRPhenomPv3_V);
+            // /* Call the waveform driver routine */
+            // ret = XLALSimIMRPhenomP(hptilde, hctilde,
+            //   chi1_l, chi2_l, chip, thetaJN,
+            //   m1, m2, distance, alpha0, phi_aligned, deltaF, f_min, f_max, f_ref, IMRPhenomPv3_V, LALparams);
+            // if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
+            // for (UINT4 idx=0;idx<(*hptilde)->data->length;idx++) {
+            //     PhPpolp=(*hptilde)->data->data[idx];
+            //     PhPpolc=(*hctilde)->data->data[idx];
+            //     (*hptilde)->data->data[idx] =cos(2.*zeta_polariz)*PhPpolp+sin(2.*zeta_polariz)*PhPpolc;
+            //     (*hctilde)->data->data[idx]=cos(2.*zeta_polariz)*PhPpolc-sin(2.*zeta_polariz)*PhPpolp;
+            // }
             break;
 
 
