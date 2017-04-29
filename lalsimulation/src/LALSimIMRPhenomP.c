@@ -1666,27 +1666,89 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
 // }
 
 
-int init_PhenomPv3_Storage(PhenomPv3Storage *p,
-                            const REAL8 m1_SI/*,*/
-                            // const REAL8 m2_SI,
-                            // const REAL8 S1x,
-                            // const REAL8 S1y,
-                            // const REAL8 S1z,
-                            // const REAL8 S2x,
-                            // const REAL8 S2y,
-                            // const REAL8 S2z,
-                            // const REAL8 distance,
-                            // const REAL8 inclination,
-                            // const REAL8 phiRef,
-                            // const REAL8 deltaF,
-                            // const REAL8 f_min,
-                            // const REAL8 f_max,
-                            // const REAL8 f_ref
-){
+static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
+                            REAL8 m1_SI,
+                            REAL8 m2_SI,
+                            REAL8 S1x,
+                            REAL8 S1y,
+                            REAL8 S1z,
+                            REAL8 S2x,
+                            REAL8 S2y,
+                            REAL8 S2z,
+                            const REAL8 distance,
+                            const REAL8 inclination,
+                            const REAL8 phiRef,
+                            const REAL8 deltaF,
+                            const REAL8 f_min,
+                            const REAL8 f_max,
+                            const REAL8 f_ref)
+{
     XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
-    p->m1_SI = m1_SI; /* Inherits units from m1 in function arguments */
+    p->m1_SI = m1_SI;
+    p->m2_SI = m2_SI;
+    p->m1_Msun = m1_SI / LAL_MSUN_SI;
+    p->m2_Msun = m2_SI / LAL_MSUN_SI;
+    p->Mtot_SI = p->m1_SI + p->m2_SI;
+    p->Mtot_Msun = p->m1_Msun + p->m2_Msun;
+    p->eta = p->m1_Msun * p->m2_Msun / ( p->Mtot_Msun * p->Mtot_Msun );
+    p->chi1x = S1x;
+    p->chi1y = S1y;
+    p->chi1z = S1z;
+    p->chi2x = S2x;
+    p->chi2y = S2y;
+    p->chi2z = S2z;
+    p->distance_SI = distance;
+    p->inclination = inclination;
+    p->phiRef = phiRef;
+    p->deltaF = deltaF;
+    p->f_min = f_min;
+    p->f_max = f_max;
+    p->f_ref = f_ref;
     return XLAL_SUCCESS;
 }
+
+
+/**
+ * function to swap masses and spins to enforece m1 >= m2
+ */
+static int PhenomPv3EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1x, REAL8 *chi1y, REAL8 *chi1z, REAL8 *chi2x, REAL8 *chi2y, REAL8 *chi2z){
+    REAL8 chi1x_tmp, chi1y_tmp, chi1z_tmp, chi2x_tmp, chi2y_tmp, chi2z_tmp, m1_tmp, m2_tmp;
+    if (*m1>*m2) {
+       chi1x_tmp = *chi1x;
+       chi1y_tmp = *chi1y;
+       chi1z_tmp = *chi1z;
+       chi2x_tmp = *chi2x;
+       chi2y_tmp = *chi2y;
+       chi2z_tmp = *chi2z;
+       m1_tmp   = *m1;
+       m2_tmp   = *m2;
+   } else { /* swap spins and masses */
+       chi1x_tmp = *chi2x;
+       chi1y_tmp = *chi2y;
+       chi1z_tmp = *chi2z;
+       chi2x_tmp = *chi1x;
+       chi2y_tmp = *chi1y;
+       chi2z_tmp = *chi1z;
+       m1_tmp   = *m2;
+       m2_tmp   = *m1;
+    }
+    *m1 = m1_tmp;
+    *m2 = m2_tmp;
+    *chi1x = chi1x_tmp;
+    *chi1y = chi1y_tmp;
+    *chi1z = chi1z_tmp;
+    *chi2x = chi2x_tmp;
+    *chi2y = chi2y_tmp;
+    *chi2z = chi2z_tmp;
+
+    if (*m1 < *m2)
+        XLAL_ERROR(XLAL_EDOM, "XLAL_ERROR in PhenomPv3EnforcePrimaryIsm1. When trying\
+ to enfore that m1 should be the larger mass.\
+ After trying to enforce this m1 = %f and m2 = %f\n", *m1, *m2);
+
+    return XLAL_SUCCESS;
+}
+
 
 
 /**
@@ -1702,25 +1764,25 @@ int init_PhenomPv3_Storage(PhenomPv3Storage *p,
  * For unequal spacing, use \ref XLALSimIMRPhenomPv3FrequencySequence instead.
  * (NOT IMPLEMENTED YET, ON SEBASTIAN KHAN'S TODO LIST.)
  */
-UNUSED int XLALSimIMRPhenomPv3(
-  COMPLEX16FrequencySeries UNUSED **hptilde,         /**< [out] Frequency-domain waveform h+ */
-  COMPLEX16FrequencySeries UNUSED **hctilde,         /**< [out] Frequency-domain waveform hx */
-  const REAL8 UNUSED m1_SI,                          /**< mass of companion 1 (kg) */
-  const REAL8 UNUSED m2_SI,                          /**< mass of companion 2 (kg) */
-  const REAL8 UNUSED S1x,                            /**< x-component of the dimensionless spin of object 1 */
-  const REAL8 UNUSED S1y,                            /**< y-component of the dimensionless spin of object 1 */
-  const REAL8 UNUSED S1z,                            /**< z-component of the dimensionless spin of object 1 */
-  const REAL8 UNUSED S2x,                            /**< x-component of the dimensionless spin of object 2 */
-  const REAL8 UNUSED S2y,                            /**< y-component of the dimensionless spin of object 2 */
-  const REAL8 UNUSED S2z,                            /**< z-component of the dimensionless spin of object 2 */
-  const REAL8 UNUSED distance,                       /**< distance of source (m) */
-  const REAL8 UNUSED inclination,                    /**< inclination of source (rad) */
-  const REAL8 UNUSED phiRef,                         /**< reference orbital phase (rad) */
-  const REAL8 UNUSED deltaF,                         /**< Sampling frequency (Hz) */
-  const REAL8 UNUSED f_min,                          /**< Starting GW frequency (Hz) */
-  const REAL8 UNUSED f_max,                          /**< End frequency; 0 defaults to ringdown cutoff freq */
-  const REAL8 UNUSED f_ref,                          /**< Reference frequency */
-  LALDict UNUSED *extraParams) /**<linked list containing the extra testing GR parameters */
+int XLALSimIMRPhenomPv3(
+  COMPLEX16FrequencySeries **hptilde,         /**< [out] Frequency-domain waveform h+ */
+  COMPLEX16FrequencySeries **hctilde,         /**< [out] Frequency-domain waveform hx */
+  REAL8 m1_SI,                                /**< mass of companion 1 (kg) */
+  REAL8 m2_SI,                                /**< mass of companion 2 (kg) */
+  REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
+  REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 */
+  REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
+  REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
+  REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
+  REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+  const REAL8 distance,                       /**< distance of source (m) */
+  const REAL8 inclination,                    /**< inclination of source (rad) */
+  const REAL8 phiRef,                         /**< reference orbital phase (rad) */
+  const REAL8 deltaF,                         /**< Sampling frequency (Hz) */
+  const REAL8 f_min,                          /**< Starting GW frequency (Hz) */
+  const REAL8 f_max,                          /**< End frequency; 0 defaults to ringdown cutoff freq */
+  const REAL8 f_ref,                          /**< Reference frequency */
+  LALDict *extraParams) /**<linked list containing the extra testing GR parameters */
 {
 
     /*
@@ -1746,53 +1808,57 @@ UNUSED int XLALSimIMRPhenomPv3(
   // Use f_min, f_max, deltaF to compute freqs sequence
   // Instead of building a full sequency we only transfer the boundaries and let
   // the internal core function do the rest (and properly take care of corner cases).
-  // XLAL_CHECK (f_min > 0, XLAL_EDOM, "Minimum frequency must be positive.");
-  // XLAL_CHECK (f_max >= 0, XLAL_EDOM, "Maximum frequency must be non-negative.");
-  // XLAL_CHECK ( ( f_max == 0 ) || ( f_max > f_min ), XLAL_EDOM, "f_max <= f_min");
-  // REAL8Sequence *freqs = XLALCreateREAL8Sequence(2);
-  // XLAL_CHECK(freqs != NULL, XLAL_EFAULT);
-  // freqs->data[0] = f_min;
-  // freqs->data[1] = f_max;
+  XLAL_CHECK (f_min > 0, XLAL_EDOM, "Minimum frequency must be positive.");
+  XLAL_CHECK (f_max >= 0, XLAL_EDOM, "Maximum frequency must be non-negative.");
+  XLAL_CHECK ( ( f_max == 0 ) || ( f_max > f_min ), XLAL_EDOM, "f_max <= f_min");
+  REAL8Sequence *freqs = XLALCreateREAL8Sequence(2);
+  XLAL_CHECK(freqs != NULL, XLAL_EFAULT);
+  freqs->data[0] = f_min;
+  freqs->data[1] = f_max;
 
-  /* Here masses are in Msun */
-  // errcode = EnforcePrimaryIsm1(&m1_Msun, &m2_Msun, &chi1x, &chi1y, &chi1z, &chi2x, &chi2y, &chi2z);
-  // XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
+  /* Enforce that m1 >= m2 */
+  int errcode = PhenomPv3EnforcePrimaryIsm1(&m1_SI, &m2_SI, &S1x, &S1y, &S1z, &S2x, &S2y, &S2z);
+  XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
 
-  PhenomPv3Storage PhenomPv3Variables;
-  // int errcode = init_PhenomPv3_Storage(&PhenomPv3Variables, m1_SI, m2_SI, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, deltaF, f_min, f_max, f_ref);
-  int errcode = init_PhenomPv3_Storage(&PhenomPv3Variables, m1_SI);
+  /* Store useful variables and compute derived and frequency independent variables */
+  PhenomPv3Storage *PhenomPv3Variables;
+  PhenomPv3Variables = (PhenomPv3Storage *) XLALMalloc(sizeof(PhenomPv3Storage));
+  errcode = init_PhenomPv3_Storage(PhenomPv3Variables, m1_SI, m2_SI, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, deltaF, f_min, f_max, f_ref);
   XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomPv3_Storage failed");
 
-  // int retcode = PhenomPv3Core(hptilde, hctilde, PhenomPv3Variables, freqs, deltaF, extraParams);
-  // XLAL_CHECK(retcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");
-  // XLALDestroyREAL8Sequence(freqs);
-  // return retcode;
+  errcode = PhenomPv3Core(hptilde, hctilde, PhenomPv3Variables, freqs, deltaF, extraParams);
+  XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");
+  XLALDestroyREAL8Sequence(freqs);
+
+  /* free pointer */
+  LALFree(PhenomPv3Variables);
+
   return XLAL_SUCCESS;
 }
 
-// /**
-//  * Internal core function to calculate
-//  * plus and cross polarizations of the PhenomP version 3 model
-//  * for a set of frequencies.
-//  * This can handle either user-specified frequency points
-//  * or create an equally-spaced frequency series.
-//  * This function computes all quantities that are independent of frequency
-//  * to be passed into PhenomPv3CoreOneFrequency
-//  */
-// UNUSED static int PhenomPv3Core(
-//   COMPLEX16FrequencySeries UNUSED **hptilde,        /**< [out] Frequency-domain waveform h+ */
-//   COMPLEX16FrequencySeries UNUSED **hctilde,        /**< [out] Frequency-domain waveform hx */
-//   PhenomPv3Storage UNUSED PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
-//   const REAL8Sequence UNUSED *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
-//   double UNUSED deltaF,                             /**< Sampling frequency (Hz).
-//    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
-//    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
-//    * Then we will use deltaF = 0 to create the frequency series we return. */
-//   LALDict UNUSED *extraParams /**<linked list containing the extra testing GR parameters */
-//   )
-// {
-//
-//     return 0;
-// }
+/**
+ * Internal core function to calculate
+ * plus and cross polarizations of the PhenomP version 3 model
+ * for a set of frequencies.
+ * This can handle either user-specified frequency points
+ * or create an equally-spaced frequency series.
+ * This function computes all quantities that are independent of frequency
+ * to be passed into PhenomPv3CoreOneFrequency
+ */
+static int PhenomPv3Core(
+  COMPLEX16FrequencySeries UNUSED **hptilde,        /**< [out] Frequency-domain waveform h+ */
+  COMPLEX16FrequencySeries UNUSED **hctilde,        /**< [out] Frequency-domain waveform hx */
+  PhenomPv3Storage *PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+  const REAL8Sequence UNUSED *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
+  double UNUSED deltaF,                             /**< Sampling frequency (Hz).
+   * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
+   * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
+   * Then we will use deltaF = 0 to create the frequency series we return. */
+  LALDict UNUSED *extraParams /**<linked list containing the extra testing GR parameters */
+  )
+{
+    printf("%f\n", PhenomPv3Variables->eta);
+    return XLAL_SUCCESS;
+}
 
 /* END IMRPhenomPv3 */

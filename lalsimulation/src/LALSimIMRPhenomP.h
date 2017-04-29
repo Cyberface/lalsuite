@@ -193,40 +193,57 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
 /* BEGIN IMRPhenomPv3 */
 
 /**
- * Structure storing (2,2) mode quantities and other pre-determined,
- * fix parameters/properties that are needed to compute all other modes
+ * Structure storing initial and derived variables for IMRPhenomPv3
  */
 typedef struct tagPhenomPv3Storage
 {
     REAL8 m1_SI; /**< mass of primary in SI (kg) */
-    // REAL8 m2_SI; /**< mass of secondary in SI (kg) */
-    // REAL8 m1_Msun; /**< mass of primary in solar masses */
-    // REAL8 m2_Msun; /**< mass of secondary in solar masses */
-    // REAL8 Mtot;
-    // REAL8 eta;
+    REAL8 m2_SI; /**< mass of secondary in SI (kg) */
+    REAL8 m1_Msun; /**< mass of primary in solar masses */
+    REAL8 m2_Msun; /**< mass of secondary in solar masses */
+    REAL8 Mtot_SI; /**< total mass in SI (kg) */
+    REAL8 Mtot_Msun; /**< total mass in solar masses */
+    REAL8 eta; /**< Symmetric mass ratio*/
+    REAL8 chi1x; /**< x-component of dimensionless spin on primary */
+    REAL8 chi1y; /**< y-component of dimensionless spin on primary */
+    REAL8 chi1z; /**< z-component of dimensionless spin on primary */
+    REAL8 chi2x; /**< x-component of dimensionless spin on secondary */
+    REAL8 chi2y; /**< y-component of dimensionless spin on secondary */
+    REAL8 chi2z; /**< z-component of dimensionless spin on secondary */
+    REAL8 distance_SI; /**< distance to source in SI (m) */
+    REAL8 inclination; /**< inclination - used to compute the angle thetaJN (rad) */
+    REAL8 phiRef; /**< */
+    REAL8 deltaF; /**< frequency spacing (Hz) */
+    REAL8 f_min; /**< starting GW frequency (Hz) */
+    REAL8 f_max; /**< ending GW frequency (Hz) */
+    REAL8 f_ref; /**< reference GW frequency (Hz) */
 } PhenomPv3Storage;
 
-// /**
-//  * must be called before the first usage of *p
-//  */
-// int init_PhenomPv3_Storage(PhenomPv3Storage *p, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 S1x, const REAL8 S1y, const REAL8 S1z, const REAL8 S2x, const REAL8 S2y, const REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
-int init_PhenomPv3_Storage(PhenomPv3Storage *p, const REAL8 m1_SI);
-//
-// /* Internal core function to calculate PhenomP version 3 polarizations.
-//  * This function computes all quantities that are independent of frequency
-//  * to be passed into PhenomPv3CoreOneFrequency
-//  */
-// static int PhenomPv3Core(
-//   COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
-//   COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
-//   PhenomPv3Storage PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
-//   const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
-//   double deltaF,                             /**< Sampling frequency (Hz).
-//    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
-//    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
-//    * Then we will use deltaF = 0 to create the frequency series we return. */
-//   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
-//   );
+/**
+ * function to swap masses and spins to enforece m1 >= m2
+ */
+static int PhenomPv3EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1x, REAL8 *chi1y, REAL8 *chi1z, REAL8 *chi2x, REAL8 *chi2y, REAL8 *chi2z);
+
+/**
+ * must be called before the first usage of *p
+ */
+static int init_PhenomPv3_Storage(PhenomPv3Storage *p, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
+
+/* Internal core function to calculate PhenomP version 3 polarizations.
+ * This function computes all quantities that are independent of frequency
+ * to be passed into PhenomPv3CoreOneFrequency
+ */
+static int PhenomPv3Core(
+  COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
+  COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
+  PhenomPv3Storage *PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+  const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
+  double deltaF,                             /**< Sampling frequency (Hz).
+   * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
+   * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
+   * Then we will use deltaF = 0 to create the frequency series we return. */
+  LALDict *extraParams /**<linked list containing the extra testing GR parameters */
+  );
 
 
 /* END IMRPhenomPv3 */
