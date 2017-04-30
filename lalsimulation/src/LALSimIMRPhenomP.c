@@ -1636,20 +1636,7 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
 }
 
 /* BEGIN IMRPhenomPv3 */
-
-// static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z);
-/**
- * function to convert from 3d cartesian components to polar angles and vector magnitude.
- * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
- */
-// static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z){
-//     *magnitude = sqrt( x*x + y*y + z*z );
-//     *polar = acos( z / *magnitude );
-//     *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
-// }
-
-
-// IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967.
+/* IMRPhenomPv3 based on IMRPhenomD and precession angles from arXiv 1703.03967. */
 
 
 // } else if ( IMRPhenomP_version == IMRPhenomPv3_V ) {
@@ -1666,9 +1653,22 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
 // }
 
 
+/**
+ * function to convert from 3d cartesian components to polar angles and vector magnitude.
+ * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
+ */
+static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z){
+    *magnitude = sqrt( x*x + y*y + z*z );
+    *polar = acos( z / *magnitude );
+    *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
+}
+
+
+
+
 static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
-                            REAL8 m1_SI,
-                            REAL8 m2_SI,
+                            REAL8 m1_SI, /**< mass of primary in SI (kg) */
+                            REAL8 m2_SI, /**< mass of secondary in SI (kg) */
                             REAL8 S1x,
                             REAL8 S1y,
                             REAL8 S1z,
@@ -1684,13 +1684,10 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
                             const REAL8 f_ref)
 {
     XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
+
+    /* input parameters */
     p->m1_SI = m1_SI;
     p->m2_SI = m2_SI;
-    p->m1_Msun = m1_SI / LAL_MSUN_SI;
-    p->m2_Msun = m2_SI / LAL_MSUN_SI;
-    p->Mtot_SI = p->m1_SI + p->m2_SI;
-    p->Mtot_Msun = p->m1_Msun + p->m2_Msun;
-    p->eta = p->m1_Msun * p->m2_Msun / ( p->Mtot_Msun * p->Mtot_Msun );
     p->chi1x = S1x;
     p->chi1y = S1y;
     p->chi1z = S1z;
@@ -1704,6 +1701,44 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
     p->f_min = f_min;
     p->f_max = f_max;
     p->f_ref = f_ref;
+
+    /* derived parameters */
+    p->m1_Msun = m1_SI / LAL_MSUN_SI;
+    p->m2_Msun = m2_SI / LAL_MSUN_SI;
+    p->Mtot_SI = p->m1_SI + p->m2_SI;
+    p->Mtot_Msun = p->m1_Msun + p->m2_Msun;
+
+    p->eta = p->m1_Msun * p->m2_Msun / ( p->Mtot_Msun * p->Mtot_Msun );
+    p->q = p->m1_Msun / p->m2_Msun; /* with m1>=m2 so q>=1 */
+
+    /* check for rounding errors */
+    if (p->eta > 0.25 || p->q < 1.0) {
+        nudge(&(p->eta), 0.25, 1e-6);
+        nudge(&(p->q), 1.0, 1e-6);
+    }
+
+    p->Msec = p->Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
+    p->piM = p->Msec * LAL_PI;
+
+    /* compute spins in polar coordinates */
+    /* TODO: TEST THIS */
+    ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
+    ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
+
+    /* compute precession angles at reference frequency */
+    // REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *dummy = XLALCreateREAL8Sequence(1);
+    // REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
+    /* evaluating the angles at the reference frequency */
+    // f_ref_Orb_Hz_Seq.data[0] = 0.5 * f_ref / m_sec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
+
+    // XLALComputeAngles3PN(&alphaRefSeq, &epsilonRefSeq, &dummy, f_ref_Orb_Hz_Seq, m1_SI, m2_SI,  )
+    // const REAL8 alphaNNLOoffset = XLALphiz_of_xi(f_ref_Hz_Orb);
+    // const REAL8 epsilonNNLOoffset = XLALzeta_of_xi(f_ref_Hz_Orb);
+
+
+
     return XLAL_SUCCESS;
 }
 
@@ -1769,12 +1804,12 @@ int XLALSimIMRPhenomPv3(
   COMPLEX16FrequencySeries **hctilde,         /**< [out] Frequency-domain waveform hx */
   REAL8 m1_SI,                                /**< mass of companion 1 (kg) */
   REAL8 m2_SI,                                /**< mass of companion 2 (kg) */
-  REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
-  REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 */
-  REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
-  REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
-  REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
-  REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+  REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
+  REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
+  REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
+  REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
+  REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
+  REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
   const REAL8 distance,                       /**< distance of source (m) */
   const REAL8 inclination,                    /**< inclination of source (rad) */
   const REAL8 phiRef,                         /**< reference orbital phase (rad) */
@@ -1817,21 +1852,33 @@ int XLALSimIMRPhenomPv3(
   freqs->data[1] = f_max;
 
   /* Enforce that m1 >= m2 */
+  /* TESTING  */
+  // printf("before swap\n");
+  // printf("m1 = %f, S1x = %f, S1y = %f, S1z = %f\n", m1_SI / LAL_MSUN_SI, S1x, S1y, S1z);
+  // printf("m2 = %f, S2x = %f, S2y = %f, S2z = %f\n", m2_SI / LAL_MSUN_SI, S2x, S2y, S2z);
   int errcode = PhenomPv3EnforcePrimaryIsm1(&m1_SI, &m2_SI, &S1x, &S1y, &S1z, &S2x, &S2y, &S2z);
   XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "EnforcePrimaryIsm1 failed");
+  // printf("after swap\n");
+  // printf("m1 = %f, S1x = %f, S1y = %f, S1z = %f\n", m1_SI / LAL_MSUN_SI, S1x, S1y, S1z);
+  // printf("m2 = %f, S2x = %f, S2y = %f, S2z = %f\n", m2_SI / LAL_MSUN_SI, S2x, S2y, S2z);
 
   /* Store useful variables and compute derived and frequency independent variables */
-  PhenomPv3Storage *PhenomPv3Variables;
-  PhenomPv3Variables = (PhenomPv3Storage *) XLALMalloc(sizeof(PhenomPv3Storage));
-  errcode = init_PhenomPv3_Storage(PhenomPv3Variables, m1_SI, m2_SI, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, deltaF, f_min, f_max, f_ref);
+  PhenomPv3Storage *pv3;
+  pv3 = (PhenomPv3Storage *) XLALMalloc(sizeof(PhenomPv3Storage));
+  errcode = init_PhenomPv3_Storage(pv3,
+                                    m1_SI, m2_SI,
+                                    S1x, S1y, S1z,
+                                    S2x, S2y, S2z,
+                                    distance, inclination, phiRef,
+                                    deltaF, f_min, f_max, f_ref);
   XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomPv3_Storage failed");
 
-  errcode = PhenomPv3Core(hptilde, hctilde, PhenomPv3Variables, freqs, deltaF, extraParams);
+  errcode = PhenomPv3Core(hptilde, hctilde, pv3, freqs, deltaF, extraParams);
   XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");
   XLALDestroyREAL8Sequence(freqs);
 
   /* free pointer */
-  LALFree(PhenomPv3Variables);
+  LALFree(pv3);
 
   return XLAL_SUCCESS;
 }
@@ -1848,7 +1895,7 @@ int XLALSimIMRPhenomPv3(
 static int PhenomPv3Core(
   COMPLEX16FrequencySeries UNUSED **hptilde,        /**< [out] Frequency-domain waveform h+ */
   COMPLEX16FrequencySeries UNUSED **hctilde,        /**< [out] Frequency-domain waveform hx */
-  PhenomPv3Storage *PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+  PhenomPv3Storage *pv3,       /**< PhenomPv3Storage Struct for storing internal variables */
   const REAL8Sequence UNUSED *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
   double UNUSED deltaF,                             /**< Sampling frequency (Hz).
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
@@ -1857,7 +1904,42 @@ static int PhenomPv3Core(
   LALDict UNUSED *extraParams /**<linked list containing the extra testing GR parameters */
   )
 {
-    printf("%f\n", PhenomPv3Variables->eta);
+
+    // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
+    // Note that the angles phiJ which is calculated internally in XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame
+    // and alpha0 are degenerate. Therefore phiJ is not passed to this function.
+    /* Phenomenological parameters */
+    // IMRPhenomDAmplitudeCoefficients *pAmp = NULL;
+    // IMRPhenomDPhaseCoefficients *pPhi = NULL;
+    // PNPhasingSeries *pn = NULL;
+    // gsl_interp_accel *acc = NULL;
+    // gsl_spline *phiI = NULL;
+    // REAL8Sequence *freqs = NULL;
+    // REAL8 *phis=NULL;
+    // LALDict *extraParams_in=extraParams;
+
+
+    int errcode = init_useful_powers(&powers_of_pi, LAL_PI);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+
+    /* Find frequency bounds */
+    if (!freqs_in || !freqs_in->data) XLAL_ERROR(XLAL_EFAULT);
+    double f_min = freqs_in->data[0];
+    double f_max = freqs_in->data[freqs_in->length - 1];
+    XLAL_CHECK(f_min > 0, XLAL_EDOM, "Minimum frequency must be positive.\n");
+    XLAL_CHECK(f_max >= 0, XLAL_EDOM, "Maximum frequency must be non-negative.\n");
+
+    UNUSED LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* standard warning and error bounds on mass-ratio */
+    if (pv3->q > 18.0)
+      XLAL_PRINT_WARNING("IMRPhenomPv3: Warning: The underlying non-precessing model is calibrated up to m1/m2 <= 18.\n");
+    else if (pv3->q > 100.0)
+        XLAL_ERROR(XLAL_EDOM, "IMRPhenomPv3: Mass ratio q > 100 which is way outside the calibration range q <= 18.\n");
+    // CheckMaxOpeningAngle(pv3->m1_SI, pv3->m2_SI, pv3->chi1z, pv3->chi2z, pv3->chip);
+    /*TODO: write a function to compute chip and make it XLAL so it can be used in SWIG*/
+
+    // printf("%f\n", pv3->eta);
     return XLAL_SUCCESS;
 }
 
