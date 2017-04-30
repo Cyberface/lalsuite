@@ -51,8 +51,10 @@
 
 #include "LALSimIMRPhenomP.h"
 
-/* This is used for IMRPhenomPv3 - uses the angles from arXiv 1703.03967 */
-// #include "LALSimInspiralFDPrecAngles_internals.c"
+/* IMRPhenomPv3 - uses the angles from arXiv 1703.03967
+ * The function used to compute the angles is in LALSimIMR.h and is called
+ * XLALComputeAngles3PN
+ */
 
 #ifndef _OPENMP
 #define omp ignore
@@ -1720,24 +1722,73 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
     p->Msec = p->Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
     p->piM = p->Msec * LAL_PI;
 
+    /* chi1_l == chi1z, chi2_l == chi2z so we don't need to save them as they are duplicates */
+    REAL8 chi1_l, chi2_l;
+
+    /* rotate from LAL to PhenomP frame */
+    int errcode = XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
+        &chi1_l, &chi2_l, &(p->chip), &(p->thetaJN), &(p->alpha0), &(p->phi_aligned), &(p->zeta_polariz),
+        p->m1_SI, p->m2_SI, p->f_ref, p->phiRef, p->inclination,
+        p->chi1x, p->chi1y, p->chi1z,
+        p->chi2x, p->chi2y, p->chi2z, IMRPhenomPv2_V); /* hardcoded to PhenomPv2 because PhenomPv3 uses the same rotations */
+    XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame failed");
+
     /* compute spins in polar coordinates */
     /* TODO: TEST THIS */
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
 
     /* compute precession angles at reference frequency */
-    // REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
-    // REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
-    // REAL8Sequence *dummy = XLALCreateREAL8Sequence(1);
-    // REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
+    /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
+    /* NOTE: I don't think betaRefSeq is used but maybe can be used to check openning angle. */
+    REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
+    REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
+    REAL8Sequence *betaRefSeq = XLALCreateREAL8Sequence(1);
+    REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
     /* evaluating the angles at the reference frequency */
-    // f_ref_Orb_Hz_Seq.data[0] = 0.5 * f_ref / m_sec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
+    /* TODO: CHECK THIS */
+    p->f_ref_Orb_Hz = 0.5 * p->f_ref / p->Msec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
+    f_ref_Orb_Hz_Seq->data[0] = p->f_ref_Orb_Hz; /* need this value as a REAL8Sequence as that's how it's required by XLALComputeAngles3PN */
 
-    // XLALComputeAngles3PN(&alphaRefSeq, &epsilonRefSeq, &dummy, f_ref_Orb_Hz_Seq, m1_SI, m2_SI,  )
-    // const REAL8 alphaNNLOoffset = XLALphiz_of_xi(f_ref_Hz_Orb);
-    // const REAL8 epsilonNNLOoffset = XLALzeta_of_xi(f_ref_Hz_Orb);
+    /* default value places lhat = (0,0,1) */
+    REAL8 lhat_cos_theta = 1.; /* Cosine of Polar angle of orbital angular momentum */
+    REAL8 lhat_phi = 0.; /* Azimuthal angle of orbital angular momentum */
 
+    errcode = XLALComputeAngles3PN(alphaRefSeq, epsilonRefSeq, betaRefSeq,
+                        f_ref_Orb_Hz_Seq,
+                        p->m1_SI, p->m2_SI,
+                        lhat_cos_theta, lhat_phi,
+                        cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+                        cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+                        p->f_ref_Orb_Hz);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to compute precession angles at reference frequency.");
 
+    /* check output */
+    // printf("alphaRefSeq = %.8f\n", alphaRefSeq->data[0]);
+    // printf("epsilonRefSeq = %.8f\n", epsilonRefSeq->data[0]);
+    // printf("betaRefSeq = %.8f\n", betaRefSeq->data[0]);
+
+    /* store output and cleanup */
+    p->alphaRef = alphaRefSeq->data[0];
+    p->epsilonRef = epsilonRefSeq->data[0];
+    p->betaRef = betaRefSeq->data[0];
+    /* clean up */
+    XLALDestroyREAL8Sequence(alphaRefSeq);
+    XLALDestroyREAL8Sequence(epsilonRefSeq);
+    XLALDestroyREAL8Sequence(betaRefSeq);
+    XLALDestroyREAL8Sequence(f_ref_Orb_Hz_Seq);
+
+    /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
+    const REAL8 ytheta  = p->thetaJN;
+    const REAL8 yphi    = 0.;
+    p->Y2m.Y2m2 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -2);
+    p->Y2m.Y2m1 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -1);
+    p->Y2m.Y20  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  0);
+    p->Y2m.Y21  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  1);
+    p->Y2m.Y22  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  2);
+
+    /* Example how to use pv3 */
+    // printf("creal(p->Y2m.Y22) = %f, cimag(p->Y2m.Y22) = %f\n", creal(p->Y2m.Y22), cimag(p->Y2m.Y22));
 
     return XLAL_SUCCESS;
 }
@@ -1872,6 +1923,10 @@ int XLALSimIMRPhenomPv3(
                                     distance, inclination, phiRef,
                                     deltaF, f_min, f_max, f_ref);
   XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomPv3_Storage failed");
+
+  /* Example how to use pv3 */
+  // printf("creal(pv3->Y2m.Y22) = %f, cimag(pv3->Y2m.Y22) = %f\n", creal(pv3->Y2m.Y22), cimag(pv3->Y2m.Y22));
+
 
   errcode = PhenomPv3Core(hptilde, hctilde, pv3, freqs, deltaF, extraParams);
   XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");

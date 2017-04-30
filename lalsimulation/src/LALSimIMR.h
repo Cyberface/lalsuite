@@ -96,6 +96,10 @@ int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(REAL8 *chi1_l, REAL
 /* IMRPhenomPv3 XLAL functions */
 int XLALSimIMRPhenomPv3(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, LALDict *extraParams);
 
+/* LALSimInspiralFDPrecAngles functions */
+
+int XLALComputeAngles3PN(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
+int XLALComputeAngles(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
 
 /* in module LALSimIMREOBNRv2.c */
 

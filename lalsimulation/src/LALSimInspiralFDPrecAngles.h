@@ -44,8 +44,4 @@ typedef struct tagsystemquantites
     double deltam_over_M, nu, q;
 } sysq;
 
-void XLALComputeAngles(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
-
-void XLALComputeAngles3PN(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
-
 #endif /* _LALSIM_INS_FD_PREC_ANGLES */
