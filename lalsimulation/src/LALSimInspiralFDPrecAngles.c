@@ -24,12 +24,13 @@
 #endif
 
 #include "LALSimInspiralFDPrecAngles_internals.c"
+#include "LALSimIMR.h"
 
 /* *********************************************************************************/
 /* XLAL function that does everything.                                             */
 /* *********************************************************************************/
 
-void XLALComputeAngles(
+int XLALComputeAngles(
     REAL8Sequence *phiz_of_f, /**< [out] azimuthal angle of L around J */
     REAL8Sequence *zeta_of_f, /**< [out] Third euler angle to describe L w.r.t. J  */
     REAL8Sequence *costhetaL_of_f, /**< [out] Cosine of polar angle between L and J */
@@ -59,13 +60,14 @@ void XLALComputeAngles(
         (*zeta_of_f).data[i] = angles.y;
         (*costhetaL_of_f).data[i] = angles.z;
     }
+    return XLAL_SUCCESS;
 }
 
 /* *********************************************************************************/
 /* XLAL function that does everything at 3PN.                                             */
 /* *********************************************************************************/
 
-void XLALComputeAngles3PN(
+int XLALComputeAngles3PN(
     REAL8Sequence *phiz_of_f, /**< [out] azimuthal angle of L around J */
     REAL8Sequence *zeta_of_f, /**< [out] Third euler angle to describe L w.r.t. J  */
     REAL8Sequence *costhetaL_of_f, /**< [out] Cosine of polar angle between L and J */
@@ -95,4 +97,5 @@ void XLALComputeAngles3PN(
         (*zeta_of_f).data[i] = angles.y;
         (*costhetaL_of_f).data[i] = angles.z;
     }
+    return XLAL_SUCCESS;
 }

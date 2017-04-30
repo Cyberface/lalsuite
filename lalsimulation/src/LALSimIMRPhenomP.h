@@ -228,6 +228,13 @@ typedef struct tagPhenomPv3Storage
     REAL8 q; /* with m1>=m2 so q>=1 */
     REAL8 Msec; /**< Total mass in seconds */
     REAL8 piM; /**< LAL_PI * Msec */
+    REAL8 f_ref_Orb_Hz; /**< Reference orbital frequency (Hz) [It's the reference GW frequency converted to orbital frequency] */
+    /* variables used when rotating input parameters (LAL frame) into PhenomP intrinsic parameters  */
+    REAL8 chip; /**< effective precessing parameter */
+    REAL8 thetaJN; /**< Angle between J0 and line of sight (z-direction) */
+    REAL8 alpha0; /**< Initial value of alpha angle (azimuthal precession angle) */
+    REAL8 phi_aligned; /**< Initial phase to feed the underlying aligned-spin model */
+    REAL8 zeta_polariz; /**< Angle to rotate the polarizations */
     /* compute spins in polar coordinates */
     REAL8 chi1_mag; /**< dimensionless spin magnitude on primary */
     REAL8 chi1_theta; /**< polar angle w.r.t. Lhat = (0,0,1) on primary */
@@ -235,6 +242,13 @@ typedef struct tagPhenomPv3Storage
     REAL8 chi2_mag; /**< dimensionless spin magnitude on secondary */
     REAL8 chi2_theta; /**< polar angle w.r.t. Lhat = (0,0,1) on secondary */
     REAL8 chi2_phi; /**< azimuthal angle w.r.t. Lhat = (0,0,1) on secondary */
+    /* Precession angles at reference frequency */
+    REAL8 alphaRef; /**< azimuthal precession angle at f_ref */
+    REAL8 epsilonRef; /**< epsilon precession angle at f_ref */
+    REAL8 betaRef; /**< beta (opening angle) precession angle at f_ref */
+    SpinWeightedSphericalHarmonic_l2 Y2m;
+    /* PhenomD parameters */
+    REAL8 finspin; /**< dimensionless final spin */
 } PhenomPv3Storage;
 
 /**
