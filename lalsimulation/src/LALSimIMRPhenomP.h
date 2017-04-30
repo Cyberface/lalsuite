@@ -193,23 +193,25 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
 /* BEGIN IMRPhenomPv3 */
 
 /**
+ * function to convert from 3d cartesian components to polar angles and vector magnitude.
+ * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
+ */
+static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z);
+
+/**
  * Structure storing initial and derived variables for IMRPhenomPv3
  */
 typedef struct tagPhenomPv3Storage
 {
+    /* input parameters */
     REAL8 m1_SI; /**< mass of primary in SI (kg) */
     REAL8 m2_SI; /**< mass of secondary in SI (kg) */
-    REAL8 m1_Msun; /**< mass of primary in solar masses */
-    REAL8 m2_Msun; /**< mass of secondary in solar masses */
-    REAL8 Mtot_SI; /**< total mass in SI (kg) */
-    REAL8 Mtot_Msun; /**< total mass in solar masses */
-    REAL8 eta; /**< Symmetric mass ratio*/
-    REAL8 chi1x; /**< x-component of dimensionless spin on primary */
-    REAL8 chi1y; /**< y-component of dimensionless spin on primary */
-    REAL8 chi1z; /**< z-component of dimensionless spin on primary */
-    REAL8 chi2x; /**< x-component of dimensionless spin on secondary */
-    REAL8 chi2y; /**< y-component of dimensionless spin on secondary */
-    REAL8 chi2z; /**< z-component of dimensionless spin on secondary */
+    REAL8 chi1x; /**< x-component of dimensionless spin on primary w.r.t. Lhat = (0,0,1) */
+    REAL8 chi1y; /**< y-component of dimensionless spin on primary w.r.t. Lhat = (0,0,1) */
+    REAL8 chi1z; /**< z-component of dimensionless spin on primary w.r.t. Lhat = (0,0,1) */
+    REAL8 chi2x; /**< x-component of dimensionless spin on secondary w.r.t. Lhat = (0,0,1) */
+    REAL8 chi2y; /**< y-component of dimensionless spin on secondary w.r.t. Lhat = (0,0,1) */
+    REAL8 chi2z; /**< z-component of dimensionless spin on secondary w.r.t. Lhat = (0,0,1) */
     REAL8 distance_SI; /**< distance to source in SI (m) */
     REAL8 inclination; /**< inclination - used to compute the angle thetaJN (rad) */
     REAL8 phiRef; /**< */
@@ -217,6 +219,22 @@ typedef struct tagPhenomPv3Storage
     REAL8 f_min; /**< starting GW frequency (Hz) */
     REAL8 f_max; /**< ending GW frequency (Hz) */
     REAL8 f_ref; /**< reference GW frequency (Hz) */
+    /* derived parameters */
+    REAL8 m1_Msun; /**< mass of primary in solar masses */
+    REAL8 m2_Msun; /**< mass of secondary in solar masses */
+    REAL8 Mtot_SI; /**< total mass in SI (kg) */
+    REAL8 Mtot_Msun; /**< total mass in solar masses */
+    REAL8 eta; /**< Symmetric mass ratio*/
+    REAL8 q; /* with m1>=m2 so q>=1 */
+    REAL8 Msec; /**< Total mass in seconds */
+    REAL8 piM; /**< LAL_PI * Msec */
+    /* compute spins in polar coordinates */
+    REAL8 chi1_mag; /**< dimensionless spin magnitude on primary */
+    REAL8 chi1_theta; /**< polar angle w.r.t. Lhat = (0,0,1) on primary */
+    REAL8 chi1_phi; /**< azimuthal angle w.r.t. Lhat = (0,0,1) on primary */
+    REAL8 chi2_mag; /**< dimensionless spin magnitude on secondary */
+    REAL8 chi2_theta; /**< polar angle w.r.t. Lhat = (0,0,1) on secondary */
+    REAL8 chi2_phi; /**< azimuthal angle w.r.t. Lhat = (0,0,1) on secondary */
 } PhenomPv3Storage;
 
 /**
