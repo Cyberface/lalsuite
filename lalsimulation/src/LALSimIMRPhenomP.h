@@ -30,6 +30,8 @@
 #include <lal/FrequencySeries.h>
 #include <lal/LALSimInspiral.h>
 
+/* IMRPhenomPv3 - uses the angles from arXiv 1703.03967*/
+#include "LALSimInspiralFDPrecAngles_internals.c"
 
 /* CONSTANTS */
 
@@ -233,8 +235,9 @@ typedef struct tagPhenomPv3Storage
     REAL8 eta; /**< Symmetric mass ratio*/
     REAL8 q; /* with m1>=m2 so q>=1 */
     REAL8 Msec; /**< Total mass in seconds */
-    REAL8 piM; /**< LAL_PI * Msec */
     REAL8 f_ref_Orb_Hz; /**< Reference orbital frequency (Hz) [It's the reference GW frequency converted to orbital frequency] */
+    REAL8 twopi_Msec; /**< LAL_TWOPI * Msec */
+    REAL8 amp0; /**< frequency domain physical scaling */
     /* variables used when rotating input parameters (LAL frame) into PhenomP intrinsic parameters  */
     REAL8 chip; /**< effective precessing parameter */
     REAL8 thetaJN; /**< Angle between J0 and line of sight (z-direction) */
@@ -266,7 +269,7 @@ static int PhenomPv3EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1x, REAL8
 /**
  * must be called before the first usage of *p
  */
-static int init_PhenomPv3_Storage(PhenomPv3Storage *p, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
+static int init_PhenomPv3_Storage(PhenomPv3Storage *p, sysq *q, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
 
 /* Internal core function to calculate PhenomP version 3 polarizations.
  * This function computes all quantities that are independent of frequency
@@ -276,6 +279,7 @@ static int PhenomPv3Core(
   COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
   COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
   PhenomPv3Storage *pv3,       /**< PhenomPv3Storage Struct for storing internal variables */
+  sysq *pAngles, /**< precession angle pre-computations struct */
   const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
   double deltaF,                             /**< Sampling frequency (Hz).
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
@@ -284,18 +288,19 @@ static int PhenomPv3Core(
   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
   );
 
-//   static int PhenomPv3CoreOneFrequency(
-//     COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
-//     COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
-//     REAL8 *phasing,                             /**< [out] overall phasing */
-//     const REAL8 fHz,                            /**< Frequency (Hz) */
-//     PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
-//     IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
-//     IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
-//     PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
-//     AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-//     PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
-// );
+static int PhenomPv3CoreOneFrequency(
+    COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
+    COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
+    REAL8 *phasing,                             /**< [out] overall phasing */
+    const REAL8 fHz,                            /**< Gravitational wave Frequency (Hz) */
+    PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
+    sysq *pAngles,                              /**< precession angle pre-computations struct */
+    IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
+    IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
+    PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
+    AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
+    PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+);
 
 /* END IMRPhenomPv3 */
 
