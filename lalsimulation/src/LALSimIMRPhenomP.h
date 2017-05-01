@@ -192,6 +192,12 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
 
 /* BEGIN IMRPhenomPv3 */
 
+/* CONSTANTS */
+
+/* default and constant value places lhat = (0,0,1) */
+#define LHAT_COS_THETA 1.0 /* Cosine of Polar angle of orbital angular momentum */
+#define LHAT_PHI 0.0 /* Azimuthal angle of orbital angular momentum */
+
 /**
  * function to convert from 3d cartesian components to polar angles and vector magnitude.
  * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
@@ -246,6 +252,7 @@ typedef struct tagPhenomPv3Storage
     REAL8 alphaRef; /**< azimuthal precession angle at f_ref */
     REAL8 epsilonRef; /**< epsilon precession angle at f_ref */
     REAL8 betaRef; /**< beta (opening angle) precession angle at f_ref */
+    /* spherical harmonics */
     SpinWeightedSphericalHarmonic_l2 Y2m;
     /* PhenomD parameters */
     REAL8 finspin; /**< dimensionless final spin */
@@ -268,7 +275,7 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, REAL8 m1_SI, REAL8 m2_SI,
 static int PhenomPv3Core(
   COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
   COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
-  PhenomPv3Storage *PhenomPv3Variables,       /**< PhenomPv3Storage Struct for storing internal variables */
+  PhenomPv3Storage *pv3,       /**< PhenomPv3Storage Struct for storing internal variables */
   const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
   double deltaF,                             /**< Sampling frequency (Hz).
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
@@ -277,6 +284,18 @@ static int PhenomPv3Core(
   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
   );
 
+//   static int PhenomPv3CoreOneFrequency(
+//     COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
+//     COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
+//     REAL8 *phasing,                             /**< [out] overall phasing */
+//     const REAL8 fHz,                            /**< Frequency (Hz) */
+//     PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
+//     IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
+//     IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
+//     PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
+//     AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
+//     PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+// );
 
 /* END IMRPhenomPv3 */
 
