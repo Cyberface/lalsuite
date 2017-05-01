@@ -36,7 +36,18 @@
 
 #include "LALSimInspiralFDPrecAngles.h"
 
-static sysq InitializeSystem(const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, const double ch2, const double f_0);
+static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
+                             const double m2,  /**< Secondary mass in SI (kg) */
+                             const double mul, /**< Cosine of Polar angle of orbital angular momentum */
+                             const double phl, /**< Azimuthal angle of orbital angular momentum  */
+                             const double mu1, /**< Cosine of Polar angle of primary spin w.r.t. orbital angular momentum */
+                             const double ph1, /**< Azimuthal angle of primary spin  */
+                             const double ch1, /**< Dimensionless spin magnitude of primary spin */
+                             const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
+                             const double ph2, /**< Azimuthal angle of secondary spin  */
+                             const double ch2, /**< Dimensionless spin magnitude of secondary spin */
+                             const double f_0  /**< Reference orbital frequency (Hz) */
+                         );
 
 static double DotProd(const vector vec1, const vector vec2);
 static double Norm(const vector vec1);
