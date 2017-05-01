@@ -35,7 +35,7 @@ int XLALComputeAngles(
     REAL8Sequence *zeta_of_f, /**< [out] Third euler angle to describe L w.r.t. J  */
     REAL8Sequence *costhetaL_of_f, /**< [out] Cosine of polar angle between L and J */
     const REAL8Sequence *f, /**< list of input Orbtial frequencies (Hz) */
-    const double m1, /**< Primary mass in SI (gg) */
+    const double m1, /**< Primary mass in SI (kg) */
     const double m2, /**< Secondary mass in SI (kg) */
     const double mul, /**< Cosine of Polar angle of orbital angular momentum */
     const double phl, /**< Azimuthal angle of orbital angular momentum  */
@@ -72,7 +72,7 @@ int XLALComputeAngles3PN(
     REAL8Sequence *zeta_of_f, /**< [out] Third euler angle to describe L w.r.t. J  */
     REAL8Sequence *costhetaL_of_f, /**< [out] Cosine of polar angle between L and J */
     const REAL8Sequence *f, /**< list of input Orbtial frequencies (Hz) */
-    const double m1, /**< Primary mass in SI (gg) */
+    const double m1, /**< Primary mass in SI (kg) */
     const double m2, /**< Secondary mass in SI (kg) */
     const double mul, /**< Cosine of Polar angle of orbital angular momentum */
     const double phl, /**< Azimuthal angle of orbital angular momentum  */
