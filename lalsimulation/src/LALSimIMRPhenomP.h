@@ -271,7 +271,7 @@ static int PhenomPv3EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1x, REAL8
  */
 static int init_PhenomPv3_Storage(PhenomPv3Storage *p, sysq *q, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
 
-/* Internal core function to calculate PhenomP version 3 polarizations.
+/** Internal core function to calculate PhenomP version 3 polarizations.
  * This function computes all quantities that are independent of frequency
  * to be passed into PhenomPv3CoreOneFrequency
  */
@@ -288,6 +288,9 @@ static int PhenomPv3Core(
   LALDict *extraParams /**<linked list containing the extra testing GR parameters */
   );
 
+/**
+* Internal function that returns hp, hc and phasing for IMRPhenomPv3
+*/
 static int PhenomPv3CoreOneFrequency(
     COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
     COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
