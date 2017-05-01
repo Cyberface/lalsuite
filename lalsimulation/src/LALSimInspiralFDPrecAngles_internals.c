@@ -363,7 +363,7 @@ static double S_norm_of_xi(const double xi, const double xi_2, const vector root
     
     gsl_sf_elljac_e(u, m, &sn, &cn, &dn);
     
-    if((*system).S1_norm_2 == 0. || (*system).S2_norm_2 == 0.) sn = 0.;
+    if((*system).S1_norm_2 == 0. || (*system).S2_norm_2 == 0. || ((*system).dot1 == sqrt((*system).S1_norm_2)  && (*system).dot2 == sqrt((*system).S2_norm_2))) sn = 0.;
     
     const double S_norm_square_bar = roots.z + (roots.y - roots.z)*sn*sn;
     return sqrt(S_norm_square_bar);
