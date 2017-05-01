@@ -1757,9 +1757,9 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     p->betaRef = acos(angles.z);
 
     /* check output */
-    printf("p->alphaRef = %.8f\n", p->alphaRef);
-    printf("p->epsilonRef = %.8f\n",p->epsilonRef);
-    printf("p->betaRef = %.8f\n", p->betaRef);
+    // printf("p->alphaRef = %.8f\n", p->alphaRef);
+    // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
+    // printf("p->betaRef = %.8f\n", p->betaRef);
 
     /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
     const REAL8 ytheta  = p->thetaJN;
@@ -1952,7 +1952,7 @@ static int PhenomPv3Core(
   COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
   COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
   PhenomPv3Storage *pv3,       /**< PhenomPv3Storage Struct for storing internal variables */
-  UNUSED sysq *pAngles, /**< precession angle pre-computations struct */
+  sysq *pAngles, /**< precession angle pre-computations struct */
   const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
   double deltaF,                             /**< Sampling frequency (Hz).
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
@@ -1965,20 +1965,11 @@ static int PhenomPv3Core(
     // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
     // Note that the angles phiJ which is calculated internally in XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame
     // and alpha0 are degenerate. Therefore phiJ is not passed to this function.
-    /* Phenomenological parameters */
-    // IMRPhenomDAmplitudeCoefficients *pAmp = NULL;
-    // IMRPhenomDPhaseCoefficients *pPhi = NULL;
-    // PNPhasingSeries *pn = NULL;
-    // gsl_interp_accel *acc = NULL;
-    // gsl_spline *phiI = NULL;
-    // REAL8Sequence *freqs = NULL;
-    // REAL8 *phis=NULL;
-    // LALDict *extraParams_in=extraParams;
 
     REAL8 *phis=NULL;
     REAL8Sequence *freqs = NULL;
-    UNUSED gsl_interp_accel *acc = NULL;
-    UNUSED gsl_spline *phiI = NULL;
+    gsl_interp_accel *acc = NULL;
+    gsl_spline *phiI = NULL;
     LALDict *extraParams_in=extraParams;
 
     int errcode = init_useful_powers(&powers_of_pi, LAL_PI);
@@ -2043,7 +2034,7 @@ static int PhenomPv3Core(
     ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
     // This should be the same as the ending frequency in PhenomD
     REAL8 fCut = f_CUT / pv3->Msec;
-    UNUSED REAL8 f_final = pAmp->fRD / pv3->Msec;
+    REAL8 f_final = pAmp->fRD / pv3->Msec;
 
     XLAL_CHECK ( fCut > f_min, XLAL_EDOM, "fCut = %.2g/M <= f_min", fCut );
 
@@ -2060,7 +2051,7 @@ static int PhenomPv3Core(
 
      UINT4 L_fCut = 0; // number of frequency points before we hit fCut
      size_t n = 0;
-     UNUSED UINT4 offset = 0; // Index shift between freqs and the frequency series
+     UINT4 offset = 0; // Index shift between freqs and the frequency series
      if (deltaF > 0)  { // freqs contains uniform frequency grid with spacing deltaF; we start at frequency 0
        /* Set up output array with size closest power of 2 */
        if (f_max_prime < f_max)  /* Resize waveform if user wants f_max larger than cutoff frequency */
@@ -2175,12 +2166,6 @@ static int PhenomPv3Core(
                                     f, pv3, pAngles,
                                     pAmp, pPhi, pn,
                                     &amp_prefactors, &phi_prefactors);
-    //    per_thread_errcode = PhenomPCoreOneFrequency(f, eta, chi1_l, chi2_l, chip, distance, M, phic,
-    //                              pAmp, pPhi, PCparams, pn, &angcoeffs, &Y2m,
-    //                              alphaNNLOoffset - alpha0, epsilonNNLOoffset,
-    //                              &hp_val, &hc_val, &phasing, IMRPhenomP_version, &amp_prefactors, &phi_prefactors);
-
-    //    per_thread_errcode = XLAL_SUCCESS;
 
        if (per_thread_errcode != XLAL_SUCCESS) {
          errcode = per_thread_errcode;
@@ -2194,42 +2179,42 @@ static int PhenomPv3Core(
 
        skip: /* this statement intentionally left blank */;
      }
-     //
-    //  /* Correct phasing so we coalesce at t=0 (with the definition of the epoch=-1/deltaF above) */
-    //  /* We apply the same time shift to hptilde and hctilde based on the overall phasing returned by PhenomPCoreOneFrequency */
-    //  /* Set up spline for phase */
-    //  acc = gsl_interp_accel_alloc();
-    //  phiI = gsl_spline_alloc(gsl_interp_cspline, L_fCut);
-    //  XLAL_CHECK(phiI, XLAL_ENOMEM, "Failed to allocate GSL spline with %d points for phase.", L_fCut);
-     //
-    //  gsl_spline_init(phiI, freqs->data, phis, L_fCut);
-     //
-    //  // Prevent gsl interpolation errors
-    //  if (f_final > freqs->data[L_fCut-1])
-    //    f_final = freqs->data[L_fCut-1];
-    //  if (f_final < freqs->data[0])
-    //  {
-    //    XLALPrintError("XLAL Error - %s: f_ringdown = %f < f_min\n", __func__, f_final);
-    //    errcode = XLAL_EDOM;
-    //    goto cleanup;
-    //  }
-     //
-    //  if (L_fCut<=5){ // prevent spline interpolation failing in phase correction below
-    //    XLALPrintError("XLAL Error - %s: PhenomP waveform is too short: L_fcut is too small.", __func__);
-    //    errcode = XLAL_EDOM;
-    //    goto cleanup;
-    //   }
-     //
-    //  /* Time correction is t(f_final) = 1/(2pi) dphi/df (f_final) */
-    //  REAL8 t_corr = gsl_spline_eval_deriv(phiI, f_final, acc) / (2*LAL_PI);
-    //  /* Now correct phase */
-    //  for (UINT4 i=0; i<L_fCut; i++) { // loop over frequency points in sequence
-    //    double f = freqs->data[i];
-    //    COMPLEX16 phase_corr = (cos(2*LAL_PI * f * t_corr) - I*sin(2*LAL_PI * f * t_corr));//cexp(-2*LAL_PI * I * f * t_corr);
-    //    int j = i + offset; // shift index for frequency series if needed
-    //    ((*hptilde)->data->data)[j] *= phase_corr;
-    //    ((*hctilde)->data->data)[j] *= phase_corr;
-    //  }
+
+     /* Correct phasing so we coalesce at t=0 (with the definition of the epoch=-1/deltaF above) */
+     /* We apply the same time shift to hptilde and hctilde based on the overall phasing returned by PhenomPCoreOneFrequency */
+     /* Set up spline for phase */
+     acc = gsl_interp_accel_alloc();
+     phiI = gsl_spline_alloc(gsl_interp_cspline, L_fCut);
+     XLAL_CHECK(phiI, XLAL_ENOMEM, "Failed to allocate GSL spline with %d points for phase.", L_fCut);
+
+     gsl_spline_init(phiI, freqs->data, phis, L_fCut);
+
+     // Prevent gsl interpolation errors
+     if (f_final > freqs->data[L_fCut-1])
+       f_final = freqs->data[L_fCut-1];
+     if (f_final < freqs->data[0])
+     {
+       XLALPrintError("XLAL Error - %s: f_ringdown = %f < f_min\n", __func__, f_final);
+       errcode = XLAL_EDOM;
+       goto cleanup;
+     }
+
+     if (L_fCut<=5){ // prevent spline interpolation failing in phase correction below
+       XLALPrintError("XLAL Error - %s: PhenomP waveform is too short: L_fcut is too small.", __func__);
+       errcode = XLAL_EDOM;
+       goto cleanup;
+      }
+
+     /* Time correction is t(f_final) = 1/(2pi) dphi/df (f_final) */
+     REAL8 t_corr = gsl_spline_eval_deriv(phiI, f_final, acc) / (LAL_TWOPI);
+     /* Now correct phase */
+     for (UINT4 i=0; i<L_fCut; i++) { // loop over frequency points in sequence
+       double f = freqs->data[i];
+       COMPLEX16 phase_corr = (cos(LAL_TWOPI * f * t_corr) - I*sin(LAL_TWOPI * f * t_corr));//cexp(-2*LAL_PI * I * f * t_corr);
+       int j = i + offset; // shift index for frequency series if needed
+       ((*hptilde)->data->data)[j] *= phase_corr;
+       ((*hctilde)->data->data)[j] *= phase_corr;
+     }
 
      cleanup:
      if(phis) XLALFree(phis);
@@ -2261,20 +2246,9 @@ static int PhenomPv3Core(
      }
 }
 
-
-
-// Start writing new PhenomPv3CoreOneFrequency function
-    // /* convert from orbital frequency to PN parameter */
-    // const REAL8 twopiGM_over_cthree = LAL_TWOPI * LAL_MTSUN_SI * (pv3->Mtot_Msun);
-    // vector angles;
-    // /*TODO TODO: This frequency needs to be in orbital units*/
-    // // REAL8 xi = pow(f_Orb_Hz*twopiGM_over_cthree, system.onethird);
-    // REAL8 xi = pow((pv3->f_ref_Orb_Hz)*twopiGM_over_cthree, pAngles->onethird);
-    // angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
-    // printf("angles.x = %.8f\n",angles.x);
-    // printf("angles.y = %.8f\n",angles.y);
-    // printf("acos(angles.z) = %.8f\n",acos(angles.z));
-
+/**
+ * Internal function that returns hp, hc and phasing for IMRPhenomPv3
+ */
 static int PhenomPv3CoreOneFrequency(
     COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
     COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
@@ -2314,180 +2288,65 @@ static int PhenomPv3CoreOneFrequency(
     phPhenom -= 2.*(pv3->phi_aligned); /* Note: phi_aligned is orbital phase */
     UNUSED COMPLEX16 hP = (pv3->amp0) * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
 
+
+    /* compute precession angles at given frequency  */
+    vector angles;
+    /* convert gravitational wave frequency to orbital frequency */
+    REAL8 f_Orb_Hz = fHz / 2.0;
+    REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
+    angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+    /* save angles and shift according to reference angles */
+    REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
+    REAL8 epsilon = angles.y - pv3->epsilonRef;
+    REAL8 beta = acos(angles.z);
+    // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
+
+    /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+    REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
+    cBetah = cos(beta/2.0);
+    sBetah = sin(beta/2.0);
+
+    const REAL8 cBetah2 = cBetah*cBetah;
+    const REAL8 cBetah3 = cBetah2*cBetah;
+    const REAL8 cBetah4 = cBetah3*cBetah;
+    const REAL8 sBetah2 = sBetah*sBetah;
+    const REAL8 sBetah3 = sBetah2*sBetah;
+    const REAL8 sBetah4 = sBetah3*sBetah;
+
+    /* Compute Wigner d coefficients
+      The expressions below agree with refX [Goldstein?] and Mathematica
+      d2  = Table[WignerD[{2, mp, 2}, 0, -\[Beta], 0], {mp, -2, 2}]
+      dm2 = Table[WignerD[{2, mp, -2}, 0, -\[Beta], 0], {mp, -2, 2}]
+    */
+    COMPLEX16 d2[5]   = {sBetah4, 2*cBetah*sBetah3, sqrt_6*sBetah2*cBetah2, 2*cBetah3*sBetah, cBetah4};
+    COMPLEX16 dm2[5]  = {d2[4], -d2[3], d2[2], -d2[1], d2[0]}; /* Exploit symmetry d^2_{-2,-m} = (-1)^m d^2_{2,m} */
+
+    COMPLEX16 Y2mA[5] = {pv3->Y2m.Y2m2, pv3->Y2m.Y2m1, pv3->Y2m.Y20, pv3->Y2m.Y21, pv3->Y2m.Y22};
+    COMPLEX16 hp_sum = 0;
+    COMPLEX16 hc_sum = 0;
+
+    /* Sum up contributions to \tilde h+ and \tilde hx */
+    /* Precompute powers of e^{i m alpha} */
+    COMPLEX16 cexp_i_alpha = cos(alpha) + I*sin(alpha);//cexp(+I*alpha);
+    COMPLEX16 cexp_2i_alpha = cexp_i_alpha*cexp_i_alpha;
+    COMPLEX16 cexp_mi_alpha = 1.0/cexp_i_alpha;
+    COMPLEX16 cexp_m2i_alpha = cexp_mi_alpha*cexp_mi_alpha;
+    COMPLEX16 cexp_im_alpha[5] = {cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha};
+    for(int m=-2; m<=2; m++) {
+      COMPLEX16 T2m   = cexp_im_alpha[-m+2] * dm2[m+2] *      Y2mA[m+2];  /*  = cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
+      COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
+      hp_sum +=     T2m + Tm2m;
+      hc_sum += +I*(T2m - Tm2m);
+    }
+
+    COMPLEX16 eps_phase_hP = (cos(2*epsilon) - I*sin(2*epsilon)) *hP /2.0;//cexp(-2*I*epsilon) * hP / 2.0;
+    *hp = eps_phase_hP * hp_sum;
+    *hc = eps_phase_hP * hc_sum;
+
+    // Return phasing for time-shift correction
+    *phasing = -phPhenom; // ignore alpha and epsilon contributions
+
     return XLAL_SUCCESS;
 }
-
-
-
-
-
-
-// static int PhenomPv3CoreOneFrequency(
-//   COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
-//   COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
-//   REAL8 *phasing,                             /**< [out] overall phasing */
-//   const REAL8 fHz,                            /**< Frequency (Hz) */
-//   PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
-//   IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
-//   IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
-//   PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
-//   AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-//   PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
-//     )
-// {
-//   XLAL_CHECK(hp != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(hc != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(phasing != NULL, XLAL_EFAULT);
-//
-//   REAL8 f = fHz*LAL_MTSUN_SI*M; /* Frequency in geometric units */
-//
-//   REAL8 aPhenom = 0.0;
-//   REAL8 phPhenom = 0.0;
-//   int errcode = XLAL_SUCCESS;
-//   UsefulPowers powers_of_f;
-//
-//   /* Calculate Phenom amplitude and phase for a given frequency. */
-//   XLAL_CHECK(pAmp != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(pPhi != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(PNparams != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(amp_prefactors != NULL, XLAL_EFAULT);
-//   XLAL_CHECK(phi_prefactors != NULL, XLAL_EFAULT);
-//   errcode = init_useful_powers(&powers_of_f, f);
-//   XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for f");
-//   aPhenom = IMRPhenDAmplitude(f, pAmp, &powers_of_f, amp_prefactors);
-//   phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
-//
-//   phPhenom -= 2.*phic; /* Note: phic is orbital phase */
-//   REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
-//   COMPLEX16 hP = amp0 * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
-//
-//
-//
-//
-//
-// ///// WORKING ON THIS BLOCK: START
-// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
-// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
-// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
-// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
-// // Need to think about how I compute the precession angles in the loop efficiently.
-// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
-//   /* compute precession angles at reference frequency */
-//   /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
-//   /* NOTE: I don't think betaRefSeq is used but maybe can be used to check openning angle. */
-//   REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
-//   REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
-//   REAL8Sequence *betaRefSeq = XLALCreateREAL8Sequence(1);
-//   REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
-//   /* evaluating the angles at the reference frequency */
-//   /* TODO: CHECK THIS */
-//   p->f_ref_Orb_Hz = 0.5 * p->f_ref / p->Msec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
-//   f_ref_Orb_Hz_Seq->data[0] = p->f_ref_Orb_Hz; /* need this value as a REAL8Sequence as that's how it's required by XLALComputeAngles3PN */
-//
-//   /* default value places lhat = (0,0,1) */
-//   REAL8 lhat_cos_theta = 1.; /* Cosine of Polar angle of orbital angular momentum */
-//   REAL8 lhat_phi = 0.; /* Azimuthal angle of orbital angular momentum */
-//
-//   errcode = XLALComputeAngles3PN(alphaRefSeq, epsilonRefSeq, betaRefSeq,
-//                       f_ref_Orb_Hz_Seq,
-//                       p->m1_SI, p->m2_SI,
-//                       lhat_cos_theta, lhat_phi,
-//                       cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
-//                       cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
-//                       p->f_ref_Orb_Hz);
-//   XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to compute precession angles at reference frequency.");
-//
-//   /* check output */
-//   // printf("alphaRefSeq = %.8f\n", alphaRefSeq->data[0]);
-//   // printf("epsilonRefSeq = %.8f\n", epsilonRefSeq->data[0]);
-//   // printf("betaRefSeq = %.8f\n", betaRefSeq->data[0]);
-//
-//   /* store output and cleanup */
-//   p->alphaRef = alphaRefSeq->data[0];
-//   p->epsilonRef = epsilonRefSeq->data[0];
-//   p->betaRef = betaRefSeq->data[0];
-//   /* clean up */
-//   XLALDestroyREAL8Sequence(alphaRefSeq);
-//   XLALDestroyREAL8Sequence(epsilonRefSeq);
-//   XLALDestroyREAL8Sequence(betaRefSeq);
-//   XLALDestroyREAL8Sequence(f_ref_Orb_Hz_Seq);
-//
-// ///// WORKING ON THIS BLOCK: END
-//
-//   /* Compute PN NNLO angles */
-//   const REAL8 omega = LAL_PI * f;
-//   const REAL8 logomega = log(omega);
-//   const REAL8 omega_cbrt = cbrt(omega);
-//   const REAL8 omega_cbrt2 = omega_cbrt*omega_cbrt;
-//
-//   REAL8 alpha = (angcoeffs->alphacoeff1/omega
-//               + angcoeffs->alphacoeff2/omega_cbrt2
-//               + angcoeffs->alphacoeff3/omega_cbrt
-//               + angcoeffs->alphacoeff4*logomega
-//               + angcoeffs->alphacoeff5*omega_cbrt) - alphaoffset;
-//
-//   REAL8 epsilon = (angcoeffs->epsiloncoeff1/omega
-//                 + angcoeffs->epsiloncoeff2/omega_cbrt2
-//                 + angcoeffs->epsiloncoeff3/omega_cbrt
-//                 + angcoeffs->epsiloncoeff4*logomega
-//                 + angcoeffs->epsiloncoeff5*omega_cbrt) - epsilonoffset;
-//
-//   /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
-//   REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
-//   switch (IMRPhenomP_version) {
-//     case IMRPhenomPv1_V:
-//       WignerdCoefficients_SmallAngleApproximation(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
-//       break;
-//     case IMRPhenomPv2_V:
-//       WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
-//       break;
-//   default:
-//     XLAL_ERROR( XLAL_EINVAL, " Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
-//     break;
-//   }
-//
-//   const REAL8 cBetah2 = cBetah*cBetah;
-//   const REAL8 cBetah3 = cBetah2*cBetah;
-//   const REAL8 cBetah4 = cBetah3*cBetah;
-//   const REAL8 sBetah2 = sBetah*sBetah;
-//   const REAL8 sBetah3 = sBetah2*sBetah;
-//   const REAL8 sBetah4 = sBetah3*sBetah;
-//
-//   /* Compute Wigner d coefficients
-//     The expressions below agree with refX [Goldstein?] and Mathematica
-//     d2  = Table[WignerD[{2, mp, 2}, 0, -\[Beta], 0], {mp, -2, 2}]
-//     dm2 = Table[WignerD[{2, mp, -2}, 0, -\[Beta], 0], {mp, -2, 2}]
-//   */
-//   COMPLEX16 d2[5]   = {sBetah4, 2*cBetah*sBetah3, sqrt_6*sBetah2*cBetah2, 2*cBetah3*sBetah, cBetah4};
-//   COMPLEX16 dm2[5]  = {d2[4], -d2[3], d2[2], -d2[1], d2[0]}; /* Exploit symmetry d^2_{-2,-m} = (-1)^m d^2_{2,m} */
-//
-//   COMPLEX16 Y2mA[5] = {Y2m->Y2m2, Y2m->Y2m1, Y2m->Y20, Y2m->Y21, Y2m->Y22};
-//   COMPLEX16 hp_sum = 0;
-//   COMPLEX16 hc_sum = 0;
-//
-//   /* Sum up contributions to \tilde h+ and \tilde hx */
-//   /* Precompute powers of e^{i m alpha} */
-//   COMPLEX16 cexp_i_alpha = cos(alpha) + I*sin(alpha);//cexp(+I*alpha);
-//   COMPLEX16 cexp_2i_alpha = cexp_i_alpha*cexp_i_alpha;
-//   COMPLEX16 cexp_mi_alpha = 1.0/cexp_i_alpha;
-//   COMPLEX16 cexp_m2i_alpha = cexp_mi_alpha*cexp_mi_alpha;
-//   COMPLEX16 cexp_im_alpha[5] = {cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha};
-//   for(int m=-2; m<=2; m++) {
-//     COMPLEX16 T2m   = cexp_im_alpha[-m+2] * dm2[m+2] *      Y2mA[m+2];  /*  = cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
-//     COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
-//     hp_sum +=     T2m + Tm2m;
-//     hc_sum += +I*(T2m - Tm2m);
-//   }
-//
-//   COMPLEX16 eps_phase_hP = (cos(2*epsilon) - I*sin(2*epsilon)) *hP /2.0;//cexp(-2*I*epsilon) * hP / 2.0;
-//   *hp = eps_phase_hP * hp_sum;
-//   *hc = eps_phase_hP * hc_sum;
-//
-//   // Return phasing for time-shift correction
-//   *phasing = -phPhenom; // ignore alpha and epsilon contributions
-//
-//   return XLAL_SUCCESS;
-// }
-
 
 /* END IMRPhenomPv3 */
