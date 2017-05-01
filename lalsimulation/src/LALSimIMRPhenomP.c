@@ -51,6 +51,7 @@
 
 #include "LALSimIMRPhenomP.h"
 
+#include "LALSimInspiralFDPrecAngles_internals.c"
 /* IMRPhenomPv3 - uses the angles from arXiv 1703.03967
  * The function used to compute the angles is in LALSimIMR.h and is called
  * XLALComputeAngles3PN
@@ -1660,13 +1661,11 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
  * https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
  */
 static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z){
+    /* TODO: check that this is the correct convention */
     *magnitude = sqrt( x*x + y*y + z*z );
     *polar = acos( z / *magnitude );
     *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
 }
-
-
-
 
 static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
                             REAL8 m1_SI, /**< mass of primary in SI (kg) */
@@ -1741,42 +1740,30 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
     /* compute precession angles at reference frequency */
     /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
     /* NOTE: I don't think betaRefSeq is used but maybe can be used to check openning angle. */
-    REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
-    REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
-    REAL8Sequence *betaRefSeq = XLALCreateREAL8Sequence(1);
-    REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
     /* evaluating the angles at the reference frequency */
     /* TODO: CHECK THIS */
     p->f_ref_Orb_Hz = 0.5 * p->f_ref / p->Msec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
-    f_ref_Orb_Hz_Seq->data[0] = p->f_ref_Orb_Hz; /* need this value as a REAL8Sequence as that's how it's required by XLALComputeAngles3PN */
 
-    /* default value places lhat = (0,0,1) */
-    REAL8 lhat_cos_theta = 1.; /* Cosine of Polar angle of orbital angular momentum */
-    REAL8 lhat_phi = 0.; /* Azimuthal angle of orbital angular momentum */
-
-    errcode = XLALComputeAngles3PN(alphaRefSeq, epsilonRefSeq, betaRefSeq,
-                        f_ref_Orb_Hz_Seq,
-                        p->m1_SI, p->m2_SI,
-                        lhat_cos_theta, lhat_phi,
+    /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
+    sysq system = InitializeSystem(p->m1_SI, p->m2_SI,
+                        LHAT_COS_THETA, LHAT_PHI,
                         cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
                         cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
                         p->f_ref_Orb_Hz);
-    XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to compute precession angles at reference frequency.");
+
+    /* convert from orbital frequency to PN parameter */
+    const REAL8 twopiGM_over_cthree = LAL_TWOPI * LAL_MTSUN_SI * (p->Mtot_Msun);
+    vector angles;
+    REAL8 xi = pow((p->f_ref_Orb_Hz)*twopiGM_over_cthree, system.onethird);
+    angles = compute_phiz_zeta_costhetaL3PN(xi,&system);
+    p->alphaRef = angles.x;
+    p->epsilonRef = angles.y;
+    p->betaRef = acos(angles.z);
 
     /* check output */
-    // printf("alphaRefSeq = %.8f\n", alphaRefSeq->data[0]);
-    // printf("epsilonRefSeq = %.8f\n", epsilonRefSeq->data[0]);
-    // printf("betaRefSeq = %.8f\n", betaRefSeq->data[0]);
-
-    /* store output and cleanup */
-    p->alphaRef = alphaRefSeq->data[0];
-    p->epsilonRef = epsilonRefSeq->data[0];
-    p->betaRef = betaRefSeq->data[0];
-    /* clean up */
-    XLALDestroyREAL8Sequence(alphaRefSeq);
-    XLALDestroyREAL8Sequence(epsilonRefSeq);
-    XLALDestroyREAL8Sequence(betaRefSeq);
-    XLALDestroyREAL8Sequence(f_ref_Orb_Hz_Seq);
+    // printf("p->alphaRef = %.8f\n", p->alphaRef);
+    // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
+    // printf("p->betaRef = %.8f\n", p->betaRef);
 
     /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
     const REAL8 ytheta  = p->thetaJN;
@@ -1789,6 +1776,15 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p,
 
     /* Example how to use pv3 */
     // printf("creal(p->Y2m.Y22) = %f, cimag(p->Y2m.Y22) = %f\n", creal(p->Y2m.Y22), cimag(p->Y2m.Y22));
+
+    // PhenomD uses FinalSpin0815() to calculate the final spin if the spins are aligned.
+    // We use a generalized version of FinalSpin0815() that includes the in-plane spin chip.
+    p->finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(p->m1_Msun, p->m2_Msun, p->chi1z, p->chi2z, p->chip);
+    if( fabs(p->finspin) > 1.0 ) {
+      XLAL_PRINT_WARNING("Warning: final spin magnitude %g > 1. Setting final spin magnitude = 1.", p->finspin);
+      p->finspin = copysign(1.0, p->finspin);
+    }
+
 
     return XLAL_SUCCESS;
 }
@@ -1948,15 +1944,15 @@ int XLALSimIMRPhenomPv3(
  * to be passed into PhenomPv3CoreOneFrequency
  */
 static int PhenomPv3Core(
-  COMPLEX16FrequencySeries UNUSED **hptilde,        /**< [out] Frequency-domain waveform h+ */
-  COMPLEX16FrequencySeries UNUSED **hctilde,        /**< [out] Frequency-domain waveform hx */
+  COMPLEX16FrequencySeries **hptilde,        /**< [out] Frequency-domain waveform h+ */
+  COMPLEX16FrequencySeries **hctilde,        /**< [out] Frequency-domain waveform hx */
   PhenomPv3Storage *pv3,       /**< PhenomPv3Storage Struct for storing internal variables */
-  const REAL8Sequence UNUSED *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
-  double UNUSED deltaF,                             /**< Sampling frequency (Hz).
+  const REAL8Sequence *freqs_in,             /**< Frequency points at which to evaluate the waveform (Hz) */
+  double deltaF,                             /**< Sampling frequency (Hz).
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
    * Then we will use deltaF = 0 to create the frequency series we return. */
-  LALDict UNUSED *extraParams /**<linked list containing the extra testing GR parameters */
+  LALDict *extraParams /**<linked list containing the extra testing GR parameters */
   )
 {
 
@@ -1973,6 +1969,29 @@ static int PhenomPv3Core(
     // REAL8 *phis=NULL;
     // LALDict *extraParams_in=extraParams;
 
+    REAL8 *phis=NULL;
+    REAL8Sequence *freqs = NULL;
+    UNUSED gsl_interp_accel *acc = NULL;
+    UNUSED gsl_spline *phiI = NULL;
+    LALDict *extraParams_in=extraParams;
+
+    // sysq system = InitializeSystem(pv3->m1_SI, pv3->m2_SI,
+    //                     LHAT_COS_THETA, LHAT_PHI,
+    //                     cos(pv3->chi1_theta), pv3->chi1_phi, pv3->chi1_mag,
+    //                     cos(pv3->chi2_theta), pv3->chi2_phi, pv3->chi2_mag,
+    //                     pv3->f_ref_Orb_Hz);
+    //
+    // /* convert from orbital frequency to PN parameter */
+    // const REAL8 twopiGM_over_cthree = LAL_TWOPI * LAL_MTSUN_SI * (pv3->Mtot_Msun);
+    // vector angles;
+    // /*TODO TODO: This frequency needs to be in orbital units*/
+    // // REAL8 xi = pow(f_Orb_Hz*twopiGM_over_cthree, system.onethird);
+    // REAL8 xi = pow((pv3->f_ref_Orb_Hz)*twopiGM_over_cthree, system.onethird);
+    // angles = compute_phiz_zeta_costhetaL3PN(xi,&system);
+    // p->alphaRef = angles.x;
+    // p->epsilonRef = angles.y;
+    // p->betaRef = acos(angles.z);
+
 
     int errcode = init_useful_powers(&powers_of_pi, LAL_PI);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
@@ -1984,8 +2003,6 @@ static int PhenomPv3Core(
     XLAL_CHECK(f_min > 0, XLAL_EDOM, "Minimum frequency must be positive.\n");
     XLAL_CHECK(f_max >= 0, XLAL_EDOM, "Maximum frequency must be non-negative.\n");
 
-    UNUSED LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
-
     /* standard warning and error bounds on mass-ratio */
     if (pv3->q > 18.0)
       XLAL_PRINT_WARNING("IMRPhenomPv3: Warning: The underlying non-precessing model is calibrated up to m1/m2 <= 18.\n");
@@ -1994,8 +2011,430 @@ static int PhenomPv3Core(
     // CheckMaxOpeningAngle(pv3->m1_SI, pv3->m2_SI, pv3->chi1z, pv3->chi2z, pv3->chip);
     /*TODO: write a function to compute chip and make it XLAL so it can be used in SWIG*/
 
-    // printf("%f\n", pv3->eta);
-    return XLAL_SUCCESS;
+    LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* compute phenomD quantities */
+    XLAL_PRINT_INFO("*** IMRPhenomP version 2: based on IMRPhenomD ***");
+
+    // IMRPhenomD assumes that m1 >= m2.
+    IMRPhenomDAmplitudeCoefficients *pAmp;
+    pAmp = (IMRPhenomDAmplitudeCoefficients *) XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+    pAmp = ComputeIMRPhenomDAmplitudeCoefficients(pv3->eta, pv3->chi1z, pv3->chi2z, pv3->finspin);
+
+    AmpInsPrefactors amp_prefactors;
+    errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
+
+    /* Compute phenomD phase coefficients */
+    IMRPhenomDPhaseCoefficients *pPhi;
+    pPhi = (IMRPhenomDPhaseCoefficients *) XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
+    pPhi = ComputeIMRPhenomDPhaseCoefficients(pv3->eta, pv3->chi1z, pv3->chi2z, pv3->finspin, extraParams);
+    if (extraParams==NULL)
+    {
+            extraParams=XLALCreateDict();
+    }
+    XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
+    PNPhasingSeries *pn = NULL;
+    /* Intentionally not using XLALMalloc here as it gets allocated inside XLALSimInspiralTaylorF2AlignedPhasing */
+    XLALSimInspiralTaylorF2AlignedPhasing(&pn, pv3->m1_Msun, pv3->m2_Msun, pv3->chi1z, pv3->chi2z, extraParams);
+
+    if (!pAmp || !pPhi || !pn) {
+      errcode = XLAL_EFUNC;
+      goto cleanup;
+    }
+
+    // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
+    // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
+    // was not available when PhenomD was tuned.
+    pn->v[6] -= (Subtract3PNSS(pv3->m1_Msun, pv3->m2_Msun, pv3->Mtot_Msun, pv3->chi1z, pv3->chi2z ) * pn->v[0]);
+
+    PhiInsPrefactors phi_prefactors;
+    errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+    XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_phi_ins_prefactors failed");
+
+    ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors);
+    // This should be the same as the ending frequency in PhenomD
+    REAL8 fCut = f_CUT / pv3->Msec;
+    UNUSED REAL8 f_final = pAmp->fRD / pv3->Msec;
+
+    XLAL_CHECK ( fCut > f_min, XLAL_EDOM, "fCut = %.2g/M <= f_min", fCut );
+
+    /* Default f_max to params->fCut */
+     REAL8 f_max_prime = f_max ? f_max : fCut;
+     f_max_prime = (f_max_prime > fCut) ? fCut : f_max_prime;
+     if (f_max_prime <= f_min){
+       XLALPrintError("XLAL Error - %s: f_max <= f_min\n", __func__);
+       errcode = XLAL_EDOM;
+       goto cleanup;
+     }
+
+     /* Allocate hp, hc */
+
+     UINT4 L_fCut = 0; // number of frequency points before we hit fCut
+     size_t n = 0;
+     UNUSED UINT4 offset = 0; // Index shift between freqs and the frequency series
+     if (deltaF > 0)  { // freqs contains uniform frequency grid with spacing deltaF; we start at frequency 0
+       /* Set up output array with size closest power of 2 */
+       if (f_max_prime < f_max)  /* Resize waveform if user wants f_max larger than cutoff frequency */
+         n = NextPow2(f_max / deltaF) + 1;
+       else
+         n = NextPow2(f_max_prime / deltaF) + 1;
+
+       /* coalesce at t=0 */
+       XLAL_CHECK(XLALGPSAdd(&ligotimegps_zero, -1. / deltaF), XLAL_EFUNC,
+       "Failed to shift coalescence time by -1.0/deltaF with deltaF=%g.", deltaF); // shift by overall length in time
+
+       *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+       if(!*hptilde) {
+         errcode = XLAL_ENOMEM;
+         goto cleanup;
+       }
+       *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, 0.0, deltaF, &lalStrainUnit, n);
+       if(!*hctilde) {
+         errcode = XLAL_ENOMEM;
+         goto cleanup;
+       }
+
+       // Recreate freqs using only the lower and upper bounds
+       size_t i_min = (size_t) (f_min / deltaF);
+       size_t i_max = (size_t) (f_max_prime / deltaF);
+       freqs = XLALCreateREAL8Sequence(i_max - i_min);
+       if (!freqs) {
+         errcode = XLAL_EFUNC;
+         XLALPrintError("XLAL Error - %s: Frequency array allocation failed.", __func__);
+         goto cleanup;
+       }
+       for (UINT4 i=i_min; i<i_max; i++)
+         freqs->data[i-i_min] = i*deltaF;
+       L_fCut = freqs->length;
+       offset = i_min;
+     } else { // freqs contains frequencies with non-uniform spacing; we start at lowest given frequency
+       n = freqs_in->length;
+
+       *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &ligotimegps_zero, f_min, 0, &lalStrainUnit, n);
+       if(!*hptilde) {
+         XLALPrintError("XLAL Error - %s: Failed to allocate frequency series for hptilde polarization with f_min=%f and %tu bins.", __func__, f_min, n);
+         errcode = XLAL_ENOMEM;
+         goto cleanup;
+       }
+       *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &ligotimegps_zero, f_min, 0, &lalStrainUnit, n);
+       if(!*hctilde) {
+         XLALPrintError("XLAL Error - %s: Failed to allocate frequency series for hctilde polarization with f_min=%f and %tu bins.", __func__, f_min, n);
+         errcode = XLAL_ENOMEM;
+         goto cleanup;
+       }
+       offset = 0;
+
+       // Enforce that FS is strictly increasing
+       // (This is needed for phase correction towards the end of this function.)
+       for (UINT4 i=1; i<n; i++)
+       {
+         if (!(freqs_in->data[i] > freqs_in->data[i-1]))
+         {
+           XLALPrintError("XLAL Error - %s: Frequency sequence must be strictly increasing!\n",  __func__);
+           errcode = XLAL_EDOM;
+           goto cleanup;
+         }
+       }
+
+       freqs = XLALCreateREAL8Sequence(n);
+       if (!freqs) {
+         XLALPrintError("XLAL Error - %s: Frequency array allocation failed.",  __func__);
+         errcode = XLAL_ENOMEM;
+         goto cleanup;
+       }
+       // Restrict sequence to frequencies <= fCut
+       for (UINT4 i=0; i<n; i++)
+         if (freqs_in->data[i] <= fCut) {
+           freqs->data[i] = freqs_in->data[i];
+           L_fCut++;
+         }
+     } // End of deltaF if statement
+
+
+     memset((*hptilde)->data->data, 0, n * sizeof(COMPLEX16));
+     memset((*hctilde)->data->data, 0, n * sizeof(COMPLEX16));
+     XLALUnitMultiply(&((*hptilde)->sampleUnits), &((*hptilde)->sampleUnits), &lalSecondUnit);
+     XLALUnitMultiply(&((*hctilde)->sampleUnits), &((*hctilde)->sampleUnits), &lalSecondUnit);
+     /*TODO: SK - Should this be XLALUnitDivide or XLALUnitMultiply ?*/
+     phis = XLALMalloc(L_fCut*sizeof(REAL8)); // array for waveform phase
+     if(!phis) {
+       errcode = XLAL_ENOMEM;
+       goto cleanup;
+     }
+
+     /*
+       We can't call XLAL_ERROR() directly with OpenMP on.
+       Keep track of return codes for each thread and in addition use flush to get out of
+       the parallel for loop as soon as possible if something went wrong in any thread.
+     */
+     #pragma omp parallel for
+     for (UINT4 i=0; i<L_fCut; i++) { // loop over frequency points in sequence
+       UNUSED COMPLEX16 hp_val = 0.0;
+       UNUSED COMPLEX16 hc_val = 0.0;
+       UNUSED REAL8 phasing = 0;
+    //    double f = freqs->data[i];
+    //    int j = i + offset; // shift index for frequency series if needed
+
+       int per_thread_errcode;
+
+       #pragma omp flush(errcode)
+       if (errcode != XLAL_SUCCESS)
+         goto skip;
+
+       /* Generate the waveform */
+    //    per_thread_errcode = PhenomPCoreOneFrequency(f, eta, chi1_l, chi2_l, chip, distance, M, phic,
+    //                              pAmp, pPhi, PCparams, pn, &angcoeffs, &Y2m,
+    //                              alphaNNLOoffset - alpha0, epsilonNNLOoffset,
+    //                              &hp_val, &hc_val, &phasing, IMRPhenomP_version, &amp_prefactors, &phi_prefactors);
+
+       per_thread_errcode = XLAL_SUCCESS;
+
+       if (per_thread_errcode != XLAL_SUCCESS) {
+         errcode = per_thread_errcode;
+         #pragma omp flush(errcode)
+       }
+
+    //    ((*hptilde)->data->data)[j] = hp_val;
+    //    ((*hctilde)->data->data)[j] = hc_val;
+    //
+    //    phis[i] = phasing;
+
+       skip: /* this statement intentionally left blank */;
+     }
+     //
+    //  /* Correct phasing so we coalesce at t=0 (with the definition of the epoch=-1/deltaF above) */
+    //  /* We apply the same time shift to hptilde and hctilde based on the overall phasing returned by PhenomPCoreOneFrequency */
+    //  /* Set up spline for phase */
+    //  acc = gsl_interp_accel_alloc();
+    //  phiI = gsl_spline_alloc(gsl_interp_cspline, L_fCut);
+    //  XLAL_CHECK(phiI, XLAL_ENOMEM, "Failed to allocate GSL spline with %d points for phase.", L_fCut);
+     //
+    //  gsl_spline_init(phiI, freqs->data, phis, L_fCut);
+     //
+    //  // Prevent gsl interpolation errors
+    //  if (f_final > freqs->data[L_fCut-1])
+    //    f_final = freqs->data[L_fCut-1];
+    //  if (f_final < freqs->data[0])
+    //  {
+    //    XLALPrintError("XLAL Error - %s: f_ringdown = %f < f_min\n", __func__, f_final);
+    //    errcode = XLAL_EDOM;
+    //    goto cleanup;
+    //  }
+     //
+    //  if (L_fCut<=5){ // prevent spline interpolation failing in phase correction below
+    //    XLALPrintError("XLAL Error - %s: PhenomP waveform is too short: L_fcut is too small.", __func__);
+    //    errcode = XLAL_EDOM;
+    //    goto cleanup;
+    //   }
+     //
+    //  /* Time correction is t(f_final) = 1/(2pi) dphi/df (f_final) */
+    //  REAL8 t_corr = gsl_spline_eval_deriv(phiI, f_final, acc) / (2*LAL_PI);
+    //  /* Now correct phase */
+    //  for (UINT4 i=0; i<L_fCut; i++) { // loop over frequency points in sequence
+    //    double f = freqs->data[i];
+    //    COMPLEX16 phase_corr = (cos(2*LAL_PI * f * t_corr) - I*sin(2*LAL_PI * f * t_corr));//cexp(-2*LAL_PI * I * f * t_corr);
+    //    int j = i + offset; // shift index for frequency series if needed
+    //    ((*hptilde)->data->data)[j] *= phase_corr;
+    //    ((*hctilde)->data->data)[j] *= phase_corr;
+    //  }
+
+     cleanup:
+     if(phis) XLALFree(phis);
+     if(phiI) gsl_spline_free(phiI);
+     if(acc) gsl_interp_accel_free(acc);
+
+     if(pAmp) XLALFree(pAmp);
+     if(pPhi) XLALFree(pPhi);
+     if(pn) XLALFree(pn);
+
+     /* If extraParams was allocated in this function and not passed in
+      * we need to free it to prevent a leak */
+      /* don't know why we write it like this but if you don't have extraParams_in then it seg faults */
+     if(extraParams && !extraParams_in) XLALDestroyDict(extraParams);
+
+     if(freqs) XLALDestroyREAL8Sequence(freqs);
+     if( errcode != XLAL_SUCCESS ) {
+       if(*hptilde) {
+         XLALDestroyCOMPLEX16FrequencySeries(*hptilde);
+         *hptilde=NULL;
+       }
+       if(*hctilde) {
+         XLALDestroyCOMPLEX16FrequencySeries(*hctilde);
+         *hctilde=NULL;
+       }
+       XLAL_ERROR(errcode);
+     } else {
+       return XLAL_SUCCESS;
+     }
 }
+
+// static int PhenomPv3CoreOneFrequency(
+//   COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
+//   COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
+//   REAL8 *phasing,                             /**< [out] overall phasing */
+//   const REAL8 fHz,                            /**< Frequency (Hz) */
+//   PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
+//   IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
+//   IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
+//   PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
+//   AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
+//   PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+//     )
+// {
+//   XLAL_CHECK(hp != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(hc != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(phasing != NULL, XLAL_EFAULT);
+//
+//   REAL8 f = fHz*LAL_MTSUN_SI*M; /* Frequency in geometric units */
+//
+//   REAL8 aPhenom = 0.0;
+//   REAL8 phPhenom = 0.0;
+//   int errcode = XLAL_SUCCESS;
+//   UsefulPowers powers_of_f;
+//
+//   /* Calculate Phenom amplitude and phase for a given frequency. */
+//   XLAL_CHECK(pAmp != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(pPhi != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(PNparams != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(amp_prefactors != NULL, XLAL_EFAULT);
+//   XLAL_CHECK(phi_prefactors != NULL, XLAL_EFAULT);
+//   errcode = init_useful_powers(&powers_of_f, f);
+//   XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for f");
+//   aPhenom = IMRPhenDAmplitude(f, pAmp, &powers_of_f, amp_prefactors);
+//   phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
+//
+//   phPhenom -= 2.*phic; /* Note: phic is orbital phase */
+//   REAL8 amp0 = M * LAL_MRSUN_SI * M * LAL_MTSUN_SI / distance;
+//   COMPLEX16 hP = amp0 * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
+//
+//
+//
+//
+//
+// ///// WORKING ON THIS BLOCK: START
+// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
+// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
+// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
+// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
+// // Need to think about how I compute the precession angles in the loop efficiently.
+// //TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:TODO:
+//   /* compute precession angles at reference frequency */
+//   /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
+//   /* NOTE: I don't think betaRefSeq is used but maybe can be used to check openning angle. */
+//   REAL8Sequence *alphaRefSeq = XLALCreateREAL8Sequence(1);
+//   REAL8Sequence *epsilonRefSeq = XLALCreateREAL8Sequence(1);
+//   REAL8Sequence *betaRefSeq = XLALCreateREAL8Sequence(1);
+//   REAL8Sequence *f_ref_Orb_Hz_Seq = XLALCreateREAL8Sequence(1);
+//   /* evaluating the angles at the reference frequency */
+//   /* TODO: CHECK THIS */
+//   p->f_ref_Orb_Hz = 0.5 * p->f_ref / p->Msec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
+//   f_ref_Orb_Hz_Seq->data[0] = p->f_ref_Orb_Hz; /* need this value as a REAL8Sequence as that's how it's required by XLALComputeAngles3PN */
+//
+//   /* default value places lhat = (0,0,1) */
+//   REAL8 lhat_cos_theta = 1.; /* Cosine of Polar angle of orbital angular momentum */
+//   REAL8 lhat_phi = 0.; /* Azimuthal angle of orbital angular momentum */
+//
+//   errcode = XLALComputeAngles3PN(alphaRefSeq, epsilonRefSeq, betaRefSeq,
+//                       f_ref_Orb_Hz_Seq,
+//                       p->m1_SI, p->m2_SI,
+//                       lhat_cos_theta, lhat_phi,
+//                       cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+//                       cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+//                       p->f_ref_Orb_Hz);
+//   XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to compute precession angles at reference frequency.");
+//
+//   /* check output */
+//   // printf("alphaRefSeq = %.8f\n", alphaRefSeq->data[0]);
+//   // printf("epsilonRefSeq = %.8f\n", epsilonRefSeq->data[0]);
+//   // printf("betaRefSeq = %.8f\n", betaRefSeq->data[0]);
+//
+//   /* store output and cleanup */
+//   p->alphaRef = alphaRefSeq->data[0];
+//   p->epsilonRef = epsilonRefSeq->data[0];
+//   p->betaRef = betaRefSeq->data[0];
+//   /* clean up */
+//   XLALDestroyREAL8Sequence(alphaRefSeq);
+//   XLALDestroyREAL8Sequence(epsilonRefSeq);
+//   XLALDestroyREAL8Sequence(betaRefSeq);
+//   XLALDestroyREAL8Sequence(f_ref_Orb_Hz_Seq);
+//
+// ///// WORKING ON THIS BLOCK: END
+//
+//   /* Compute PN NNLO angles */
+//   const REAL8 omega = LAL_PI * f;
+//   const REAL8 logomega = log(omega);
+//   const REAL8 omega_cbrt = cbrt(omega);
+//   const REAL8 omega_cbrt2 = omega_cbrt*omega_cbrt;
+//
+//   REAL8 alpha = (angcoeffs->alphacoeff1/omega
+//               + angcoeffs->alphacoeff2/omega_cbrt2
+//               + angcoeffs->alphacoeff3/omega_cbrt
+//               + angcoeffs->alphacoeff4*logomega
+//               + angcoeffs->alphacoeff5*omega_cbrt) - alphaoffset;
+//
+//   REAL8 epsilon = (angcoeffs->epsiloncoeff1/omega
+//                 + angcoeffs->epsiloncoeff2/omega_cbrt2
+//                 + angcoeffs->epsiloncoeff3/omega_cbrt
+//                 + angcoeffs->epsiloncoeff4*logomega
+//                 + angcoeffs->epsiloncoeff5*omega_cbrt) - epsilonoffset;
+//
+//   /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+//   REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
+//   switch (IMRPhenomP_version) {
+//     case IMRPhenomPv1_V:
+//       WignerdCoefficients_SmallAngleApproximation(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
+//       break;
+//     case IMRPhenomPv2_V:
+//       WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
+//       break;
+//   default:
+//     XLAL_ERROR( XLAL_EINVAL, " Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
+//     break;
+//   }
+//
+//   const REAL8 cBetah2 = cBetah*cBetah;
+//   const REAL8 cBetah3 = cBetah2*cBetah;
+//   const REAL8 cBetah4 = cBetah3*cBetah;
+//   const REAL8 sBetah2 = sBetah*sBetah;
+//   const REAL8 sBetah3 = sBetah2*sBetah;
+//   const REAL8 sBetah4 = sBetah3*sBetah;
+//
+//   /* Compute Wigner d coefficients
+//     The expressions below agree with refX [Goldstein?] and Mathematica
+//     d2  = Table[WignerD[{2, mp, 2}, 0, -\[Beta], 0], {mp, -2, 2}]
+//     dm2 = Table[WignerD[{2, mp, -2}, 0, -\[Beta], 0], {mp, -2, 2}]
+//   */
+//   COMPLEX16 d2[5]   = {sBetah4, 2*cBetah*sBetah3, sqrt_6*sBetah2*cBetah2, 2*cBetah3*sBetah, cBetah4};
+//   COMPLEX16 dm2[5]  = {d2[4], -d2[3], d2[2], -d2[1], d2[0]}; /* Exploit symmetry d^2_{-2,-m} = (-1)^m d^2_{2,m} */
+//
+//   COMPLEX16 Y2mA[5] = {Y2m->Y2m2, Y2m->Y2m1, Y2m->Y20, Y2m->Y21, Y2m->Y22};
+//   COMPLEX16 hp_sum = 0;
+//   COMPLEX16 hc_sum = 0;
+//
+//   /* Sum up contributions to \tilde h+ and \tilde hx */
+//   /* Precompute powers of e^{i m alpha} */
+//   COMPLEX16 cexp_i_alpha = cos(alpha) + I*sin(alpha);//cexp(+I*alpha);
+//   COMPLEX16 cexp_2i_alpha = cexp_i_alpha*cexp_i_alpha;
+//   COMPLEX16 cexp_mi_alpha = 1.0/cexp_i_alpha;
+//   COMPLEX16 cexp_m2i_alpha = cexp_mi_alpha*cexp_mi_alpha;
+//   COMPLEX16 cexp_im_alpha[5] = {cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha};
+//   for(int m=-2; m<=2; m++) {
+//     COMPLEX16 T2m   = cexp_im_alpha[-m+2] * dm2[m+2] *      Y2mA[m+2];  /*  = cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
+//     COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
+//     hp_sum +=     T2m + Tm2m;
+//     hc_sum += +I*(T2m - Tm2m);
+//   }
+//
+//   COMPLEX16 eps_phase_hP = (cos(2*epsilon) - I*sin(2*epsilon)) *hP /2.0;//cexp(-2*I*epsilon) * hP / 2.0;
+//   *hp = eps_phase_hP * hp_sum;
+//   *hc = eps_phase_hP * hc_sum;
+//
+//   // Return phasing for time-shift correction
+//   *phasing = -phPhenom; // ignore alpha and epsilon contributions
+//
+//   return XLAL_SUCCESS;
+// }
+
 
 /* END IMRPhenomPv3 */

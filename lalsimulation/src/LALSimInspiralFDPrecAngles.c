@@ -51,6 +51,8 @@ int XLALComputeAngles(
 
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
+    /* twopiGM_over_cthree is the same as -> LAL_TWOPI * LAL_MTSUN_SI * (m1+m2) / LAL_MSUN_SI */
+    
     vector angles;
 
     for(UINT4 i = 0; i < (*f).length; i++){
@@ -88,6 +90,8 @@ int XLALComputeAngles3PN(
 
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
+    /* twopiGM_over_cthree is the same as -> LAL_TWOPI * LAL_MTSUN_SI * (m1+m2) / LAL_MSUN_SI */
+
     vector angles;
 
     for(UINT4 i = 0; i < (*f).length; i++){
