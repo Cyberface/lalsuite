@@ -21,7 +21,7 @@
 
 static sysq InitializeSystem(const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, const double ch2, const double f_0)
 {
-    sysq system = {0,0.,{0.},{0.},{0.},{0.},0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+    sysq system = {0.,{0.},{0.},{0.},{0.},0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
     
     system.onethird = 1./3.;
     
@@ -188,14 +188,16 @@ static sysq InitializeSystem(const double m1, const double m2, const double mul,
     system.constants_zeta[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
     system.constants_zeta[5] = 3.*(Omegaz0*c5 + Omegaz1*c4 + Omegaz2*c3 + Omegaz3*c2 + Omegaz5*c0);
     
-    const double m = sqrt((roots.y - roots.z)/(roots.x - roots.z));
+    double m, B, volumeellement;
+    int sign_num;
     
-    const double B = (S_0_norm*S_0_norm-roots.z)/(roots.y-roots.z);
-    const double volumeellement = DotProd(CrossProd(L_0,S1_0),S2_0);
-    const int sign_num = (volumeellement > 0) - (volumeellement < 0);
-    
-    if(S1_norm ==0 || S2_norm ==0) system.constant_of_S = 0;
+    if(roots.y==roots.z) system.constant_of_S = 0;
     else{
+        m = sqrt((roots.y - roots.z)/(roots.x - roots.z));
+        B = (S_0_norm*S_0_norm-roots.z)/(roots.y-roots.z);
+        volumeellement = DotProd(CrossProd(L_0,S1_0),S2_0);
+        sign_num = (volumeellement > 0) - (volumeellement < 0);
+        
         if(B < 0. || B > 1.) {
             if(B > 1 && B-1. < 0.00001) system.constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(1.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0,xi0_2,&system);
             if(B < 0 && B > -0.00001) system.constant_of_S = gsl_sf_ellint_F(asin(sign_num*sqrt(0.)), m, GSL_PREC_DOUBLE) - u_of_xi(xi_0,xi0_2,&system);
@@ -209,11 +211,8 @@ static sysq InitializeSystem(const double m1, const double m2, const double mul,
     system.constants_L[3] = beta((L_csts_spinorbit[2]+L_csts_spinorbit[3]*nu), (L_csts_spinorbit[4]+L_csts_spinorbit[5]*nu), &system);
     system.constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*nu +L_csts_nonspin[7]*nu*nu+L_csts_nonspin[8]*nu*nu*nu);
     
-    system.flag = 0;
-    if(S1_norm == 0 || S2_norm ==0 || (fabs(DotProd(S1_0,Lhat_0)/S1_norm) == 1 && fabs(DotProd(S2_0,Lhat_0)/S2_norm) == 1)) system.flag = 1;
-    
     vector MScorrections = {0.,0.,0.};
-    if(system.flag == 0){
+    if(roots.y!=roots.z){
         MScorrections = computeMScorrections(xi_0,xi0_2,L_0_norm,J_0_norm,roots,&system);
     }
     
@@ -242,10 +241,10 @@ static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system
     const double S_norm = S_norm_of_xi(xi,xi_2,roots,system);
     
     vector MScorrections = {0.,0.,0.};
-    if((*system).flag == 0){
+    if(roots.y!=roots.z){
         MScorrections = computeMScorrections(xi,xi_2,L_norm,J_norm,roots,system);
     }
-    
+
     angles.x = phiz_of_xi(xi,xi_2,J_norm,system) + MScorrections.x;
     angles.y = zeta_of_xi(xi,xi_2,system) + MScorrections.y;
     angles.z = costhetaL(J_norm3PN,L_norm3PN,S_norm);//costhetaL 3PN
@@ -267,7 +266,7 @@ static vector compute_phiz_zeta_costhetaL(const double xi, const sysq *system)
     const double S_norm = S_norm_of_xi(xi,xi_2,roots,system);
     
     vector MScorrections = {0.,0.,0.};
-    if((*system).flag == 0){
+    if(roots.y!=roots.z){
         MScorrections = computeMScorrections(xi,xi_2,L_norm,J_norm,roots,system);
     }
     
@@ -293,14 +292,15 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
     
     const double p = coeffs.y - ((*system).onethird)*B_2;
     const double qc = 2./27.*B_3 - ((*system).onethird)*B_C + coeffs.z;
-    const double sqrtarg = sqrt(-3./p);
-    double acosarg = 1.5*qc/p*sqrtarg;
+    const double sqrtarg = sqrt(-p/3.);
+    double acosarg = 1.5*qc/p/sqrtarg;
     if((acosarg + 1) < 0.00000000001) acosarg = -1;
+    if(acosarg!=acosarg) acosarg=0;
     
-    if(p < 0 && acosarg <= 1 && acosarg >= -1.){
-        out.x = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg)) - ((*system).onethird)*coeffs.x;
-        out.y = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg) - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-        out.z = 2./sqrtarg*cos(((*system).onethird)*acos(acosarg) - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+    if(acosarg <= 1 && acosarg >= -1.){
+        out.x = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg)) - ((*system).onethird)*coeffs.x;
+        out.y = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg) - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        out.z = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg) - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
         
         A3 = fmax(fmax(out.x,out.y),out.z);
         A1 = fmin(fmin(out.x,out.y),out.z);
@@ -313,7 +313,6 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
         out.z = A3;
     }
     else{
-        printf("complex roots, %f, %f\n",p, acosarg);
         out.x = 0;
         out.y = 0;
         out.z = 0;
@@ -356,14 +355,14 @@ static double J_norm_of_xi(const double L_norm, const sysq *system)
 
 static double S_norm_of_xi(const double xi, const double xi_2, const vector roots, const sysq *system)
 {
-    double sn, cn, dn;
+    double sn, cn, dn, m, u;
     
-    const double m = (roots.y - roots.z)/(roots.x - roots.z);
-    const double u = u_of_xi(xi,xi_2,system)+(*system).constant_of_S;
-    
-    gsl_sf_elljac_e(u, m, &sn, &cn, &dn);
-    
-    if((*system).S1_norm_2 == 0. || (*system).S2_norm_2 == 0. || ((*system).dot1 == sqrt((*system).S1_norm_2)  && (*system).dot2 == sqrt((*system).S2_norm_2))) sn = 0.;
+    if(roots.y == roots.z) sn = 0.;
+    else {
+        m = (roots.y - roots.z)/(roots.x - roots.z);
+        u = u_of_xi(xi,xi_2,system)+(*system).constant_of_S;
+        gsl_sf_elljac_e(u, m, &sn, &cn, &dn);
+    }
     
     const double S_norm_square_bar = roots.z + (roots.y - roots.z)*sn*sn;
     return sqrt(S_norm_square_bar);
@@ -466,7 +465,10 @@ static double phiz_of_xi(const double xi, const double xi_2, const double J_norm
     const double phiz4 = J_norm*0.5*xi*(((*system).c_1)/((*system).Ssqave) + xi) - 0.5*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).sqrtSsqave)*log2;
     const double phiz5 = J_norm*xi*(-0.5*((*system).c1_2)/((*system).Ssqave)/((*system).Ssqave) + 0.5*((*system).onethird)*((*system).c_1)*xi/((*system).Ssqave) + ((*system).onethird)*(xi_2 + ((*system).nu_2)/((*system).Ssqave))) + 0.5*((*system).c_1)*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).Ssqave)/((*system).sqrtSsqave)*log2;
     
-    return phiz0*(*system).constants_phiz[0] + phiz1*(*system).constants_phiz[1] + phiz2*(*system).constants_phiz[2] + phiz3*(*system).constants_phiz[3] + phiz4*(*system).constants_phiz[4] + phiz5*(*system).constants_phiz[5] + (*system).phiz_0;
+    double phizout = phiz0*(*system).constants_phiz[0] + phiz1*(*system).constants_phiz[1] + phiz2*(*system).constants_phiz[2] + phiz3*(*system).constants_phiz[3] + phiz4*(*system).constants_phiz[4] + phiz5*(*system).constants_phiz[5] + (*system).phiz_0;
+    if (phizout!=phizout) phizout = 0;
+    
+    return phizout;
 }
 
 /* *********************************************************************************/
@@ -478,7 +480,10 @@ static double zeta_of_xi(const double xi, const double xi_2, const sysq *system)
     const double logxi = log(xi);
     const double xi_3 = xi_2*xi;
     
-    return ((*system).nu)*(-(*system).onethird*(*system).constants_zeta[0]/xi_3 - 0.5*(*system).constants_zeta[1]/xi_2 - (*system).constants_zeta[2]/xi + (*system).constants_zeta[3]*logxi + (*system).constants_zeta[4]*xi  + 0.5*(*system).constants_zeta[5]*xi_2) + (*system).zeta_0;
+    double zetaout = ((*system).nu)*(-(*system).onethird*(*system).constants_zeta[0]/xi_3 - 0.5*(*system).constants_zeta[1]/xi_2 - (*system).constants_zeta[2]/xi + (*system).constants_zeta[3]*logxi + (*system).constants_zeta[4]*xi  + 0.5*(*system).constants_zeta[5]*xi_2) + (*system).zeta_0;
+    if (zetaout!=zetaout) zetaout = 0;
+    
+    return zetaout;
 }
 
 /* *********************************************************************************/
