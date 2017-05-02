@@ -31,7 +31,6 @@ typedef struct tagvector
 
 typedef struct tagsystemquantites
 {
-    int flag;
     double onethird;
     double constants_u[6];
     double constants_phiz[6];
