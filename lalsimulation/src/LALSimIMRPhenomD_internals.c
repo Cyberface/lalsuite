@@ -96,7 +96,7 @@ of this waveform.
  */
 static double chiPN(double Seta, double eta, double chi1, double chi2) {
   // Convention m1 >= m2 and chi1 is the spin on m1
-  // The 0.5 factor imissing in the definitions of chi_s and chi_a is
+  // The 0.5 factor missing in the definitions of chi_s and chi_a is
   // recovered in the return expresion
   double chi_s = (chi1 + chi2);
   double chi_a = (chi1 - chi2);
