@@ -45,14 +45,14 @@ int XLALComputeAngles(
     const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
     const double ph2, /**< Azimuthal angle of secondary spin  */
     const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-    const double f_0 /**< Reference orbital frequency (Hz) */
+    const double f_0 /**< Reference Gravitational Wave frequency (Hz) */
 ){
     sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
 
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
     /* twopiGM_over_cthree is the same as -> LAL_TWOPI * LAL_MTSUN_SI * (m1+m2) / LAL_MSUN_SI */
-    
+
     vector angles;
 
     for(UINT4 i = 0; i < (*f).length; i++){
@@ -84,7 +84,7 @@ int XLALComputeAngles3PN(
     const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
     const double ph2, /**< Azimuthal angle of secondary spin  */
     const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-    const double f_0 /**< Reference orbital frequency (Hz) */
+    const double f_0 /**< Reference Gravitational Wave frequency (Hz) */
 ){
     sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
 

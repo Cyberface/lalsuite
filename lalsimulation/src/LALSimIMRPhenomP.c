@@ -1713,6 +1713,8 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
         nudge(&(p->q), 1.0, 1e-6);
     }
 
+    printf("p->eta = %.16f\n", p->eta);
+
     p->Msec = p->Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
 
     p->amp0 = (p->Mtot_Msun) * LAL_MRSUN_SI * (p->Mtot_Msun) * LAL_MTSUN_SI / (p->distance_SI);
@@ -1733,33 +1735,45 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
 
+    printf("p->chi1_theta = %f\n", p->chi1_theta);
+    printf("p->chi1_phi = %f\n", p->chi1_phi);
+    printf("p->chi1_mag = %f\n", p->chi1_mag);
+
     /* compute precession angles at reference frequency */
     /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
     /* NOTE: I don't think betaRefSeq is used but maybe can be used to check openning angle. */
     /* evaluating the angles at the reference frequency */
     /* TODO: CHECK THIS */
-    p->f_ref_Orb_Hz = 0.5 * p->f_ref / p->Msec; /* convert from Mf to Hz and factor of 0.5 to go from GW to Orbital frequency.*/
-
+    p->f_ref_Orb_Hz = 0.5 * p->f_ref; /* factor of 0.5 to go from GW to Orbital frequency */
     /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
+    /* note that the reference frequency that you pass into InitializeSystem is the GW frequency */
     *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
                         LHAT_COS_THETA, LHAT_PHI,
                         cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
                         cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
-                        p->f_ref_Orb_Hz);
+                        p->f_ref);
 
     /* convert from orbital frequency to PN parameter */
     p->twopi_Msec = LAL_TWOPI * p->Msec;
     vector angles;
+    /* xi uses the Orbital frequency */
     REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
     angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
     p->alphaRef = angles.x;
     p->epsilonRef = angles.y;
+
+    /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+    if (angles.z > 1.0) {
+        nudge(&(angles.z), 1.0, 1e-6);
+    }
+
     p->betaRef = acos(angles.z);
 
     /* check output */
-    // printf("p->alphaRef = %.8f\n", p->alphaRef);
-    // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
-    // printf("p->betaRef = %.8f\n", p->betaRef);
+    printf("p->alphaRef = %.8f\n", p->alphaRef);
+    printf("p->epsilonRef = %.8f\n",p->epsilonRef);
+    printf("p->cos(betaRef) = %.16f\n", angles.z);
+    printf("p->betaRef = %.8f\n", p->betaRef);
 
     /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
     const REAL8 ytheta  = p->thetaJN;
@@ -2255,7 +2269,7 @@ static int PhenomPv3CoreOneFrequency(
     REAL8 *phasing,                             /**< [out] overall phasing */
     const REAL8 fHz,                            /**< Gravitational wave Frequency (Hz) */
     PhenomPv3Storage *pv3,                      /**< PhenomPv3Storage Struct for storing internal variables */
-    UNUSED sysq *pAngles,                              /**< precession angle pre-computations struct */
+    sysq *pAngles,                              /**< precession angle pre-computations struct */
     IMRPhenomDAmplitudeCoefficients *pAmp,      /**< Internal IMRPhenomD amplitude coefficients */
     IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
     PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
@@ -2286,18 +2300,22 @@ static int PhenomPv3CoreOneFrequency(
     phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
 
     phPhenom -= 2.*(pv3->phi_aligned); /* Note: phi_aligned is orbital phase */
-    UNUSED COMPLEX16 hP = (pv3->amp0) * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
+    COMPLEX16 hP = (pv3->amp0) * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
 
 
     /* compute precession angles at given frequency  */
     vector angles;
     /* convert gravitational wave frequency to orbital frequency */
-    REAL8 f_Orb_Hz = fHz / 2.0;
+    REAL8 f_Orb_Hz = 0.5 * fHz;
     REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
     angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
     /* save angles and shift according to reference angles */
     REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
     REAL8 epsilon = angles.y - pv3->epsilonRef;
+    /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+    if (angles.z > 1.0) {
+        nudge(&(angles.z), 1.0, 1e-6);
+    }
     REAL8 beta = acos(angles.z);
     // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
 
