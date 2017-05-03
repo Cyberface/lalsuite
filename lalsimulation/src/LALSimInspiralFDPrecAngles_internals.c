@@ -202,7 +202,7 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
     double m, B, volumeellement;
     int sign_num;
 
-    if(roots.y==roots.z) system.constant_of_S = 0;
+    if(fabs(roots.y-roots.z)<1.e-5) system.constant_of_S = 0;
     else{
         m = sqrt((roots.y - roots.z)/(roots.x - roots.z));
         B = (S_0_norm*S_0_norm-roots.z)/(roots.y-roots.z);
@@ -223,7 +223,7 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
     system.constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*nu +L_csts_nonspin[7]*nu*nu+L_csts_nonspin[8]*nu*nu*nu);
 
     vector MScorrections = {0.,0.,0.};
-    if(roots.y!=roots.z){
+    if(fabs(roots.y-roots.z)>1.e-5){
         MScorrections = computeMScorrections(xi_0,xi0_2,L_0_norm,J_0_norm,roots,&system);
     }
 
@@ -252,7 +252,7 @@ static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system
     const double S_norm = S_norm_of_xi(xi,xi_2,roots,system);
 
     vector MScorrections = {0.,0.,0.};
-    if(roots.y!=roots.z){
+    if(fabs(roots.y-roots.z)>1.e-5){
         MScorrections = computeMScorrections(xi,xi_2,L_norm,J_norm,roots,system);
     }
 
@@ -288,7 +288,7 @@ UNUSED static vector compute_phiz_zeta_costhetaL(const double xi, const sysq *sy
     const double S_norm = S_norm_of_xi(xi,xi_2,roots,system);
 
     vector MScorrections = {0.,0.,0.};
-    if(roots.y!=roots.z){
+    if(fabs(roots.y-roots.z)>1.e-5){
         MScorrections = computeMScorrections(xi,xi_2,L_norm,J_norm,roots,system);
     }
 
@@ -379,7 +379,7 @@ static double S_norm_of_xi(const double xi, const double xi_2, const vector root
 {
     double sn, cn, dn, m, u;
 
-    if(roots.y == roots.z) sn = 0.;
+    if(fabs(roots.y-roots.z)<1.e-5) sn = 0.;
     else {
         m = (roots.y - roots.z)/(roots.x - roots.z);
         u = u_of_xi(xi,xi_2,system)+(*system).constant_of_S;
