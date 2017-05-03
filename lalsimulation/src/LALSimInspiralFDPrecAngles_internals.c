@@ -29,7 +29,7 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
                              const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
                              const double ph2, /**< Azimuthal angle of secondary spin  */
                              const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-                             const double f_0  /**< Reference orbital frequency (Hz) */
+                             const double f_0  /**< Reference Gravitational Wave frequency (Hz) */
                          )
 {
     sysq system = {0,0.,{0.},{0.},{0.},{0.},0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
@@ -256,6 +256,16 @@ static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system
     if((*system).flag == 0){
         MScorrections = computeMScorrections(xi,xi_2,L_norm,J_norm,roots,system);
     }
+
+    // printf("xi = %.16f \n", xi);
+    // printf("xi_2 = %.16f \n",xi_2 );
+    // printf("L_norm = %.16f \n",L_norm );
+    // printf("L_norm3PN = %.16f \n",L_norm3PN );
+    // printf("J_norm3PN = %.16f \n",J_norm3PN );
+    // printf("J_norm = %.16f \n", J_norm);
+    // printf("S_norm = %.16f \n", S_norm);
+    // printf("MScorrections.x = %.16f \n",MScorrections.x );
+    // printf("MScorrections.y = %.16f \n",MScorrections.y );
 
     angles.x = phiz_of_xi(xi,xi_2,J_norm,system) + MScorrections.x;
     angles.y = zeta_of_xi(xi,xi_2,system) + MScorrections.y;
