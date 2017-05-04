@@ -1656,8 +1656,13 @@ static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
 static void ComputeIMRPhenomPv3CartesianToPolar(REAL8 *polar, REAL8 *azimuthal, REAL8 *magnitude, REAL8 x, REAL8 y, REAL8 z){
     /* TODO: check that this is the correct convention */
     *magnitude = sqrt( x*x + y*y + z*z );
-    *polar = acos( z / *magnitude );
-    *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
+    if (approximately_equal(*magnitude, 0, 1e-9)){
+        *polar = 0.;
+        *azimuthal = 0.;
+    } else {
+        *polar = acos( z / *magnitude );
+        *azimuthal = atan2tol( y, x, MAX_TOL_ATAN );
+    }
 }
 
 static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Storage struct */
