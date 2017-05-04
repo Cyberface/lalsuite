@@ -1718,7 +1718,7 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
         nudge(&(p->q), 1.0, 1e-6);
     }
 
-    printf("p->eta = %.16f\n", p->eta);
+    // printf("p->eta = %.16f\n", p->eta);
 
     p->Msec = p->Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
 
@@ -1740,9 +1740,9 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
 
-    printf("p->chi1_theta = %f\n", p->chi1_theta);
-    printf("p->chi1_phi = %f\n", p->chi1_phi);
-    printf("p->chi1_mag = %f\n", p->chi1_mag);
+    // printf("p->chi1_theta = %f\n", p->chi1_theta);
+    // printf("p->chi1_phi = %f\n", p->chi1_phi);
+    // printf("p->chi1_mag = %f\n", p->chi1_mag);
 
     /* compute precession angles at reference frequency */
     /* NOTE: in PhenomPv1/v2 these are called alphaNNLOoffset and epsilonNNLOoffset */
@@ -1775,10 +1775,10 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     p->betaRef = acos(angles.z);
 
     /* check output */
-    printf("p->alphaRef = %.8f\n", p->alphaRef);
-    printf("p->epsilonRef = %.8f\n",p->epsilonRef);
-    printf("p->cos(betaRef) = %.16f\n", angles.z);
-    printf("p->betaRef = %.8f\n", p->betaRef);
+    // printf("p->alphaRef = %.8f\n", p->alphaRef);
+    // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
+    // printf("p->cos(betaRef) = %.16f\n", angles.z);
+    // printf("p->betaRef = %.8f\n", p->betaRef);
 
     /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
     const REAL8 ytheta  = p->thetaJN;
