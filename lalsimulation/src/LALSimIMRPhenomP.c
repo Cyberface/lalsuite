@@ -1767,6 +1767,9 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     p->alphaRef = angles.x;
     p->epsilonRef = angles.y;
 
+    //FIXME: For the unstable aligned case I am seeing angles.z > 1 for certain fref
+    // printf("before nudge: p->cos(betaRef) = %.16f\n", angles.z);
+
     /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
     if (angles.z > 1.0) {
         nudge(&(angles.z), 1.0, 1e-6);
@@ -2323,6 +2326,7 @@ static int PhenomPv3CoreOneFrequency(
     }
     REAL8 beta = acos(angles.z);
     // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
+    // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, angles.z = %.16f\n", fHz, alpha, epsilon, angles.z);
 
     /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
     REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
