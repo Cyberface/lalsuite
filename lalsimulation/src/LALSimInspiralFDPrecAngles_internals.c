@@ -295,12 +295,17 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
     const double sqrtarg = sqrt(-p/3.);
     double acosarg = 1.5*qc/p/sqrtarg;
     if((acosarg + 1) < 0.00000000001) acosarg = -1;
-    if(acosarg!=acosarg) acosarg=0;
+    const double acost = acos(acosarg);
     
-    if(acosarg <= 1 && acosarg >= -1.){
-        out.x = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg)) - ((*system).onethird)*coeffs.x;
-        out.y = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg) - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-        out.z = 2.*sqrtarg*cos(((*system).onethird)*acos(acosarg) - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+    if(acost!=acost || sqrtarg!=sqrtarg) {
+        out.x = 0;
+        out.y = 0;
+        out.z = 0;
+    }
+    else{
+        out.x = 2.*sqrtarg*cos(((*system).onethird)*acost) - ((*system).onethird)*coeffs.x;
+        out.y = 2.*sqrtarg*cos(((*system).onethird)*acost - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        out.z = 2.*sqrtarg*cos(((*system).onethird)*acost - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
         
         A3 = fmax(fmax(out.x,out.y),out.z);
         A1 = fmin(fmin(out.x,out.y),out.z);
@@ -311,11 +316,6 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
         out.x = A1;
         out.y = A2;
         out.z = A3;
-    }
-    else{
-        out.x = 0;
-        out.y = 0;
-        out.z = 0;
     }
     
     return out;
@@ -425,7 +425,12 @@ static vector d(const double L_norm, const double J_norm, const vector roots)
 
 static double costhetaL(const double J_norm, const double L_norm, const double S_norm)
 {
-    return 0.5*(J_norm*J_norm + L_norm*L_norm - S_norm*S_norm)/L_norm/J_norm;
+    double out = 0.5*(J_norm*J_norm + L_norm*L_norm - S_norm*S_norm)/L_norm/J_norm;
+    
+    if (out>1) out = 1;
+    if (out<-1) out = -1;
+    
+    return out;
 }
 
 
