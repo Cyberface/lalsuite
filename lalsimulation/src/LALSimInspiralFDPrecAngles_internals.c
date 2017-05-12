@@ -307,7 +307,7 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
 {
     vector out;
     vector coeffs = BCDcoeff(L_norm, J_norm, system);
-    double A1, A2, A3;
+   // double A1, A2, A3;
     const double B_2 = coeffs.x*coeffs.x;
     const double B_3 = B_2*coeffs.x;
     const double B_C =  coeffs.x*coeffs.y;
@@ -316,28 +316,40 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
     const double qc = 2./27.*B_3 - ((*system).onethird)*B_C + coeffs.z;
     const double sqrtarg = sqrt(-p/3.);
     double acosarg = 1.5*qc/p/sqrtarg;
-    if((acosarg + 1) < 0.00000000001) acosarg = -1;
-    const double acost = acos(acosarg);
+    if(acosarg < -1) acosarg = -1;
+    if(acosarg > 1) acosarg = 1;
+    //acosarg = 1;
+    const double theta = ((*system).onethird)*acos(acosarg);
 
-    if(acost!=acost || sqrtarg!=sqrtarg) {
+
+    if(theta!=theta || sqrtarg!=sqrtarg) {
         out.x = 0;
-        out.y = 0;
-        out.z = 0;
+        out.y = (*system).Ssqave;
+        out.z = (*system).Ssqave;
     }
     else{
-        out.x = 2.*sqrtarg*cos(((*system).onethird)*acost) - ((*system).onethird)*coeffs.x;
-        out.y = 2.*sqrtarg*cos(((*system).onethird)*acost - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-        out.z = 2.*sqrtarg*cos(((*system).onethird)*acost - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        if(acosarg>0){
+            out.x = 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x;
+            out.y = 2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+            out.z = 2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        }
+        else{
+            out.z = 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x;
+            out.y = 2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+            out.x = 2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
+        }
 
-        A3 = fmax(fmax(out.x,out.y),out.z);
-        A1 = fmin(fmin(out.x,out.y),out.z);
-        if((A3 - out.z) > 0 && (A1 - out.z) < 0) A2 = out.z;
-        else if((A3 - out.x) > 0 && (A1 - out.x) < 0) A2 = out.x;
-        else A2 = out.y;
+        //printf("%13.6e %13.6e %13.6e %13.6e\n", 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x,2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x,2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x, acosarg);
 
-        out.x = A1;
-        out.y = A2;
-        out.z = A3;
+//        A3 = fmax(fmax(out.x,out.y),out.z);
+//        A1 = fmin(fmin(out.x,out.y),out.z);
+//        if((A3 - out.z) > 0 && (A1 - out.z) < 0) A2 = out.z;
+//        else if((A3 - out.x) > 0 && (A1 - out.x) < 0) A2 = out.x;
+//        else A2 = out.y;
+
+//        out.x = A1;
+//        out.y = A2;
+//        out.z = A3;
     }
     return out;
 }
@@ -384,7 +396,6 @@ static double S_norm_of_xi(const double xi, const double xi_2, const vector root
         u = u_of_xi(xi,xi_2,system)+(*system).constant_of_S;
         gsl_sf_elljac_e(u, m, &sn, &cn, &dn);
     }
-
     const double S_norm_square_bar = roots.z + (roots.y - roots.z)*sn*sn;
     return sqrt(S_norm_square_bar);
 }
