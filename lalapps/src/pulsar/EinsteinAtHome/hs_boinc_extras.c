@@ -1539,6 +1539,8 @@ int main(int argc, char**argv) {
                          BOINC_DIAG_REDIRECTSTDERR |
                          BOINC_DIAG_TRACETOSTDERR);
 
+  LogSetFile(stderr); /* send all LogPrint output to stderr */
+
   LogPrintf(LOG_NORMAL, "This program is published under the GNU General Public License, version 2\n");
   LogPrintf(LOG_NORMAL, "For details see http://einstein.phys.uwm.edu/license.php\n");
   LogPrintf(LOG_NORMAL, "This Einstein@home App was built at: " __DATE__ " " __TIME__ "\n");
@@ -1583,8 +1585,10 @@ int main(int argc, char**argv) {
     } /* if DEBUG_LEVEL_FNAME file found */
 
   {
-    char buf[8];
-    if (setenv("LAL_DEBUG_LEVEL", myultoa(eah_lal_debug_level, buf, 8), 1)) {
+    char buf[16+8];
+    strcpy(buf, "LAL_DEBUG_LEVEL=");
+    myultoa(eah_lal_debug_level, buf+16, 8);
+    if (putenv(buf)) {
       LogPrintf(LOG_CRITICAL,"ERROR: couldn't set LAL_DEBUG_LEVEL env: %d\n", errno);
     }
   }

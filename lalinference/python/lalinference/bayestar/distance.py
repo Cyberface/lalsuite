@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2016  Leo Singer
+# Copyright (C) 2017  Leo Singer
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -18,9 +18,8 @@
 """
 Distance ansatz functions.
 """
-from __future__ import division
-__author__ = "Leo Singer <leo.singer@ligo.org>"
 
+from __future__ import division
 
 import numpy as np
 import healpy as hp
@@ -38,8 +37,8 @@ from ._distance import *
 
 
 __all__ = tuple(_ for _ in _distance.__dict__ if not _.startswith('_')) + (
-    'ud_grade', 'conditional_kde', 'cartesian_kde_to_moments', 'principal_axes',
-    'parameters_to_moments', 'find_injection_distance')
+    'ud_grade', 'conditional_kde', 'cartesian_kde_to_moments',
+    'principal_axes', 'parameters_to_moments')
 
 
 def _add_newdoc_ufunc(func, doc):
@@ -49,7 +48,8 @@ def _add_newdoc_ufunc(func, doc):
     try:
         np.lib.add_newdoc_ufunc(func, doc)
     except ValueError as e:
-        if e.message == 'Cannot change docstring of ufunc with non-NULL docstring':
+        msg = 'Cannot change docstring of ufunc with non-NULL docstring'
+        if e.args[0] == msg:
             pass
 
 
@@ -133,7 +133,8 @@ Test against numerical estimate:
 >>> distsigma = 5.0
 >>> distnorm = 1.0
 >>> p = 0.16  # "one-sigma" lower limit
->>> expected_r16 = scipy.optimize.brentq(lambda r: conditional_cdf(r, distmu, distsigma, distnorm) - p, 0.0, 100.0)
+>>> expected_r16 = scipy.optimize.brentq(
+... lambda r: conditional_cdf(r, distmu, distsigma, distnorm) - p, 0.0, 100.0)
 >>> r16 = conditional_ppf(p, distmu, distsigma, distnorm)
 >>> np.testing.assert_almost_equal(expected_r16, r16)
 """)
@@ -376,7 +377,8 @@ def _conditional_kde(n, X, Cinv, W):
 
 
 def conditional_kde(n, datasets, inverse_covariances, weights):
-    return [_conditional_kde(n, X, Cinv, W)
+    return [
+        _conditional_kde(n, X, Cinv, W)
         for X, Cinv, W in zip(datasets, inverse_covariances, weights)]
 
 
@@ -552,8 +554,3 @@ def parameters_to_marginal_moments(prob, distmu, distsigma):
     rbar = (prob * distmean).sum()
     r2bar = (prob * (np.square(diststd) + np.square(distmean))).sum()
     return rbar, np.sqrt(r2bar - np.square(rbar))
-
-
-def find_injection_distance(true_dist, prob, distmu, distsigma, distnorm):
-    return np.sum(prob * conditional_cdf(
-        true_dist, distmu, distsigma, distnorm))

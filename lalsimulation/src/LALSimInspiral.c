@@ -119,6 +119,7 @@ static const char *lalSimulationApproximantNames[] = {
     INITIALIZE_NAME(EOBNRv2HM),
     INITIALIZE_NAME(EOBNRv2_ROM),
     INITIALIZE_NAME(EOBNRv2HM_ROM),
+    INITIALIZE_NAME(TEOBResum_ROM),
     INITIALIZE_NAME(SEOBNRv1),
     INITIALIZE_NAME(SEOBNRv2),
     INITIALIZE_NAME(SEOBNRv2_opt),
@@ -468,6 +469,20 @@ int XLALSimInspiralChooseTDWaveform(
                     deltaT, m1, m2, f_min, f_ref, distance, inclination, lambda1, lambda2,
                     XLALSimInspiralWaveformParamsLookupPNTidalOrder(LALparams), amplitudeO, phaseO);
             break;
+
+        case TEOBResum_ROM:
+          /* Waveform-specific sanity checks */
+          if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALparams) )
+            ABORT_NONDEFAULT_FRAME_AXIS(LALparams);
+          if( !XLALSimInspiralWaveformParamsModesChoiceIsDefault(LALparams) )
+            ABORT_NONDEFAULT_MODES_CHOICE(LALparams);
+          if( !XLALSimInspiralWaveformParamsPNSpinOrderIsDefault(LALparams) )
+            ABORT_NONDEFAULT_SPIN_ORDER(LALparams);
+          if( !checkSpinsZero(S1x, S1y, S1z, S2x, S2y, S2z) )
+            ABORT_NONZERO_SPINS(LALparams);
+          /* Call the waveform driver routine */
+          ret = XLALSimInspiralTEOBResumROM(hplus,hcross,phiRef,deltaT,f_min,f_ref,distance,inclination,m1,m2,lambda1,lambda2);
+          break;
 
 	case EccentricTD:
 	    /* Waveform-specific sanity checks */
@@ -840,7 +855,7 @@ int XLALSimInspiralChooseTDWaveform(
             /* Call the waveform driver routine */
             ret = XLALSimInspiralNRWaveformGetHplusHcross(hplus, hcross,
                     phiRef, inclination, deltaT, m1, m2, distance, f_min, f_ref, S1x, S1y, S1z,
-                    S2x, S2y, S2z, XLALSimInspiralWaveformParamsLookupNumRelData(LALparams));
+                    S2x, S2y, S2z, XLALSimInspiralWaveformParamsLookupNumRelData(LALparams), XLALSimInspiralWaveformParamsLookupLmax(LALparams));
             break;
 
 
@@ -4431,6 +4446,7 @@ int XLALSimInspiralImplementedTDApproximants(
         case SEOBNRv4:
         case SEOBNRv4_opt:
         case NR_hdf5:
+        case TEOBResum_ROM:
             return 1;
 
         default:
@@ -4911,6 +4927,7 @@ int XLALSimInspiralGetSpinSupportFromApproximant(Approximant approx){
     case EOB:
     case IMRPhenomFA:
     case GeneratePPN:
+    case TEOBResum_ROM:
       spin_support=LAL_SIM_INSPIRAL_SPINLESS;
       break;
     default:
@@ -4960,6 +4977,7 @@ int XLALSimInspiralApproximantAcceptTestGRParams(Approximant approx){
     case EOBNRv2_ROM:
     case EOBNRv2HM:
     case EOBNRv2HM_ROM:
+    case TEOBResum_ROM:
     case SEOBNRv1:
     case SEOBNRv2:
     case SEOBNRv2_opt:
@@ -6198,14 +6216,14 @@ int XLALSimInspiralChooseTDWaveformOLD(
 	     break;
 
         case NR_hdf5:
-            /* Waveform-specific sanity checks */
-	    numrel_data_path = XLALSimInspiralGetNumrelDataOLD(waveFlags);
-            /* Call the waveform driver routine */
-            ret = XLALSimInspiralNRWaveformGetHplusHcross(hplus, hcross,
-                    phiRef, inclination, deltaT, m1, m2, distance, f_min, f_ref, S1x, S1y, S1z,
-							  S2x, S2y, S2z, numrel_data_path);
-	    XLALFree(numrel_data_path);
-            break;
+			/* Waveform-specific sanity checks */
+			numrel_data_path = XLALSimInspiralGetNumrelDataOLD(waveFlags);
+			/* Call the waveform driver routine */
+			ret = XLALSimInspiralNRWaveformGetHplusHcross(hplus, hcross,
+					phiRef, inclination, deltaT, m1, m2, distance, f_min, f_ref, S1x, S1y, S1z,
+					S2x, S2y, S2z, numrel_data_path, LAL_SIM_INSPIRAL_MODES_CHOICE_ALL);
+			XLALFree(numrel_data_path);
+			break;
 
 
         default:

@@ -25,7 +25,6 @@ Public-domain cartographic data is courtesy of Natural Earth
 (http://www.naturalearthdata.com) and processed with MapShaper
 (http://www.mapshaper.org).
 """
-__author__ = "Leo Singer <leo.singer@ligo.org>"
 
 
 # Command line interface
@@ -33,6 +32,9 @@ __author__ = "Leo Singer <leo.singer@ligo.org>"
 import argparse
 from lalinference.bayestar import command
 parser = command.ArgumentParser(parents=[command.figure_parser])
+parser.add_argument(
+    '--annotate', default=False, action='store_true',
+    help='annotate plot with information about the event')
 parser.add_argument(
     '--contour', metavar='PERCENT', type=float, nargs='+',
     help='plot contour enclosing this percentage of'
@@ -77,12 +79,14 @@ skymap, metadata = fits.read_sky_map(opts.input.name, nest=None)
 nside = hp.npix2nside(len(skymap))
 
 if opts.geo:
-    dlon = -lal.GreenwichMeanSiderealTime(lal.LIGOTimeGPS(metadata['gps_time'])) % (2*np.pi)
+    dlon = -lal.GreenwichMeanSiderealTime(
+        lal.LIGOTimeGPS(metadata['gps_time'])) % (2*np.pi)
 else:
     dlon = 0
 
 # Convert sky map from probability to probability per square degree.
-probperdeg2 = skymap / hp.nside2pixarea(nside, degrees=True)
+deg2perpix = hp.nside2pixarea(nside, degrees=True)
+probperdeg2 = skymap / deg2perpix
 
 # Plot sky map.
 vmax = probperdeg2.max()
@@ -105,8 +109,8 @@ if opts.contour:
 
 # Add continents.
 if opts.geo:
-    geojson_filename = os.path.join(os.path.dirname(plot.__file__),
-        'ne_simplified_coastline.json')
+    geojson_filename = os.path.join(
+        os.path.dirname(plot.__file__), 'ne_simplified_coastline.json')
     with open(geojson_filename, 'r') as geojson_file:
         geojson = json.load(geojson_file)
     for shape in geojson['geometries']:
@@ -133,10 +137,23 @@ for ra, dec in radecs:
         ra = plot.reference_angle(ra + dlon)
     else:
         ra = plot.wrapped_angle(ra + dlon)
-    ax.plot(ra, dec, '*', markerfacecolor='white', markeredgecolor='black', markersize=10)
+    ax.plot(
+        ra, dec, '*',
+        markerfacecolor='white', markeredgecolor='black', markersize=10)
 
 # Add a white outline to all text to make it stand out from the background.
 plot.outline_text(ax)
+
+if opts.annotate:
+    text = 'event ID: {}'.format(metadata['objid'])
+    text += '\nFITS file: {}'.format(opts.input.name)
+    if opts.contour:
+        pp = np.round(opts.contour).astype(int)
+        ii = np.round(np.searchsorted(np.sort(cls), opts.contour) *
+                      deg2perpix).astype(int)
+        for i, p in zip(ii, pp):
+            text += '\n{:d}% area: {:d} deg$^2$'.format(p, i, grouping=True)
+    ax.text(1, 1, text, transform=ax.transAxes, horizontalalignment='right')
 
 # Show or save output.
 opts.output()

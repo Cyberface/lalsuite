@@ -19,12 +19,9 @@
 Convenience function to produce a sky map from LIGO-LW rows.
 """
 from __future__ import division
-__author__ = 'Leo Singer <leo.singer@ligo.org>'
-
 
 import itertools
 import logging
-import time
 import numpy as np
 import healpy as hp
 from astropy.table import Column, Table
@@ -33,7 +30,6 @@ from .decorator import with_numpy_random_seed
 from . import distance
 from . import ligolw
 from . import filter
-from . import postprocess
 from . import timing
 from . import moc
 from .. import healpix_tree
@@ -47,7 +43,8 @@ except ImportError:
         'without HEALPix support. Please install CHEALPix '
         '(https://sourceforge.net/projects/healpix/files/Healpix_3.30/'
         'chealpix-3.30.0.tar.gz), rebuild LALInference, and try again.')
-import lal, lalsimulation
+import lal
+import lalsimulation
 from glue.ligolw import table as ligolw_table
 from glue.ligolw import utils as ligolw_utils
 from glue.ligolw import lsctables
@@ -72,7 +69,7 @@ def toa_phoa_snr_log_prior(
 @with_numpy_random_seed
 def emcee_sky_map(
         logl, loglargs, logp, logpargs, xmin, xmax,
-        nside=-1, chain_dump=None, max_horizon=1.0):
+        nside=-1, chain_dump=None):
     # Set up sampler
     import emcee
     from sky_area.sky_area_clustering import Clustered3DKDEPosterior
@@ -129,7 +126,6 @@ def emcee_sky_map(
     # Read back in with np.load().
     if chain_dump:
         # Undo numerical conditioning of distances; convert back to Mpc
-        chain[:, 2] *= max_horizon
         names = 'ra sin_dec distance cos_inclination twopsi time'.split()[:ndim]
         np.save(chain_dump, np.rec.fromrecords(chain, names=names))
 
@@ -142,8 +138,8 @@ def emcee_sky_map(
 def ligolw_sky_map(
         sngl_inspirals, waveform, f_low,
         min_distance=None, max_distance=None, prior_distance_power=None,
-        method='toa_phoa_snr', psds=None, nside=-1, chain_dump=None,
-        phase_convention='antifindchirp', snr_series=None,
+        cosmology=False, method='toa_phoa_snr', psds=None, nside=-1,
+        chain_dump=None, phase_convention='antifindchirp', snr_series=None,
         enable_snr_series=False):
     """Convenience function to produce a sky map from LIGO-LW rows. Note that
     min_distance and max_distance should be in Mpc.
@@ -197,6 +193,10 @@ def ligolw_sky_map(
 
     # Center detector array.
     locations -= np.sum(locations * weights.reshape(-1, 1), axis=0) / np.sum(weights)
+
+    if cosmology:
+        log.warn('Enabling cosmological prior. '
+                 'This feature is UNREVIEWED.')
 
     if enable_snr_series:
         log.warn('Enabling input of SNR time series. '
@@ -273,10 +273,11 @@ def ligolw_sky_map(
                          'mixed lengths')
 
     # Perform sanity checks that the middle sample of the SNR time series match
-    # the sngl_inspiral records.
+    # the sngl_inspiral records. Relax valid interval slightly from
+    # +/- 0.5 deltaT to +/- 0.6 deltaT for floating point roundoff error.
     for sngl_inspiral, series in zip(sngl_inspirals, snr_series):
         if np.abs(0.5 * (nsamples - 1) * series.deltaT
-                  + float(series.epoch - sngl_inspiral.end)) >= 0.5 * deltaT:
+                  + float(series.epoch - sngl_inspiral.end)) >= 0.6 * deltaT:
             raise ValueError('BAYESTAR expects the SNR time series to be '
                              'centered on the sngl_inspiral end times')
 
@@ -287,10 +288,6 @@ def ligolw_sky_map(
 
     # Collect all of the SNR series in one array.
     snr_series = np.vstack([series.data.data for series in snr_series])
-
-    # Fudge factor for excess estimation error in gstlal_inspiral.
-    fudge = 0.83
-    snr_series *= fudge
 
     # If using 'findchirp' phase convention rather than gstlal/mbta,
     # then flip signs of phases.
@@ -338,19 +335,13 @@ def ligolw_sky_map(
                           'undefined at min_distance=0')
                           .format(prior_distance_power))
 
-    # Rescale distances to horizon distance of most sensitive detector.
-    max_horizon = np.max(horizons)
-    horizons /= max_horizon
-    min_distance /= max_horizon
-    max_distance /= max_horizon
-
     # Time and run sky localization.
     log.debug('starting computationally-intensive section')
     start_time = lal.GPSTimeNow()
     if method == 'toa_phoa_snr':
         skymap, log_bci, log_bsn = _sky_map.toa_phoa_snr(
-            min_distance, max_distance, prior_distance_power, gmst, sample_rate,
-            toas, snr_series, responses, locations, horizons)
+            min_distance, max_distance, prior_distance_power, cosmology, gmst,
+            sample_rate, toas, snr_series, responses, locations, horizons)
         skymap = Table(skymap)
         skymap.meta['log_bci'] = log_bci
         skymap.meta['log_bsn'] = log_bsn
@@ -364,7 +355,7 @@ def ligolw_sky_map(
                 max_abs_t),
             xmin=[0, -1, min_distance, -1, 0, 0],
             xmax=[2*np.pi, 1, max_distance, 1, 2*np.pi, 2 * max_abs_t],
-            nside=nside, chain_dump=chain_dump, max_horizon=max_horizon * fudge)
+            nside=nside, chain_dump=chain_dump)
     else:
         raise ValueError('Unrecognized method: %s' % method)
 
@@ -384,14 +375,6 @@ def ligolw_sky_map(
     skymap.meta['distmean'] = rbar
     skymap.meta['diststd'] = np.sqrt(r2bar - np.square(rbar))
 
-    # Rescale
-    rescale = max_horizon * fudge
-    skymap['DISTMU'] *= rescale
-    skymap['DISTSIGMA'] *= rescale
-    skymap.meta['distmean'] *= rescale
-    skymap.meta['diststd'] *= rescale
-    skymap['DISTNORM'] /= np.square(rescale)
-
     end_time = lal.GPSTimeNow()
     log.debug('finished computationally-intensive section')
 
@@ -409,21 +392,13 @@ def ligolw_sky_map(
 
 def gracedb_sky_map(
         coinc_file, psd_file, waveform, f_low, min_distance=None,
-        max_distance=None, prior_distance_power=None,
+        max_distance=None, prior_distance_power=None, cosmology=False,
         method='toa_phoa_snr', nside=-1, chain_dump=None,
         f_high_truncate=1.0, enable_snr_series=False):
     # Read input file.
     log.debug('reading coinc file')
     xmldoc, _ = ligolw_utils.load_fileobj(
         coinc_file, contenthandler=ligolw.LSCTablesAndSeriesContentHandler)
-
-    # Locate the tables that we need.
-    coinc_inspiral_table = ligolw_table.get_table(xmldoc,
-        lsctables.CoincInspiralTable.tableName)
-    coinc_map_table = ligolw_table.get_table(xmldoc,
-        lsctables.CoincMapTable.tableName)
-    sngl_inspiral_table = ligolw_table.get_table(xmldoc,
-        lsctables.SnglInspiralTable.tableName)
 
     # Attempt to determine phase convention from process table.
     try:
@@ -439,12 +414,9 @@ def gracedb_sky_map(
         phase_convention = 'antifindchirp'
 
     # Locate the sngl_inspiral rows that we need.
-    coinc_inspiral = coinc_inspiral_table[0]
-    coinc_event_id = coinc_inspiral.coinc_event_id
-    event_ids = [coinc_map.event_id for coinc_map in coinc_map_table
-        if coinc_map.coinc_event_id == coinc_event_id]
-    sngl_inspirals = [next((sngl_inspiral for sngl_inspiral in sngl_inspiral_table
-        if sngl_inspiral.event_id == event_id)) for event_id in event_ids]
+    sngl_inspirals, = ligolw.coinc_and_sngl_inspirals_for_xmldoc(
+        xmldoc, coinc_def=None).values()
+    sngl_inspirals = list(sngl_inspirals)
 
     # Try to load complex SNR time series.
     snrs = ligolw.snr_series_by_sngl_inspiral_id_for_xmldoc(xmldoc)
@@ -470,10 +442,10 @@ def gracedb_sky_map(
 
     # Run sky localization
     return ligolw_sky_map(sngl_inspirals, waveform, f_low,
-        min_distance, max_distance, prior_distance_power, method=method,
-        nside=nside, psds=psds, phase_convention=phase_convention,
-        chain_dump=chain_dump, snr_series=snrs,
-        enable_snr_series=enable_snr_series)
+        min_distance, max_distance, prior_distance_power, cosmology,
+        method=method, nside=nside, psds=psds,
+        phase_convention=phase_convention, chain_dump=chain_dump,
+        snr_series=snrs, enable_snr_series=enable_snr_series)
 
 
 def rasterize(skymap):

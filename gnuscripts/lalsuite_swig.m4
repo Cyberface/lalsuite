@@ -2,7 +2,7 @@
 # lalsuite_swig.m4 - SWIG configuration
 # Author: Karl Wette, 2011--2017
 #
-# serial 96
+# serial 99
 
 AC_DEFUN([_LALSUITE_CHECK_SWIG_VERSION],[
   # $0: check the version of $1, and store it in ${swig_version}
@@ -54,7 +54,7 @@ AC_DEFUN([LALSUITE_ENABLE_SWIG],[
     # C++ is required to build Octave wrappings
     LALSUITE_REQUIRE_CXX
   ])
-  LALSUITE_ENABLE_SWIG_LANGUAGE([Python],[false],[
+  LALSUITE_ENABLE_SWIG_LANGUAGE([Python],[true],[
     # Python is required to configure Python wrappings
     LALSUITE_REQUIRE_PYTHON([2.6])
   ])
@@ -115,7 +115,8 @@ AC_DEFUN([LALSUITE_USE_SWIG],[
       _LALSUITE_CHECK_SWIG_VERSION([${SWIG}])
       LALSUITE_VERSION_COMPARE([${swig_version}],[<],[${swig_min_version}],[
         AC_MSG_RESULT([no (${swig_version})])
-        AC_MSG_ERROR([SWIG version ${swig_min_version} or later is required ${swig_min_version_info}])
+        AC_MSG_ERROR([[SWIG version ${swig_min_version} or later is required ${swig_min_version_info}
+SWIG support can be disabled by using the --disable-swig configure option]])
       ])
       AC_MSG_RESULT([yes (${swig_version})])
     ],[
@@ -131,7 +132,8 @@ AC_DEFUN([LALSUITE_USE_SWIG],[
           AC_MSG_RESULT([no (${swig_version})])
         ])
       ],[
-        AC_MSG_ERROR([SWIG version ${swig_min_version} or later is required ${swig_min_version_info}])
+        AC_MSG_ERROR([[SWIG version ${swig_min_version} or later is required ${swig_min_version_info}
+SWIG support can be disabled by using the --disable-swig configure option]])
       ])
       SWIG="${ac_cv_path_SWIG}"
     ])
@@ -493,8 +495,6 @@ sys.stdout.write(' -L' + cfg.get_python_lib())
 sys.stdout.write(' -L' + cfg.get_python_lib(plat_specific=1))
 sys.stdout.write(' -L' + cfg.get_python_lib(plat_specific=1,standard_lib=1))
 sys.stdout.write(' -L' + cfg.get_config_var('LIBDIR'))
-sys.stdout.write(' -lpython' + cfg.get_config_var('VERSION'))
-sys.stdout.write(' ' + cfg.get_config_var('LIBS'))
 EOD`]
     AS_IF([test $? -ne 0],[
       AC_MSG_ERROR([could not determine Python linker flags])
@@ -511,6 +511,9 @@ EOD`]
       ${swig_python_ldflags}
       ],[SWIG_PYTHON_LDFLAGS="${SWIG_PYTHON_LDFLAGS} ${flag}"]
     )
+
+    # allow addition of extra Python linker flags
+    AC_ARG_VAR([EXTRA_SWIG_PYTHON_LDFLAGS],[Extra linker flags for SWIG Python bindings])
 
     # check for Python and NumPy headers
     LALSUITE_PUSH_UVARS
