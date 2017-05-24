@@ -1433,12 +1433,6 @@ int XLALSimInspiralChooseFDWaveform(
 								deltaF, f_min, f_max, f_ref,
 								LALparams);
 			if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
-			for (UINT4 idx=0;idx<(*hptilde)->data->length;idx++) {
-                PhPpolp=(*hptilde)->data->data[idx];
-                PhPpolc=(*hctilde)->data->data[idx];
-                (*hptilde)->data->data[idx] =cos(2.*zeta_polariz)*PhPpolp+sin(2.*zeta_polariz)*PhPpolc;
-                (*hctilde)->data->data[idx]=cos(2.*zeta_polariz)*PhPpolc-sin(2.*zeta_polariz)*PhPpolp;
-            }
             break;
 
 
