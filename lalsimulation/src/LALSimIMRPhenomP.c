@@ -2229,6 +2229,9 @@ static int PhenomPv3Core(
 
      /* Time correction is t(f_final) = 1/(2pi) dphi/df (f_final) */
      REAL8 t_corr = gsl_spline_eval_deriv(phiI, f_final, acc) / (LAL_TWOPI);
+
+     COMPLEX16 PhPpolp, PhPpolc; /* for polarisation application */
+
      /* Now correct phase */
      for (UINT4 i=0; i<L_fCut; i++) { // loop over frequency points in sequence
        double f = freqs->data[i];
@@ -2236,6 +2239,14 @@ static int PhenomPv3Core(
        int j = i + offset; // shift index for frequency series if needed
        ((*hptilde)->data->data)[j] *= phase_corr;
        ((*hctilde)->data->data)[j] *= phase_corr;
+
+       /* apply polarisation angle - Moved this from LALSimInspiral to indide here for PhenomPv3 */
+       /* TODO: CHECK THIS! */
+       PhPpolp=(*hptilde)->data->data[i];
+       PhPpolc=(*hctilde)->data->data[i];
+       (*hptilde)->data->data[i]=cos(2.*(pv3->zeta_polariz))*PhPpolp+sin(2.*(pv3->zeta_polariz))*PhPpolc;
+       (*hctilde)->data->data[i]=cos(2.*(pv3->zeta_polariz))*PhPpolc-sin(2.*(pv3->zeta_polariz))*PhPpolp;
+
      }
 
      cleanup:
