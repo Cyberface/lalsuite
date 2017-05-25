@@ -1752,6 +1752,18 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     p->f_ref_Orb_Hz = 0.5 * p->f_ref; /* factor of 0.5 to go from GW to Orbital frequency */
     /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
     /* note that the reference frequency that you pass into InitializeSystem is the GW frequency */
+
+/*     printf("p->m1_SI = %f, p->m2_SI = %f,\
+ LHAT_COS_THETA = %f, LHAT_PHI = %f,\
+ cos(p->chi1_theta) = %f, p->chi1_phi = %f, p->chi1_mag = %f,\
+ cos(p->chi2_theta) = %f, p->chi2_phi = %f, p->chi2_mag = %f,\
+ p->f_ref = %f\n", p->m1_SI, p->m2_SI,
+                                             LHAT_COS_THETA, LHAT_PHI,
+                                             cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+                                             cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+                                             p->f_ref);
+*/
+
     *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
                         LHAT_COS_THETA, LHAT_PHI,
                         cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
@@ -1764,6 +1776,12 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     /* xi uses the Orbital frequency */
     REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
     angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
+
+    /* checking for nans */
+    if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
+        printf("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
+    }
+
     p->alphaRef = angles.x;
     p->epsilonRef = angles.y;
 
@@ -1771,6 +1789,8 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     // printf("before nudge: p->cos(betaRef) = %.16f\n", angles.z);
 
     /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+    /* NOTE: Later I round this angle regardless if it is greater than one to.
+       See comment next to that bit of code. */
     if (angles.z > 1.0) {
         nudge(&(angles.z), 1.0, 1e-6);
     }
@@ -2328,14 +2348,31 @@ static int PhenomPv3CoreOneFrequency(
     REAL8 f_Orb_Hz = 0.5 * fHz;
     REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
     angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+
+    // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+
+
+    /* checking for nans */
+    if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
+        printf("nan found at frequency = %.4f:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", fHz, angles.x, angles.y, angles.z);
+    }
+
     /* save angles and shift according to reference angles */
     REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
     REAL8 epsilon = angles.y - pv3->epsilonRef;
     /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
-    if (angles.z > 1.0) {
+    // if (angles.z > 1.0) {
+        /* NOTE: SK This is possible dangerous. This will round the angle to 1. if the delta is < 1e-6. */
+        /* The reason is that for aligned spins this angles.z === cos(beta) should be = 1.
+           and due to rounding this can cause some unwanted jumps in hcross when viewed edge-on
+           where hcross should be zero. Leaving this fix here now but should look for a better solution!
+           Maybe a solution in the angles code. */
         nudge(&(angles.z), 1.0, 1e-6);
-    }
+        // nudge(&(angles.z), 1.0, 1e-6);
+    // }
     REAL8 beta = acos(angles.z);
+    // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+    // beta = 0.;
     // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
     // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, angles.z = %.16f\n", fHz, alpha, epsilon, angles.z);
 
