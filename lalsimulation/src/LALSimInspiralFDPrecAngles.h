@@ -1,3 +1,6 @@
+#ifndef _LALSIM_INS_FD_PREC_ANGLES
+#define _LALSIM_INS_FD_PREC_ANGLES
+
 /*
  * Copyright (C) 2017 Katerina Chatziioannou, Sebastian Khan
  *
@@ -17,9 +20,6 @@
  *  MA  02111-1307  USA
  */
 
-#ifndef _LALSIM_INS_FD_PREC_ANGLES
-#define _LALSIM_INS_FD_PREC_ANGLES
-
 #include <lal/LALConstants.h>
 
 typedef struct tagvector
@@ -37,14 +37,10 @@ typedef struct tagsystemquantites
     double constants_zeta[6];
     double constants_L[6];
     double phiz_0, zeta_0, constant_of_S;
-    double c_1, Ssqave, sqrtSsqave, Seff, c1_2, nu_2, nu_4, c_1_over_nu;
+    double c_1, Ssqave, sqrtSsqave, Seff, c1_2, nu_2, nu_4, c_1_over_nu, S0_norm;
     double S1_norm_2, S2_norm_2;
-    double dot1, dot2, dot12;
+    double dot1, dot2, dot12, dot1n, dot2n;
     double deltam_over_M, nu, q;
 } sysq;
-
-void XLALComputeAngles(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
-
-void XLALComputeAngles3PN(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
 
 #endif /* _LALSIM_INS_FD_PREC_ANGLES */
