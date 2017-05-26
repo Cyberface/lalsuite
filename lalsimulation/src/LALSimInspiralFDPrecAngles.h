@@ -37,9 +37,9 @@ typedef struct tagsystemquantites
     double constants_zeta[6];
     double constants_L[6];
     double phiz_0, zeta_0, constant_of_S;
-    double c_1, Ssqave, sqrtSsqave, Seff, c1_2, nu_2, nu_4, c_1_over_nu;
+    double c_1, Ssqave, sqrtSsqave, Seff, c1_2, nu_2, nu_4, c_1_over_nu, S0_norm;
     double S1_norm_2, S2_norm_2;
-    double dot1, dot2, dot12;
+    double dot1, dot2, dot12, dot1n, dot2n;
     double deltam_over_M, nu, q;
 } sysq;
 
