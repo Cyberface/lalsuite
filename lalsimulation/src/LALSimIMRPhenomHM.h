@@ -24,6 +24,7 @@
 // #define NMODES_MAX 5
 #define NMODES_MAX 6 /* NOTE: length of ModeArray in LALSimIMRPhenomHM.c */
 // #define NMODES_MAX 2
+// #define L_MAX_PLUS_1 6
 #define L_MAX_PLUS_1 5 /* NOTE: maximum ell in ModeArray in LALSimIMRPhenomHM.c + 1 */
 // #define NMODES_MAX 4
 

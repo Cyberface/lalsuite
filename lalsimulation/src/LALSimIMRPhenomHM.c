@@ -44,9 +44,11 @@
 //FP: make PhenomDQuantities, powers_of_MfAtScale_22_amp, etc. EXTERNAL?
 
 /* List of modelled modes */
+/* NOTE: l=2, m=2 should be the first mode in the list called ModeArray. Or the code will break */
 static int NMODES = NMODES_MAX;
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {5,5} };
 static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4}, {4,3} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {4,3} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
@@ -64,6 +66,7 @@ static const double cShift[7] = {0.0,
 #define Mf_CUT_HM 0.5
 /* Activates amplitude part of the model */
 #define AmpFlagTrue 1
+#define AmpFlagFalse 0
 #define MfAtScale_wf_amp 0.0001
  /* Scale factor multiplying the ringdown frequency for mode (l,m).
   * Used to estimate the end frequency for each mode.
@@ -813,7 +816,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
         PhiInsPrefactors *phi_prefactors,
         double Rholm,
         double Taulm,
-        double phi_precalc, /**< m*phi0 + HMphaseRef*/
+        double phi_precalc, /**< 0.5*phi22(fref) - phi0*/
         PhenomDStorage *PhenomDQuantities,
         UsefulMfPowers *powers_of_MfAtScale_22_amp,
         UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
@@ -839,7 +842,8 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
 
     /* Factor of m spherical harmonic mode b/c phi0 is orbital phase */
     /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
-    HMphase -= phi_precalc;
+    HMphase -= mm * phi_precalc;
+    // HMphase -= mm * phi_precalc;
 
     // Debug lines
     // double Seta = sqrt(1.0 - 4.0*pPhi->eta);
@@ -919,7 +923,6 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
 
     return t0;
 }
-
 
 int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z);
 int EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1z, REAL8 *chi2z){
@@ -1075,6 +1078,9 @@ int XLALIMRPhenomHMMultiModehlm(
 
      const REAL8 t0 = Computet0(eta, chi1z, chi2z, PhenomDQuantities.finspin);
 
+     double phi_22_at_MfRef = 0.0;
+     double phi_const = 0.0;
+
      for( int j=0; j<NMODES; j++ ){
 
          int ell = ModeArray[j][0];
@@ -1128,21 +1134,6 @@ int XLALIMRPhenomHMMultiModehlm(
              XLAL_ERROR(XLAL_EDOM);
          }
 
-         double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
-         HMphaseRef = HMphaseRef * 0.; //FIXME: This seems unnecessary but maybe it's a placeholder?
-
-         /* Compute reference phase at reference frequency */
-
-         // Factor of m spherical harmonic mode b/c phi0 is orbital phase
-         /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
-         /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
-         to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
-         if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
-         // REAL8 phi_precalc = mm*phi0 + HMphaseRef;
-         /* FIXME: */
-         /* NOTE: Quick and dirty fix to get a reference phase working.*/
-         /* NOTE: Moving the reference phase to the spherical harmonic.*/
-         REAL8 phi_precalc = phi0 * 0.;
 
          //FP: malloc and then free?
          /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
@@ -1170,6 +1161,31 @@ int XLALIMRPhenomHMMultiModehlm(
          /* NOTE: Do I need this bit? */
          /* XLALUnitMultiply(hlm->sampleUnits, hlm->sampleUnits, &lalSecondUnit); */
 
+         /* begin computing reference phase shift*/
+         /* NOTE: Only works if l=2 and m=2 is first in the list */
+         if (ell == 2 && mm == 2 && j==0){
+             /* compute the reference phase constant to add to each mode */
+             /* NOTE: This only needs to be done once but I'm too lazy to optimise. */
+             /* We enforce that phi_22(fref) = 2.0 * phiRef
+              * Where phiRef is the inpute reference orbital phase. */
+             /* Evaluating XLALSimIMRPhenomHMPhase for the ell=2, mm=2 mode */
+             phi_22_at_MfRef = XLALSimIMRPhenomHMPhase( MfRef, 2, &z, pn, pPhi, &phi_prefactors, 1.0, 1.0 );
+             phi_const = 0.5 * phi_22_at_MfRef - phi0;
+             /* phase_lm (f) -= m*phi_const */
+         } else if (ell == 2 && mm == 2 && j!=0){
+             XLALPrintError("l=2, m=2 should be the first mode in the list called ModeArray.");
+         }
+
+
+         /* end compute reference phase shift */
+
+
+
+         /* correct the time shift at the correctly scaled reference frequency */
+        //  double Mf_22_REF =  XLALSimIMRPhenomHMFreqDomainMap(MfRef, ell, mm, &PhenomDQuantities, AmpFlagFalse);
+
+
+
          /* Now generate the waveform for a single (l,m) mode, i.e. compute hlm*/
          /* Loop over frequency */
          REAL8 M_sec_dF = M_sec * deltaF;
@@ -1188,12 +1204,20 @@ int XLALIMRPhenomHMMultiModehlm(
     //FP: is all of PhenomDQuantities necessary?
     //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
     //FP: pow_Mf_wf_prefactor[ell][mm]
-            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
+            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
             // (hlm->data->data)[i] *= cexp(-I * t0*(Mf-MfRef)*(2.0-mm) );
             (hlm->data->data)[i] *= cexp(-It0*(Mf-MfRef)); //FIXME: 2.0-mm is gone, is this intended? If yes, delete this comment.
+
+            // double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf, ell, mm, &PhenomDQuantities, AmpFlagFalse);
+            // (hlm->data->data)[i] *= cexp(-It0*(Mf_22-Mf_22_REF));
+
+            // (hlm->data->data)[i] *= cexp(-It0*(Mf-MfRef)*mm/2.0);
+            // (hlm->data->data)[i] *= cexp(-It0 * ( (Mf*mm/2.0) - MfRef ));
+
+
             /* From phenomD for referene*/
             // REAL8 amp = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
             // REAL8 phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors);
@@ -1332,8 +1356,8 @@ int XLALIMRPhenomHMMultiModeStrain(
       } else {
           sym = 1;
       }
-    //   FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
-    FDAddMode( *hptilde, *hctilde, hlm, inclination, phi0, ell, mm, sym); /* Added phi0 here as a quick fix for the reference phase. not sure if it should be m * phi0 or m/2*phi0 . */
+    FDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+    // FDAddMode( *hptilde, *hctilde, hlm, inclination, phi0, ell, mm, sym); /* Added phi0 here as a quick fix for the reference phase. not sure if it should be m * phi0 or m/2*phi0 . */
     }
 
 
@@ -1521,16 +1545,16 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
          XLAL_ERROR(XLAL_EDOM);
      }
 
-     double HMphaseRef = XLALSimIMRPhenomHMPhase( MfRef, mm, &z, pn, pPhi, &phi_prefactors, Rholm, Taulm );
-     // printf("HMphaseRef = %f\n",HMphaseRef);
-     /* compute reference phase at reference frequency */
+      /* compute the reference phase constant to add to each mode */
+      /* NOTE: This only needs to be done once but I'm too lazy to optimise. */
+      /* We enforce that phi_22(fref) = 2.0 * phiRef
+       * Where phiRef is the inpute reference orbital phase. */
+      /* Evaluating XLALSimIMRPhenomHMPhase for the ell=2, mm=2 mode */
+      double phi_22_at_MfRef = XLALSimIMRPhenomHMPhase( MfRef, 2, &z, pn, pPhi, &phi_prefactors, 1.0, 1.0 );
+      double phi_const = 0.5 * phi_22_at_MfRef - phi0;
+      /* phase_lm (f) -= m*phi_const */
+      // printf("phi_const = %f\n",phi_const);
 
-     // factor of m spherical harmonic mode b/c phi0 is orbital phase
-     /* NOTE: Does HMphaseRef already have the mm scaling? as it's m*(phi0 + phiref) */
-     /* NOTE: Because phenomD and phenomHM use the function XLALSimInspiralTaylorF2AlignedPhasing
-     to generate the inspiral SPA TF2 phase it does NOT contain the -LAL_PI / 4. phase shift.
-     if it did there would be an extra -(2.0-m) * LAL_PI/8.0 term here.*/
-     REAL8 phi_precalc = mm*phi0 + HMphaseRef;
      //FP: malloc and then free?
      /* compute amplitude ratio correction to take 22 mode in to (ell, mm) mode amplitude */
      double MfAtScale_22_amp = XLALSimIMRPhenomHMFreqDomainMap( MfAtScale_wf_amp, ell, mm, &PhenomDQuantities, AmpFlagTrue );
@@ -1564,7 +1588,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         /* construct hlm at single frequency point and return */
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_precalc, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
+        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities, &powers_of_MfAtScale_22_amp, &downsized_powers_of_MfAtScale_22_amp, &powers_of_MfAtScale_wf_amp);
 
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
         // ((*hlmtilde)->data->data)[i] *= cexp(-It0*(Mf-MfRef)*(2.0-mm) );
