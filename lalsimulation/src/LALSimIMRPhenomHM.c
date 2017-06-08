@@ -1616,6 +1616,10 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         //  ((*htilde)->data->data)[i] = amp0 * amp * cexp(-I * phi);
      }
 
+     // TODO: CHECK THE SIGN OF THE PHASE IN THIS FUNCTION because at the of XLALIMRPhenomHMMultiModeStrain I swap hplus with hcross to get the right phase convention
+     // TODO: CHECK THE SIGN OF THE PHASE IN THIS FUNCTION because at the of XLALIMRPhenomHMMultiModeStrain I swap hplus with hcross to get the right phase convention
+     // TODO: CHECK THE SIGN OF THE PHASE IN THIS FUNCTION because at the of XLALIMRPhenomHMMultiModeStrain I swap hplus with hcross to get the right phase convention
+
      LALFree(pAmp);
      LALFree(pPhi);
      LALFree(pn);
