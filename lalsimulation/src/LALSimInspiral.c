@@ -730,7 +730,7 @@ int XLALSimInspiralChooseTDWaveform(
             ABORT_NONZERO_TIDES(waveFlags);
         /* Call the waveform driver routine */
 		ret = XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z,
-			    S2x, S2y, S2z, f_min, f_ref, r, 0, 0, lambda1, lambda2,
+			    S2x, S2y, S2z, f_min, f_ref, r, 0, i, lambda1, lambda2,
 			    waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
         if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
         break;
