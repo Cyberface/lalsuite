@@ -51,7 +51,7 @@ static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4},
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {3,2}, {4,4} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1}, {3,3}, {4,4}, {4,3} };
 // static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
-// static const int ModeArray[NMODES_MAX][2] = { {2,2}, {2,1} };
+// static const int ModeArray[NMODES_MAX][2] = { {2,2} };
 
 /* List of phase shifts: the index is the azimuthal number m */
 static const double cShift[7] = {0.0,
@@ -64,6 +64,8 @@ static const double cShift[7] = {0.0,
 
 /* Dimensionless frequency of last data point in waveform */
 #define Mf_CUT_HM 0.5
+// #define Mf_CUT_HM 0.285
+// #define Mf_CUT_HM 0.2
 /* Activates amplitude part of the model */
 #define AmpFlagTrue 1
 #define AmpFlagFalse 0
@@ -71,7 +73,7 @@ static const double cShift[7] = {0.0,
  /* Scale factor multiplying the ringdown frequency for mode (l,m).
   * Used to estimate the end frequency for each mode.
   */
-#define F_FACTOR 2. /*NOTE: this can cause little jumps in the strain because of sudden termination of some modes */
+#define F_FACTOR 5. /*NOTE: this can cause little jumps in the strain because of sudden termination of some modes */
 
 
 /* START: newer functions  */
@@ -1365,15 +1367,22 @@ int XLALIMRPhenomHMMultiModeStrain(
     XLALDestroySphHarmFrequencySeries(*hlms);
     XLALFree(hlms);
 
+    // The following lines zero-pad the data to the desired f_max
+    // Very important for when performing the inverse FFT
+    const REAL8 M_sec = M * LAL_MTSUN_SI; // Add M_sec to PhenomDQuantities?
+    REAL8 f_CUT_Hz = Mf_CUT_HM/M_sec;
+
     //TODO: Add something like this from phenomD
-    // if (f_max_strain < f_max) {
-    //   // The user has requested a higher f_max than Mf=fCut.
-    //   // Resize the frequency series to fill with zeros beyond the cutoff frequency.
-    //   size_t n = (*htilde)->data->length;
-    //   size_t n_full = NextPow2(f_max / deltaF) + 1; // we actually want to have the length be a power of 2 + 1
-    //   *htilde = XLALResizeCOMPLEX16FrequencySeries(*htilde, 0, n_full);
-    //   XLAL_CHECK ( *htilde, XLAL_ENOMEM, "Failed to resize waveform COMPLEX16FrequencySeries of length %zu (for internal fCut=%f) to new length %zu (for user-requested f_max=%f).", n, fCut, n_full, f_max );
-    // }
+    if (f_max_strain < f_max) {
+      // The user has requested a higher f_max than Mf=fCut.
+      // Resize the frequency series to fill with zeros beyond the cutoff frequency.
+      size_t n_len = (*hptilde)->data->length;
+      size_t n_full = NextPow2(f_max / deltaF) + 1; // we actually want to have the length be a power of 2 + 1
+      *hptilde = XLALResizeCOMPLEX16FrequencySeries(*hptilde, 0, n_full);
+      XLAL_CHECK ( *hptilde, XLAL_ENOMEM, "Failed to resize waveform COMPLEX16FrequencySeries of length %zu (for internal f_CUT_Hz=%f) to new length %zu (for user-requested f_max=%f).", n_len, f_CUT_Hz, n_full, f_max );
+      *hctilde = XLALResizeCOMPLEX16FrequencySeries(*hctilde, 0, n_full);
+      XLAL_CHECK ( *hctilde, XLAL_ENOMEM, "Failed to resize waveform COMPLEX16FrequencySeries of length %zu (for internal f_CUT_Hz=%f) to new length %zu (for user-requested f_max=%f).", n_len, f_CUT_Hz, n_full, f_max );
+    }
 
 
 
