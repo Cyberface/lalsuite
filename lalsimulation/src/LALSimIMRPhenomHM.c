@@ -1384,6 +1384,13 @@ int XLALIMRPhenomHMMultiModeStrain(
       XLAL_CHECK ( *hctilde, XLAL_ENOMEM, "Failed to resize waveform COMPLEX16FrequencySeries of length %zu (for internal f_CUT_Hz=%f) to new length %zu (for user-requested f_max=%f).", n_len, f_CUT_Hz, n_full, f_max );
     }
 
+    // NOTE: SK: HERE I SWAP hplus with hcross to conform with LAL phase convension
+    #pragma omp parallel for
+    for (size_t i = 0; i < (*hptilde)->data->length; i++)
+    {
+       ((*hptilde)->data->data)[i] = I*((*hptilde)->data->data)[i];
+       ((*hctilde)->data->data)[i] = -I*((*hctilde)->data->data)[i];
+    }
 
 
 
