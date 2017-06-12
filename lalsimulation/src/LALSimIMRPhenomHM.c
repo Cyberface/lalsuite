@@ -680,6 +680,8 @@ int XLALSimIMRPhenomHMPhasePreComp(HMPhasePreComp *q, const INT4 ell, const INT4
     q->PhDBAterm = IMRPhenDPhase(PhDBAMf, pPhi, pn, &powers_of_PhDBAMf, &phi_prefactors, Rholm, Taulm)/ai;
 
     LALFree(extraParams);
+    LALFree(pPhi);
+    LALFree(pn);
 
     return XLAL_SUCCESS;
 
@@ -1122,6 +1124,8 @@ static REAL8 Computet0(REAL8 eta, REAL8 chi1z, REAL8 chi2z, REAL8 finspin){
     //If we just use the 22 mode then we pass 1.0, 1.0 into DPhiMRD.
     const REAL8 t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
     LALFree(extraParams);
+    LALFree(pPhi);
+    LALFree(pAmp);
     return t0;
 }
 

@@ -52,7 +52,8 @@ bin_PROGRAMS = \
 	lalsim-ns-mass-radius \
 	lalsim-ns-params \
 	lalsim-sgwb \
-	lalsim-unicorn
+	lalsim-unicorn \
+	lalsim-phenhm
 
 pkginclude_HEADERS = \
 	LALSimBlackHoleRingdown.h \
@@ -214,6 +215,7 @@ lalsim_detector_noise_SOURCES = detector_noise.c
 lalsim_detector_strain_SOURCES = detector_strain.c
 lalsim_inspiral_SOURCES = inspiral.c
 lalsim_inject_SOURCES = inject.c
+lalsim_phenhm_SOURCES = phenhm.c
 
 pkgdata_DATA = \
 	$(NOISEPSDFILES) \

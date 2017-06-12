@@ -469,12 +469,19 @@ static INT4 EOBNRv2HMROMCore(
     f = fmax(fLow_geom_mode, jStart*deltaF_geom);
     A = gsl_spline_eval(spline_amp, f, accel_amp);
     phase = -gsl_spline_eval(spline_phi, f, accel_phi) + totaltwopishifttime * f + constphaseshift; /* Minus sign put here, in the internals of the ROM model \Psi = -phase */
+
     modedata[jStart] = amp_pre * A * cexp(I*phase);
 
     for (j=jStart+1; j<jStop-1; j++) {
       f = j*deltaF_geom;
       A = gsl_spline_eval(spline_amp, f, accel_amp);
       phase = -gsl_spline_eval(spline_phi, f, accel_phi) + totaltwopishifttime * f + constphaseshift; /* Minus sign put here, in the internals of the ROM model \Psi = -phase */
+      /* SK debug */
+      REAL8 myphase = -gsl_spline_eval(spline_phi, f, accel_phi) + totaltwopishifttime * f + constphaseshift; /* Minus sign put here, in the internals of the ROM model \Psi = -phase */
+      if ( f > 0.05 && f < 0.051 ){
+          printf("f = %.9f mode l = %i, m = %i       myphase  = %.9f\n", f, l, m, myphase);
+      }
+      /* SK debug */
       modedata[j] = amp_pre * A * cexp(I*phase);
     }
 
