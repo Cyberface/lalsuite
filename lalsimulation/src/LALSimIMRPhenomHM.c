@@ -170,10 +170,14 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
     // printf("p->Rholm[%i][%i] = %f, p->Taulm[%i][%i] = %f\n",ell, mm, p->Rholm[ell][mm],ell, mm, p->Taulm[ell][mm]);
   }
 
+
   /* A bunch of useful powers used in XLALSimIMRPhenomHMPNAmplitudeLeadingOrder */
   REAL8 sqrteta = sqrt(p->eta);
   REAL8 Seta = sqrt( 1.0 - 4.0 * p->eta );
+  REAL8 delta = abs(p->m1 - p->m2) / p->Mtot; /*NOTE: Check the abs()*/
+  REAL8 delta2 = delta*delta;
   REAL8 ans = 0.;
+  REAL8 beta_ans = 0.;
   for( int j=0; j<NMODES; j++ ){
     int ell = ModeArray[j][0];
     int mm = ModeArray[j][1];
@@ -181,40 +185,53 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
     if ( ell==2 ) {
         if (mm==2 ) {
           ans = sqrteta * 0.674677;
+          beta_ans = 1.0;
         } else { // mm==1
           ans = sqrteta * 0.329376 * Seta;
+          beta_ans = delta * pow(LAL_PI, 1.0/3.0) /  3.0;
         }
     } else if ( ell==3 ) {
         if ( mm==3 ) {
             ans = sqrteta * 0.767106 * Seta;
+            // beta_ans = sqrt(45.0/56.0) * pow(LAL_PI, 1.0/3.0) * delta;
+            beta_ans = (3.0/4.0) * sqrt(15.0/14.0) * pow(LAL_PI, 1.0/3.0) * delta;
         }
         else { // mm==2
           ans = sqrteta * (0.407703 - 1.223109*p->eta);
+          beta_ans = sqrt(5.0/63.0) * pow(LAL_PI, 2.0/3.0) * (delta2 + p->eta);
         }
     } else if ( ell==4 ) {
         if ( mm==4 ) {
           ans = sqrteta * ( 1.08721 - 3.26162*p->eta );
+          beta_ans = sqrt(320.0/567.0) * pow(LAL_PI, 2.0/3.0) * (delta2 + p->eta);
         } else { // mm==3
           ans = sqrteta * ( 0.570006 - 1.14001*p->eta ) * Seta;
+          beta_ans = sqrt(81.0/1120.0) * LAL_PI * (delta2 + 2*p->eta) * delta;
         }
     } else if ( ell==5 ) {
         if ( mm==5 ) {
           ans = sqrteta * 3.39713 * (0.5 - p->eta) * Seta;
+          beta_ans = 0.0;
         }
         else { // mm==4
           ans = sqrteta * 0.859267;
+          beta_ans = 0.0;
         }
     } else if ( ell==6 ) {
         if ( mm==6 ) {
           ans = sqrteta * 2.80361;
+          beta_ans = 0.0;
         }
         else { // mm==5
           ans = sqrteta * 1.36104 * Seta;
+          beta_ans = 0.0;
         }
     } else {
         ans = 0.0;
+        beta_ans = 0.0;
     }
     p->pow_Mf_wf_prefactor[ell][mm] = ans;
+    p->beta[ell][mm] = beta_ans;
   }
 
   return XLAL_SUCCESS;
@@ -501,8 +518,65 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(INT4 ell, INT4 mm, PhenomDStora
     return ans;
 }
 
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp);
-static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp){
+/*
+ * returns f^(klm) where klm is the appropriate exponent for th l,m mode
+ */
+double XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(INT4 ell, INT4 mm, REAL8 Mf);
+double XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(INT4 ell, INT4 mm, REAL8 Mf) {
+    /* Initialise answer */
+    REAL8 ans = 0.0;
+
+    UsefulMfPowers powers_of_Mf;
+    int errcode = XLAL_SUCCESS;
+    errcode = init_useful_mf_powers(&powers_of_Mf, Mf);
+    XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_mf_powers failed for Mf");
+
+    //FP: some of these can be computed directly here rather than for each mm and ll
+    if ( ell==2 ) {
+        if ( mm==2 ) {
+          ans = powers_of_Mf.m_seven_sixths;
+        } else { //mm==1
+          ans = powers_of_Mf.m_five_sixths;
+        }
+    } else if ( ell==3 ) {
+        if ( mm==3 ) {
+          ans = powers_of_Mf.m_five_sixths;
+        }
+        else { //mm==2
+          ans = powers_of_Mf.m_sqrt;
+        }
+    } else if ( ell==4 ) {
+        if ( mm==4 ) {
+          ans = powers_of_Mf.m_sqrt;
+        }
+        else { //mm==3
+          ans = powers_of_Mf.m_sixth;
+        }
+    } else if ( ell==5 ) {
+        if ( mm==5 ) {
+          ans = powers_of_Mf.m_sixth;
+        }
+        else { //mm==4
+          ans = powers_of_Mf.sixth;
+        }
+    } else if ( ell==6 ) {
+        if ( mm==6 ) {
+          ans = powers_of_Mf.sixth;
+        }
+        else { //mm==5
+          ans = powers_of_Mf.sqrt;
+        }
+    } else {
+        XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", ell, mm);
+        XLAL_ERROR(XLAL_EDOM);
+    }
+
+    return ans;
+}
+
+
+UNUSED static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp);
+UNUSED static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors, IMRPhenomDAmplitudeCoefficients *pAmp, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp){
 
     /* See technical document for description of below lines with A_R and R */
     double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(ell, mm, PhenomDQuantities, powers_of_MfAtScale_wf_amp);
@@ -512,16 +586,86 @@ static double ComputeAmpRatio(INT4 ell, INT4 mm, AmpInsPrefactors amp_prefactors
     return ampRatio;
 }
 
-double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp, UsefulMfPowers *powers_of_MfAtScale_wf_amp);
+
+
+UNUSED static double ComputeAmpRatioPN(INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp,UsefulMfPowers *powers_of_MfAtScale_wf_amp);
+UNUSED static double ComputeAmpRatioPN(INT4 ell, INT4 mm, PhenomDStorage *PhenomDQuantities, UsefulMfPowers *powers_of_MfAtScale_22_amp, UsefulPowers *downsized_powers_of_MfAtScale_22_amp,UsefulMfPowers *powers_of_MfAtScale_wf_amp){
+
+    /* See technical document for description of below lines with A_R and R */
+    double A_R_num = XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(ell, mm, PhenomDQuantities, powers_of_MfAtScale_wf_amp);
+
+    //next two lines give the same resuts
+    // double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * IMRPhenDAmplitude(powers_of_MfAtScale_22_amp->itself, pAmp, downsized_powers_of_MfAtScale_22_amp, &amp_prefactors);
+    double A_R_den = XLALSimIMRPhenomHMPNFrequencyScale(downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_22_amp->itself, ell, mm) * XLALSimIMRPhenomHMPNAmplitudeLeadingOrder(2, 2, PhenomDQuantities, powers_of_MfAtScale_22_amp);
+
+    //in theory if i just evaluate the amplitde coefficients i should get the same answer
+
+
+    double ampRatio = A_R_num/A_R_den;
+
+
+
+
+
+    return ampRatio;
+}
+
+//Original with using PN
+// double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities,UNUSED UsefulMfPowers *powers_of_MfAtScale_22_amp,UNUSED UsefulPowers *downsized_powers_of_MfAtScale_22_amp,UNUSED UsefulMfPowers *powers_of_MfAtScale_wf_amp);
+// double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
+//                                     int ell,
+//                                     int mm,
+//                                     IMRPhenomDAmplitudeCoefficients *pAmp,
+//                                     AmpInsPrefactors * amp_prefactors,
+//                                     PhenomDStorage * PhenomDQuantities,
+//                                     UNUSED UsefulMfPowers *powers_of_MfAtScale_22_amp,
+//                                     UNUSED UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
+//                                     UNUSED UsefulMfPowers *powers_of_MfAtScale_wf_amp
+//                                   )
+// {
+//     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
+//
+//     UsefulPowers powers_of_Mf_22;
+//     int errcode = XLAL_SUCCESS;
+//     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
+//     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
+//
+//     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
+//
+//     double alphalm = PhenomDQuantities->pow_Mf_wf_prefactor[ell][mm];
+//     double alpha22 = PhenomDQuantities->pow_Mf_wf_prefactor[2][2];
+//
+//     // double fklm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, Mf_wf);
+//     double fklm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, Mf_22);
+//     double f22fk22 = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(2, 2, Mf_22);
+//
+//
+//     double ampRatio = (alphalm*fklm) / (alpha22 * f22fk22);
+//
+//     double num1 = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, powers_of_MfAtScale_wf_amp->itself);
+//     double den1 = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(2, 2, powers_of_MfAtScale_22_amp->itself);
+//     double den2a = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, powers_of_MfAtScale_22_amp->itself);
+//     double den2b = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(2, 2, powers_of_MfAtScale_22_amp->itself);
+//     double den2 = den1 * (den2a / den2b);
+//
+//     double R = ampRatio * (num1/den2);
+//     double HMamp = PhenDamp * R;
+//
+//     return HMamp;
+// }
+
+
+//version with betas (paper version)
+double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities,UNUSED UsefulMfPowers *powers_of_MfAtScale_22_amp,UNUSED UsefulPowers *downsized_powers_of_MfAtScale_22_amp,UNUSED UsefulMfPowers *powers_of_MfAtScale_wf_amp);
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
                                     int mm,
                                     IMRPhenomDAmplitudeCoefficients *pAmp,
                                     AmpInsPrefactors * amp_prefactors,
                                     PhenomDStorage * PhenomDQuantities,
-                                    UsefulMfPowers *powers_of_MfAtScale_22_amp,
-                                    UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
-                                    UsefulMfPowers *powers_of_MfAtScale_wf_amp
+                                    UNUSED UsefulMfPowers *powers_of_MfAtScale_22_amp,
+                                    UNUSED UsefulPowers *downsized_powers_of_MfAtScale_22_amp,
+                                    UNUSED UsefulMfPowers *powers_of_MfAtScale_wf_amp
                                   )
 {
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
@@ -533,10 +677,21 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp);
+    // double ampRatio = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp);
+    // double ampRatioold = ComputeAmpRatio(ell, mm, *amp_prefactors, pAmp, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp);
 
-    double R = ampRatio * XLALSimIMRPhenomHMPNFrequencyScale(&powers_of_Mf_22, Mf_22, ell, mm);//FP: pow_Mf_wf_prefactor[ell][mm]
+    // ampRatio = ComputeAmpRatioPN(ell, mm, PhenomDQuantities, powers_of_MfAtScale_22_amp, downsized_powers_of_MfAtScale_22_amp, powers_of_MfAtScale_wf_amp);
 
+    double alphalm = PhenomDQuantities->pow_Mf_wf_prefactor[ell][mm];
+    double alpha22 = PhenomDQuantities->pow_Mf_wf_prefactor[2][2];
+
+    double fklm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, Mf_wf);
+    double f22fk22 = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(2, 2, Mf_22);
+
+
+    double ampRatio = (alphalm*fklm) / (alpha22 * f22fk22);
+
+    double R = ampRatio;
     double HMamp = PhenDamp * R;
 
     return HMamp;

@@ -77,6 +77,7 @@ typedef struct tagPhenomDStorage
     REAL8 Rholm[L_MAX_PLUS_1][L_MAX_PLUS_1];
     REAL8 Taulm[L_MAX_PLUS_1][L_MAX_PLUS_1];
     REAL8 pow_Mf_wf_prefactor[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 beta[L_MAX_PLUS_1][L_MAX_PLUS_1]; /*beta are the amplitude coefficients*/
 } PhenomDStorage;
 
 /**
