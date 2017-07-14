@@ -269,8 +269,6 @@ static double fixReferenceFrequency(const double f_ref, const double f_min, cons
             return f_min;
 		case IMRPhenomPv3:
             return f_min;
-		case IMRPhenomPv3:
-            return f_min;
         default:
             break;
         }
