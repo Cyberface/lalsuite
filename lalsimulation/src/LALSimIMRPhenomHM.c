@@ -174,7 +174,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   /* A bunch of useful powers used in XLALSimIMRPhenomHMPNAmplitudeLeadingOrder */
   REAL8 sqrteta = sqrt(p->eta);
   REAL8 Seta = sqrt( 1.0 - 4.0 * p->eta );
-  REAL8 delta = abs(p->m1 - p->m2) / p->Mtot; /*NOTE: Check the abs()*/
+  REAL8 delta = fabs(p->m1 - p->m2) / p->Mtot; /*NOTE: Check the abs()*/
   REAL8 delta2 = delta*delta;
   REAL8 ans = 0.;
   REAL8 beta_ans = 0.;
