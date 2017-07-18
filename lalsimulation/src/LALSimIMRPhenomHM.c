@@ -156,8 +156,8 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
     const REAL8 Mf_RD = inv2Pi * creal(ZZ); /* GW ringdown frequency, converted from angular frequency */
     p->PhenomHMfring[ell][mm] = Mf_RD * p->Inv1MinusEradRational0815; /* scale by predicted final mass */
     /* lm mode ringdown damping time (imaginary part of ringdown), geometric units */
-    const REAL8 fdamp = inv2Pi * cimag(ZZ); /* this is the 1./tau in the complex QNM */
-    p->PhenomHMfdamp[ell][mm] = fdamp * p->Inv1MinusEradRational0815; /* scale by predicted final mass */
+    const REAL8 f_damp = inv2Pi * cimag(ZZ); /* this is the 1./tau in the complex QNM */
+    p->PhenomHMfdamp[ell][mm] = f_damp * p->Inv1MinusEradRational0815; /* scale by predicted final mass */
   }
   p->Mf_RD_22 = p->PhenomHMfring[2][2];
   p->Mf_DM_22 = p->PhenomHMfdamp[2][2];
