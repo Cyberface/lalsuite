@@ -649,6 +649,7 @@ static int PhenomPCore(
   // * IMRPhenomPv2 uses chi1_l, chi2_l in the aligned part and chi_eff in the twisting
   const REAL8 chi_eff = (m1*chi1_l + m2*chi2_l) / M; /* Effective aligned spin */
   const REAL8 chil = (1.0+q)/q * chi_eff; /* dimensionless aligned spin of the largest BH */
+  XLAL_PRINT_INFO("first chi_eff = %f, chil = %f\n", chi_eff, chil);
 
   switch (IMRPhenomP_version) {
     case IMRPhenomPv1_V:
@@ -680,6 +681,7 @@ static int PhenomPCore(
   }
 
   NNLOanglecoeffs angcoeffs; /* Next-to-next-to leading order PN coefficients for Euler angles alpha and epsilon */
+  XLAL_PRINT_INFO("q=%f chil=%f chip=%f\n",q,chil,chip);
   ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
 
   /* Compute the offsets due to the choice of integration constant in alpha and epsilon PN formula */
@@ -698,6 +700,8 @@ static int PhenomPCore(
                                 + angcoeffs.epsiloncoeff3/omega_ref_cbrt
                                 + angcoeffs.epsiloncoeff4*logomega_ref
                                 + angcoeffs.epsiloncoeff5*omega_ref_cbrt);
+
+  XLAL_PRINT_INFO("alphaNNLOoffset = %f, epsilonNNLOoffset = %f\n ", alphaNNLOoffset, epsilonNNLOoffset);
 
   /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
   SpinWeightedSphericalHarmonic_l2 Y2m;
@@ -1116,6 +1120,7 @@ static int PhenomPCoreOneFrequency(
       aPhenom = IMRPhenDAmplitude(f, pAmp, &powers_of_f, amp_prefactors);
       phPhenom = IMRPhenDPhase(f, pPhi, PNparams, &powers_of_f, phi_prefactors);
       SL = chi1_l*m1*m1 + chi2_l*m2*m2;        /* Dimensionfull aligned spin. */
+      XLAL_PRINT_INFO("second chi_eff = %f, chip = %f, m1 = %f, m2 = %f, SL = %f, Sperp = %f\n", chi_eff, chip, m1, m2, SL, Sperp);
       break;
     default:
       XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
@@ -1681,7 +1686,8 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
                             const REAL8 deltaF,
                             const REAL8 f_min,
                             const REAL8 f_max,
-                            const REAL8 f_ref)
+                            const REAL8 f_ref,
+                            IMRPhenomP_version_type IMRPhenomP_version)
 {
     XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
     XLAL_CHECK(0 != pAngles, XLAL_EFAULT, "pAngles is NULL");
@@ -1725,11 +1731,11 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     p->amp0 = (p->Mtot_Msun) * LAL_MRSUN_SI * (p->Mtot_Msun) * LAL_MTSUN_SI / (p->distance_SI);
 
     /* chi1_l == chi1z, chi2_l == chi2z so we don't need to save them as they are duplicates */
-    REAL8 chi1_l, chi2_l;
+    // REAL8 chi1_l, chi2_l;
 
     /* rotate from LAL to PhenomP frame */
     int errcode = XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
-        &chi1_l, &chi2_l, &(p->chip), &(p->thetaJN), &(p->alpha0), &(p->phi_aligned), &(p->zeta_polariz),
+        &(p->chi1_l), &(p->chi2_l), &(p->chip), &(p->thetaJN), &(p->alpha0), &(p->phi_aligned), &(p->zeta_polariz),
         p->m1_SI, p->m2_SI, p->f_ref, p->phiRef, p->inclination,
         p->chi1x, p->chi1y, p->chi1z,
         p->chi2x, p->chi2y, p->chi2z, IMRPhenomPv2_V); /* hardcoded to PhenomPv2 because PhenomPv3 uses the same rotations */
@@ -1739,6 +1745,9 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     /* TODO: TEST THIS */
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
+
+    p->Sperp = p->chip*((p->m1_Msun)*(p->m1_Msun)/(p->Mtot_Msun)/(p->Mtot_Msun));   /* Dimensionfull spin component in the orbital plane. S_perp = S_2_perp */
+    XLAL_PRINT_INFO("chip = %f, m1 = %f, m2 = %f, Sperp = %f\n",p->chip, p->m1_Msun, p->m2_Msun, p->Sperp);
 
     // printf("p->chi1_theta = %f\n", p->chi1_theta);
     // printf("p->chi1_phi = %f\n", p->chi1_phi);
@@ -1764,44 +1773,103 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
                                              p->f_ref);
 */
 
-    *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
-                        LHAT_COS_THETA, LHAT_PHI,
-                        cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
-                        cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
-                        p->f_ref);
 
-    /* convert from orbital frequency to PN parameter */
-    p->twopi_Msec = LAL_TWOPI * p->Msec;
-    vector angles;
-    /* xi uses the Orbital frequency */
-    REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
-    angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
+    const REAL8 chi_eff = (p->m1_Msun*p->chi1_l + p->m2_Msun*p->chi2_l) / p->Mtot_Msun; /* Effective aligned spin */
+    p->chil = (1.0+p->q)/p->q * chi_eff; /* dimensionless aligned spin of the largest BH */
+    XLAL_PRINT_INFO("chi_eff + %f, chil = %f\n", chi_eff, p->chil);
+    /* Dimensionfull aligned spin. */
+    p->SL = (p->chi1_l)*(p->m1_Msun)*(p->m1_Msun)/p->Mtot_Msun/p->Mtot_Msun + (p->chi2_l)*(p->m2_Msun)*(p->m2_Msun)/p->Mtot_Msun/p->Mtot_Msun;
+    const REAL8 piM = LAL_PI * p->Msec;
+    NNLOanglecoeffs angcoeffs; /* Next-to-next-to leading order PN coefficients for Euler angles alpha and epsilon */
 
-    /* checking for nans */
-    if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
-        printf("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
+    switch (IMRPhenomP_version) {
+      case IMRPhenomPv2_V:
+
+          ComputeNNLOanglecoeffs(&angcoeffs,p->q,p->chil,p->chip);
+
+          /* Compute the offsets due to the choice of integration constant in alpha and epsilon PN formula */
+          const REAL8 omega_ref = piM * f_ref;
+          const REAL8 logomega_ref = log(omega_ref);
+          const REAL8 omega_ref_cbrt = cbrt(piM * f_ref); // == v0
+          const REAL8 omega_ref_cbrt2 = omega_ref_cbrt*omega_ref_cbrt;
+          const REAL8 alphaNNLOoffset = (angcoeffs.alphacoeff1/omega_ref
+                                      + angcoeffs.alphacoeff2/omega_ref_cbrt2
+                                      + angcoeffs.alphacoeff3/omega_ref_cbrt
+                                      + angcoeffs.alphacoeff4*logomega_ref
+                                      + angcoeffs.alphacoeff5*omega_ref_cbrt);
+
+          const REAL8 epsilonNNLOoffset = (angcoeffs.epsiloncoeff1/omega_ref
+                                        + angcoeffs.epsiloncoeff2/omega_ref_cbrt2
+                                        + angcoeffs.epsiloncoeff3/omega_ref_cbrt
+                                        + angcoeffs.epsiloncoeff4*logomega_ref
+                                        + angcoeffs.epsiloncoeff5*omega_ref_cbrt);
+
+          p->alphaRef = alphaNNLOoffset;
+          p->epsilonRef = epsilonNNLOoffset;
+          p->betaRef = 0.;
+          XLAL_PRINT_INFO("alphaNNLOoffset = %f, epsilonNNLOoffset = %f\n ", alphaNNLOoffset, epsilonNNLOoffset);
+
+
+        break;
+      case IMRPhenomPv3_V:
+        *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
+                          LHAT_COS_THETA, LHAT_PHI,
+                          cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+                          cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+                          p->f_ref);
+
+        XLAL_PRINT_INFO("khan m1_si = %f, m2_si = %f, LHAT_COS_THETA = %f, LHAT_PHI = %f,"
+        "cos(p->chi1_theta) = %f, p->chi1_phi = %f, p->chi1_mag = %f,"
+        "cos(p->chi2_theta) = %f, p->chi2_phi = %f, p->chi2_mag = %f,"
+        "p->f_ref = %f\n",
+        p->m1_SI/LAL_MSUN_SI, p->m2_SI/LAL_MSUN_SI,
+        LHAT_COS_THETA, LHAT_PHI,
+        cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+        cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+        p->f_ref
+        );
+
+        /* convert from orbital frequency to PN parameter */
+        p->twopi_Msec = LAL_TWOPI * p->Msec;
+        vector angles;
+        /* xi uses the Orbital frequency */
+        REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
+        angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
+        // angles = compute_phiz_zeta_costhetaL(xi,pAngles);
+
+        /* checking for nans */
+        if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
+          printf("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
+        }
+
+        p->alphaRef = angles.x;
+        p->epsilonRef = angles.y;
+
+        //FIXME: For the unstable aligned case I am seeing angles.z > 1 for certain fref
+        // printf("before nudge: p->cos(betaRef) = %.16f\n", angles.z);
+
+        /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+        /* NOTE: Later I round this angle regardless if it is greater than one to.
+         See comment next to that bit of code. */
+        if (angles.z > 1.0) {
+          nudge(&(angles.z), 1.0, 1e-6);
+        }
+
+        p->betaRef = acos(angles.z);
+        XLAL_PRINT_INFO("alphaNNLOoffset = %f, epsilonNNLOoffset = %f\n ", p->alphaRef, p->epsilonRef);
+
+        /* check output */
+        // printf("p->alphaRef = %.8f\n", p->alphaRef);
+        // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
+        // printf("p->cos(betaRef) = %.16f\n", angles.z);
+        // printf("p->betaRef = %.8f\n", p->betaRef);
+
+        break;
+      default:
+        XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v2 and v3 are available here." );
+        break;
     }
 
-    p->alphaRef = angles.x;
-    p->epsilonRef = angles.y;
-
-    //FIXME: For the unstable aligned case I am seeing angles.z > 1 for certain fref
-    // printf("before nudge: p->cos(betaRef) = %.16f\n", angles.z);
-
-    /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
-    /* NOTE: Later I round this angle regardless if it is greater than one to.
-       See comment next to that bit of code. */
-    if (angles.z > 1.0) {
-        nudge(&(angles.z), 1.0, 1e-6);
-    }
-
-    p->betaRef = acos(angles.z);
-
-    /* check output */
-    // printf("p->alphaRef = %.8f\n", p->alphaRef);
-    // printf("p->epsilonRef = %.8f\n",p->epsilonRef);
-    // printf("p->cos(betaRef) = %.16f\n", angles.z);
-    // printf("p->betaRef = %.8f\n", p->betaRef);
 
     /* Compute Ylm's only once and pass them to PhenomPCoreOneFrequency() below. */
     const REAL8 ytheta  = p->thetaJN;
@@ -1902,7 +1970,8 @@ int XLALSimIMRPhenomPv3(
   const REAL8 f_min,                          /**< Starting GW frequency (Hz) */
   const REAL8 f_max,                          /**< End frequency; 0 defaults to ringdown cutoff freq */
   const REAL8 f_ref,                          /**< Reference frequency */
-  LALDict *extraParams) /**<linked list containing the extra testing GR parameters */
+  LALDict *extraParams,                       /**<linked list containing the extra testing GR parameters */
+  IMRPhenomP_version_type IMRPhenomP_version)
 {
 
     /*
@@ -1960,7 +2029,8 @@ int XLALSimIMRPhenomPv3(
                                     S1x, S1y, S1z,
                                     S2x, S2y, S2z,
                                     distance, inclination, phiRef,
-                                    deltaF, f_min, f_max, f_ref);
+                                    deltaF, f_min, f_max, f_ref,
+                                    IMRPhenomP_version);
   XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_PhenomPv3_Storage failed");
 
   /* example how to use pAngles */
@@ -1970,7 +2040,7 @@ int XLALSimIMRPhenomPv3(
   // printf("creal(pv3->Y2m.Y22) = %f, cimag(pv3->Y2m.Y22) = %f\n", creal(pv3->Y2m.Y22), cimag(pv3->Y2m.Y22));
 
 
-  errcode = PhenomPv3Core(hptilde, hctilde, pv3, pAngles, freqs, deltaF, extraParams);
+  errcode = PhenomPv3Core(hptilde, hctilde, pv3, pAngles, freqs, deltaF, extraParams, IMRPhenomP_version);
   XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "Failed to generate IMRPhenomPv3 waveform.");
   XLALDestroyREAL8Sequence(freqs);
 
@@ -2000,9 +2070,12 @@ static int PhenomPv3Core(
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
    * Then we will use deltaF = 0 to create the frequency series we return. */
-  LALDict *extraParams /**<linked list containing the extra testing GR parameters */
+  LALDict *extraParams, /**<linked list containing the extra testing GR parameters */
+  IMRPhenomP_version_type IMRPhenomP_version
   )
 {
+
+    XLAL_PRINT_INFO("pv3->SL = %f, pv3->eta = %f, pv3->Sperp = %f\n", pv3->SL, pv3->eta, pv3->Sperp);
 
     // See Fig. 1. in arxiv:1408.1810 for diagram of the angles.
     // Note that the angles phiJ which is calculated internally in XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame
@@ -2016,6 +2089,12 @@ static int PhenomPv3Core(
 
     int errcode = init_useful_powers(&powers_of_pi, LAL_PI);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_useful_powers() failed.");
+
+    NNLOanglecoeffs angcoeffs; /* Next-to-next-to leading order PN coefficients for Euler angles alpha and epsilon */
+    if (IMRPhenomP_version == IMRPhenomPv2_V) {
+        XLAL_PRINT_INFO("q=%f chil=%f chip=%f\n",pv3->q,pv3->chil,pv3->chip);
+        ComputeNNLOanglecoeffs(&angcoeffs,pv3->q,pv3->chil,pv3->chip);
+    }
 
     /* Find frequency bounds */
     if (!freqs_in || !freqs_in->data) XLAL_ERROR(XLAL_EFAULT);
@@ -2057,7 +2136,9 @@ static int PhenomPv3Core(
     XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
     PNPhasingSeries *pn = NULL;
     /* Intentionally not using XLALMalloc here as it gets allocated inside XLALSimInspiralTaylorF2AlignedPhasing */
-    XLALSimInspiralTaylorF2AlignedPhasing(&pn, pv3->m1_Msun, pv3->m2_Msun, pv3->chi1z, pv3->chi2z, extraParams);
+    //NOTE: the ordering of the masses and spin in this PN function.
+    XLALSimInspiralTaylorF2AlignedPhasing(&pn, pv3->m2_Msun, pv3->m1_Msun, pv3->chi2z, pv3->chi1z, extraParams);
+    // XLALSimInspiralTaylorF2AlignedPhasing(&pn, pv3->m1_Msun, pv3->m2_Msun, pv3->chi1z, pv3->chi2z, extraParams);
 
     if (!pAmp || !pPhi || !pn) {
       errcode = XLAL_EFUNC;
@@ -2067,7 +2148,9 @@ static int PhenomPv3Core(
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
     // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
     // was not available when PhenomD was tuned.
-    pn->v[6] -= (Subtract3PNSS(pv3->m1_Msun, pv3->m2_Msun, pv3->Mtot_Msun, pv3->chi1z, pv3->chi2z ) * pn->v[0]);
+    //NOTE: the ordering of the masses and spin in this PN function.
+    pn->v[6] -= (Subtract3PNSS(pv3->m2_Msun, pv3->m1_Msun, pv3->Mtot_Msun, pv3->chi2z,  pv3->chi1z ) * pn->v[0]);
+    // pn->v[6] -= (Subtract3PNSS(pv3->m1_Msun, pv3->m2_Msun, pv3->Mtot_Msun, pv3->chi1z,  pv3->chi2z ) * pn->v[0]);
 
     PhiInsPrefactors phi_prefactors;
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -2184,6 +2267,27 @@ static int PhenomPv3Core(
        goto cleanup;
      }
 
+     //
+     // print to file by angle the alpha angle using in phenomPv3
+     //
+     //
+
+
+     // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+
+     /* save angles and shift according to reference angles */
+
+     FILE *fileA;
+     fileA = fopen("/Users/sebastian/work/git/phenomp-upgrade/lscsoft/matches/notebooks/alpha-pv3.dat", "a");
+
+
+     //
+     //
+     //
+     //
+
+
+
      /*
        We can't call XLAL_ERROR() directly with OpenMP on.
        Keep track of return codes for each thread and in addition use flush to get out of
@@ -2207,7 +2311,9 @@ static int PhenomPv3Core(
        per_thread_errcode = PhenomPv3CoreOneFrequency(&hp_val, &hc_val, &phasing,
                                     f, pv3, pAngles,
                                     pAmp, pPhi, pn,
-                                    &amp_prefactors, &phi_prefactors);
+                                    &amp_prefactors, &phi_prefactors,
+                                    IMRPhenomP_version,
+                                    &angcoeffs);
 
        if (per_thread_errcode != XLAL_SUCCESS) {
          errcode = per_thread_errcode;
@@ -2219,8 +2325,19 @@ static int PhenomPv3Core(
 
        phis[i] = phasing;
 
+       /* compute precession angles at given frequency  */
+       /* convert gravitational wave frequency to orbital frequency */
+       REAL8 f_Orb_Hz = 0.5 * f;//f=fHz
+       REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
+       vector angles;
+       angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+       REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
+       fprintf(fileA, "%f %f\n", f, alpha);
+
+
        skip: /* this statement intentionally left blank */;
      }
+     fclose(fileA);
 
      /* Correct phasing so we coalesce at t=0 (with the definition of the epoch=-1/deltaF above) */
      /* We apply the same time shift to hptilde and hctilde based on the overall phasing returned by PhenomPCoreOneFrequency */
@@ -2313,7 +2430,9 @@ static int PhenomPv3CoreOneFrequency(
     IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
     PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
     AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-    PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+    PhiInsPrefactors *phi_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+    IMRPhenomP_version_type IMRPhenomP_version,
+    NNLOanglecoeffs *angcoeffs                 /**< Struct with PN coeffs for the NNLO angles */
 )
 {
     XLAL_CHECK(hp != NULL, XLAL_EFAULT);
@@ -2342,44 +2461,87 @@ static int PhenomPv3CoreOneFrequency(
     COMPLEX16 hP = (pv3->amp0) * aPhenom * (cos(phPhenom) - I*sin(phPhenom));//cexp(-I*phPhenom); /* Assemble IMRPhenom waveform. */
 
 
-    /* compute precession angles at given frequency  */
+    REAL8 cBetah=0.;
+    REAL8 sBetah=0.; /* cos(beta/2), sin(beta/2) */
+    REAL8 omega = 0.;
+    REAL8 logomega = 0.;
+    REAL8 omega_cbrt = 0.;
+    REAL8 omega_cbrt2 = 0.;
     vector angles;
-    /* convert gravitational wave frequency to orbital frequency */
-    REAL8 f_Orb_Hz = 0.5 * fHz;
-    REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
-    angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+    REAL8 f_Orb_Hz = 0.;
+    REAL8 xi = 0.;
+    REAL8 alpha = 0.;
+    REAL8 epsilon = 0.;
+    switch (IMRPhenomP_version) {
+      case IMRPhenomPv2_V:
+        /* Compute PN NNLO angles */
+        omega = LAL_PI * f;
+        logomega = log(omega);
+        omega_cbrt = cbrt(omega);
+        omega_cbrt2 = omega_cbrt*omega_cbrt;
 
-    // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+        alpha = (angcoeffs->alphacoeff1/omega
+                    + angcoeffs->alphacoeff2/omega_cbrt2
+                    + angcoeffs->alphacoeff3/omega_cbrt
+                    + angcoeffs->alphacoeff4*logomega
+                    + angcoeffs->alphacoeff5*omega_cbrt) - (pv3->alphaRef - pv3->alpha0);
 
+        epsilon = (angcoeffs->epsiloncoeff1/omega
+                      + angcoeffs->epsiloncoeff2/omega_cbrt2
+                      + angcoeffs->epsiloncoeff3/omega_cbrt
+                      + angcoeffs->epsiloncoeff4*logomega
+                      + angcoeffs->epsiloncoeff5*omega_cbrt) - pv3->epsilonRef;
+        /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+        WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, pv3->SL, pv3->eta, pv3->Sperp);
 
-    /* checking for nans */
-    if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
-        printf("nan found at frequency = %.4f:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", fHz, angles.x, angles.y, angles.z);
+        break;
+      case IMRPhenomPv3_V:
+          /* compute precession angles at given frequency  */
+          /* convert gravitational wave frequency to orbital frequency */
+          f_Orb_Hz = 0.5 * fHz;
+          xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
+          angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+        // angles = compute_phiz_zeta_costhetaL(xi, pAngles);
+
+          // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+
+          /* checking for nans */
+          if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
+              printf("nan found at frequency = %.4f:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", fHz, angles.x, angles.y, angles.z);
+          }
+
+          /* save angles and shift according to reference angles */
+          alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
+          epsilon = angles.y - pv3->epsilonRef;
+          /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+          // if (angles.z > 1.0) {
+              /* NOTE: SK This is possible dangerous. This will round the angle to 1. if the delta is < 1e-6. */
+              /* The reason is that for aligned spins this angles.z === cos(beta) should be = 1.
+                 and due to rounding this can cause some unwanted jumps in hcross when viewed edge-on
+                 where hcross should be zero. Leaving this fix here now but should look for a better solution!
+                 Maybe a solution in the angles code. */
+              nudge(&(angles.z), 1.0, 1e-6);
+              // nudge(&(angles.z), 1.0, 1e-6);
+          // }
+          REAL8 beta = acos(angles.z);
+          // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+          // beta = 0.;
+          // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
+          // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, angles.z = %.16f\n", fHz, alpha, epsilon, angles.z);
+          /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+          cBetah = cos(beta/2.0);
+          sBetah = sin(beta/2.0);
+        break;
+      default:
+        XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v2 and v3 are available here." );
+        break;
     }
 
-    /* save angles and shift according to reference angles */
-    REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
-    REAL8 epsilon = angles.y - pv3->epsilonRef;
-    /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
-    // if (angles.z > 1.0) {
-        /* NOTE: SK This is possible dangerous. This will round the angle to 1. if the delta is < 1e-6. */
-        /* The reason is that for aligned spins this angles.z === cos(beta) should be = 1.
-           and due to rounding this can cause some unwanted jumps in hcross when viewed edge-on
-           where hcross should be zero. Leaving this fix here now but should look for a better solution!
-           Maybe a solution in the angles code. */
-        nudge(&(angles.z), 1.0, 1e-6);
-        // nudge(&(angles.z), 1.0, 1e-6);
-    // }
-    REAL8 beta = acos(angles.z);
-    // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
-    // beta = 0.;
-    // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, beta = %.8f\n", fHz, alpha, epsilon, beta);
-    // printf("fHz = %f, alpha = %.8f, epsilon = %.8f, angles.z = %.16f\n", fHz, alpha, epsilon, angles.z);
 
-    /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
-    REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
-    cBetah = cos(beta/2.0);
-    sBetah = sin(beta/2.0);
+
+
+
+
 
     const REAL8 cBetah2 = cBetah*cBetah;
     const REAL8 cBetah3 = cBetah2*cBetah;

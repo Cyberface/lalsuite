@@ -259,6 +259,11 @@ typedef struct tagPhenomPv3Storage
     SpinWeightedSphericalHarmonic_l2 Y2m;
     /* PhenomD parameters */
     REAL8 finspin; /**< dimensionless final spin */
+    REAL8 chi1_l; /**<phenomPv2 variables*/
+    REAL8 chi2_l; /**<phenomPv2 variables*/
+    REAL8 chil; /**<phenomPv2 variables*/
+    REAL8 Sperp; /**<phenomPv2 variables*/
+    REAL8 SL; /**<phenomPv2 variables*/
 } PhenomPv3Storage;
 
 /**
@@ -269,7 +274,7 @@ static int PhenomPv3EnforcePrimaryIsm1(REAL8 *m1, REAL8 *m2, REAL8 *chi1x, REAL8
 /**
  * must be called before the first usage of *p
  */
-static int init_PhenomPv3_Storage(PhenomPv3Storage *p, sysq *q, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref);
+static int init_PhenomPv3_Storage(PhenomPv3Storage *p, sysq *q, REAL8 m1_SI, REAL8 m2_SI, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, const REAL8 distance, const REAL8 inclination, const REAL8 phiRef, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version);
 
 /** Internal core function to calculate PhenomP version 3 polarizations.
  * This function computes all quantities that are independent of frequency
@@ -285,7 +290,8 @@ static int PhenomPv3Core(
    * If deltaF > 0, the frequency points given in freqs are uniformly spaced with
    * spacing deltaF. Otherwise, the frequency points are spaced non-uniformly.
    * Then we will use deltaF = 0 to create the frequency series we return. */
-  LALDict *extraParams /**<linked list containing the extra testing GR parameters */
+  LALDict *extraParams, /**<linked list containing the extra testing GR parameters */
+  IMRPhenomP_version_type IMRPhenomP_version
   );
 
 /**
@@ -302,7 +308,9 @@ static int PhenomPv3CoreOneFrequency(
     IMRPhenomDPhaseCoefficients *pPhi,          /**< Internal IMRPhenomD phase coefficients */
     PNPhasingSeries *PNparams,                  /**< PN inspiral phase coefficients */
     AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-    PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+    PhiInsPrefactors *phi_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+    IMRPhenomP_version_type IMRPhenomP_version,
+    NNLOanglecoeffs *angcoeffs                 /**< Struct with PN coeffs for the NNLO angles */
 );
 
 /* END IMRPhenomPv3 */
