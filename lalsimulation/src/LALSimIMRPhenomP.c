@@ -1812,6 +1812,7 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
 
         break;
       case IMRPhenomPv3_V:
+      case IMRPhenomPv5_V:
         *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
                           LHAT_COS_THETA, LHAT_PHI,
                           cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
@@ -2501,7 +2502,7 @@ static int PhenomPv3CoreOneFrequency(
           f_Orb_Hz = 0.5 * fHz;
           xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
           angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
-        // angles = compute_phiz_zeta_costhetaL(xi, pAngles);
+        //   angles = compute_phiz_zeta_costhetaL(xi, pAngles);
 
           // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
 
@@ -2531,6 +2532,40 @@ static int PhenomPv3CoreOneFrequency(
           /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
           cBetah = cos(beta/2.0);
           sBetah = sin(beta/2.0);
+        break;
+      case IMRPhenomPv5_V: /* same as IMRPhenomPv3 but uses the beta angle from IMRPhenomPv2 */
+          /* compute precession angles at given frequency  */
+          /* convert gravitational wave frequency to orbital frequency */
+          f_Orb_Hz = 0.5 * fHz;
+          xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
+          angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+        //   angles = compute_phiz_zeta_costhetaL(xi, pAngles);
+
+          // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
+
+          /* checking for nans */
+          if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
+              printf("nan found at frequency = %.4f:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", fHz, angles.x, angles.y, angles.z);
+          }
+
+          /* save angles and shift according to reference angles */
+          alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
+          epsilon = angles.y - pv3->epsilonRef;
+          /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
+          // if (angles.z > 1.0) {
+              /* NOTE: SK This is possible dangerous. This will round the angle to 1. if the delta is < 1e-6. */
+              /* The reason is that for aligned spins this angles.z === cos(beta) should be = 1.
+                 and due to rounding this can cause some unwanted jumps in hcross when viewed edge-on
+                 where hcross should be zero. Leaving this fix here now but should look for a better solution!
+                 Maybe a solution in the angles code. */
+              nudge(&(angles.z), 1.0, 1e-6);
+              // nudge(&(angles.z), 1.0, 1e-6);
+          // }
+        //   REAL8 beta = acos(angles.z);
+          /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+          omega = LAL_PI * f;
+          omega_cbrt = cbrt(omega);
+          WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, pv3->SL, pv3->eta, pv3->Sperp);
         break;
       default:
         XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v2 and v3 are available here." );

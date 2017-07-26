@@ -147,6 +147,7 @@ static const char *lalSimulationApproximantNames[] = {
     INITIALIZE_NAME(IMRPhenomPv2),
 	INITIALIZE_NAME(IMRPhenomPv3),
 	INITIALIZE_NAME(IMRPhenomPv4),
+	INITIALIZE_NAME(IMRPhenomPv5),
     INITIALIZE_NAME(IMRPhenomFC),
     INITIALIZE_NAME(TaylorEt),
     INITIALIZE_NAME(TaylorT4),
@@ -271,6 +272,8 @@ static double fixReferenceFrequency(const double f_ref, const double f_min, cons
 		case IMRPhenomPv3:
             return f_min;
 		case IMRPhenomPv4:
+            return f_min;
+		case IMRPhenomPv5:
             return f_min;
         default:
             break;
@@ -749,6 +752,9 @@ int XLALSimInspiralChooseTDWaveform(
 	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
 	    break;
 	case IMRPhenomPv4:
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
+	    break;
+	case IMRPhenomPv5:
 	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
 	    break;
 
@@ -1464,6 +1470,27 @@ int XLALSimInspiralChooseFDWaveform(
 			if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             break;
 
+		case IMRPhenomPv5:
+            /* Waveform-specific sanity checks */
+            if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALparams) )
+                ABORT_NONDEFAULT_FRAME_AXIS(LALparams);/* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L : z-axis along direction of orbital angular momentum. */
+            if(!XLALSimInspiralWaveformParamsModesChoiceIsDefault(          /* Default is (2,2) or l=2 modes. */LALparams) )
+                ABORT_NONDEFAULT_MODES_CHOICE(LALparams);
+            if( !checkTidesZero(lambda1, lambda2) )
+                ABORT_NONZERO_TIDES(LALparams);
+            /* Tranform to model parameters */
+            if(f_ref==0.0)
+                f_ref = f_min; /* Default reference frequency is minimum frequency */
+			ret = XLALSimIMRPhenomPv3(hptilde, hctilde,
+								m1, m2,
+								S1x, S1y, S1z,
+								S2x, S2y, S2z,
+								distance, inclination, phiRef,
+								deltaF, f_min, f_max, f_ref,
+								LALparams,
+								IMRPhenomPv5_V);
+			if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
+            break;
 
         case SpinTaylorT4Fourier:
             /* Waveform-specific sanity checks */
@@ -4470,6 +4497,7 @@ int XLALSimInspiralImplementedTDApproximants(
 	case IMRPhenomPv2:
 	case IMRPhenomPv3:
 	case IMRPhenomPv4:
+	case IMRPhenomPv5:
         case PhenSpinTaylorRD:
         case SEOBNRv1:
         case SpinDominatedWf:
@@ -4509,6 +4537,7 @@ int XLALSimInspiralImplementedFDApproximants(
         case IMRPhenomPv2:
 		case IMRPhenomPv3:
 		case IMRPhenomPv4:
+		case IMRPhenomPv5:
         case EOBNRv2_ROM:
         case EOBNRv2HM_ROM:
         case SEOBNRv1_ROM_EffectiveSpin:
@@ -4912,6 +4941,7 @@ int XLALSimInspiralGetSpinSupportFromApproximant(Approximant approx){
     case IMRPhenomPv2:
 	case IMRPhenomPv3:
 	case IMRPhenomPv4:
+	case IMRPhenomPv5:
     case SpinTaylorT2Fourier:
     case SpinTaylorT4Fourier:
     case SpinDominatedWf:
@@ -5067,6 +5097,8 @@ int XLALSimInspiralApproximantAcceptTestGRParams(Approximant approx){
       testGR_accept=LAL_SIM_INSPIRAL_TESTGR_PARAMS;
 	case IMRPhenomPv4:
 	  testGR_accept=LAL_SIM_INSPIRAL_TESTGR_PARAMS;
+    case IMRPhenomPv5:
+  	  testGR_accept=LAL_SIM_INSPIRAL_TESTGR_PARAMS;
       break;
     default:
       XLALPrintError("Approximant not supported by lalsimuation TD/FD routines \n");
@@ -6143,6 +6175,11 @@ int XLALSimInspiralChooseTDWaveformOLD(
 	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, 0.0, 0.0, 0.0, deltaT, f_min, f_ref, NULL, approximant);
 	    break;
 
+
+	case IMRPhenomPv5:
+            /* FIXME: BUSTED -- EXTRA PARAMS NOT IMPLEMENTED */
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, 0.0, 0.0, 0.0, deltaT, f_min, f_ref, NULL, approximant);
+	    break;
 
         case PhenSpinTaylorRD:
             /* Waveform-specific sanity checks */
