@@ -2276,19 +2276,6 @@ static int PhenomPv3Core(
 
      // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
 
-     /* save angles and shift according to reference angles */
-
-     FILE *fileA;
-     fileA = fopen("/Users/sebastian/work/git/phenomp-upgrade/lscsoft/matches/notebooks/alpha-pv3.dat", "a");
-
-
-     //
-     //
-     //
-     //
-
-
-
      /*
        We can't call XLAL_ERROR() directly with OpenMP on.
        Keep track of return codes for each thread and in addition use flush to get out of
@@ -2328,17 +2315,17 @@ static int PhenomPv3Core(
 
        /* compute precession angles at given frequency  */
        /* convert gravitational wave frequency to orbital frequency */
-       REAL8 f_Orb_Hz = 0.5 * f;//f=fHz
-       REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
-       vector angles;
-       angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
-       REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
-       fprintf(fileA, "%f %f\n", f, alpha);
+    //    REAL8 f_Orb_Hz = 0.5 * f;//f=fHz
+    //    REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
+    //    vector angles;
+    //    angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+    //    REAL8 alpha = angles.x - ( pv3->alphaRef - pv3->alpha0 );
+    //    fprintf(fileA, "%f %f\n", f, alpha);
 
 
        skip: /* this statement intentionally left blank */;
      }
-     fclose(fileA);
+    //  fclose(fileA);
 
      /* Correct phasing so we coalesce at t=0 (with the definition of the epoch=-1/deltaF above) */
      /* We apply the same time shift to hptilde and hctilde based on the overall phasing returned by PhenomPCoreOneFrequency */
@@ -2574,9 +2561,13 @@ static int PhenomPv3CoreOneFrequency(
 
 
 
+    /* save angles and shift according to reference angles */
 
-
-
+    // FILE *fileA;
+    // fileA = fopen("/Users/sebastian/work/git/phenomp-upgrade/lscsoft/matches/notebooks/compare-raw-angle-output/angles-pv3.dat", "a");
+    // fileA = fopen("/Users/sebastian/work/git/phenomp-upgrade/lscsoft/matches/notebooks/compare-raw-angle-output/angles-pv4.dat", "a");
+    // fprintf(fileA, "%f %f %f %f\n", f, alpha, epsilon, 2.*acos(cBetah));
+    // fclose(fileA);
 
     const REAL8 cBetah2 = cBetah*cBetah;
     const REAL8 cBetah3 = cBetah2*cBetah;
