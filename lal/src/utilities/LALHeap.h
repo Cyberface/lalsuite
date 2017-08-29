@@ -95,6 +95,13 @@ void XLALHeapDestroy(
   );
 
 /**
+ * Clear a heap
+ */
+int XLALHeapClear(
+  LALHeap *h                    /**< [in] Pointer to heap */
+  );
+
+/**
  * Return the size of a heap
  */
 int XLALHeapSize(
@@ -105,6 +112,13 @@ int XLALHeapSize(
  * Return the maximum size of a heap
  */
 int XLALHeapMaxSize(
+  const LALHeap *h              /**< [in] Pointer to heap */
+  );
+
+/**
+ * Return >0 if a limited-size heap is full, 0 otherwise (or if heap has unlimited size), or <0 on error
+ */
+int XLALHeapIsFull(
   const LALHeap *h              /**< [in] Pointer to heap */
   );
 
