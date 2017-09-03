@@ -492,6 +492,13 @@ static const double QNMData_fdamp[] = {0.0140098,0.0140102,0.0140106,0.0140114, 
 
 /* Non-reviewd functions */
 
+double IMRPhenomDFinalMass(
+    REAL8 m1,
+    REAL8 m2,
+    REAL8 chi1z,
+    REAL8 chi2z
+);
+
 int IMRPhenomDPhaseFrequencySequence(
     REAL8Sequence *phases,
     REAL8Sequence *freqs,

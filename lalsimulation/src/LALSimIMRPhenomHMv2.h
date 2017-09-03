@@ -43,6 +43,78 @@ extern "C" {
 #define AmpFlagFalse 0
 
 /**
+ * useful powers in GW waveforms: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -1, -1/6, -7/6, -1/3, -2/3, -5/3
+ * calculated using only one invocation of 'pow', the rest are just multiplications and divisions
+ */
+typedef struct tagPhenomHMUsefulPowers
+{
+    REAL8 third;
+    REAL8 two_thirds;
+    REAL8 four_thirds;
+    REAL8 five_thirds;
+    REAL8 two;
+    REAL8 seven_thirds;
+    REAL8 eight_thirds;
+    REAL8 inv;
+    REAL8 m_seven_sixths;
+    REAL8 m_third;
+    REAL8 m_two_thirds;
+    REAL8 m_five_thirds;
+} PhenomHMUsefulPowers;
+
+/**
+  * Useful powers of Mf: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -7/6, -5/6, -1/2, -1/6, 1/2
+  * calculated using only one invocation of 'pow' and one of 'sqrt'.
+  * The rest are just multiplications and divisions.  Also including Mf itself in here.
+  */
+typedef struct tagPhenomHMUsefulMfPowers
+{
+    REAL8 itself;
+    REAL8 sixth;
+    REAL8 third;
+    REAL8 two_thirds;
+    REAL8 four_thirds;
+    REAL8 five_thirds;
+    REAL8 two;
+    REAL8 seven_thirds;
+    REAL8 eight_thirds;
+    REAL8 m_seven_sixths;
+    REAL8 m_five_sixths;
+    REAL8 m_sqrt;
+    REAL8 m_sixth;
+    REAL8 sqrt;
+} PhenomHMUsefulMfPowers;
+
+/**
+ * must be called before the first usage of *p
+ */
+int PhenomHM_init_useful_mf_powers(PhenomHMUsefulMfPowers *p, REAL8 number);
+
+/**
+ * must be called before the first usage of *p
+ */
+int PhenomHM_init_useful_powers(PhenomHMUsefulPowers * p, REAL8 number);
+
+
+/**
+  * Structure holding Higher Mode Phase pre-computations
+  */
+typedef struct tagHMPhasePreComp {
+ double ai;
+ double bi;
+ double am;
+ double bm;
+ double ar;
+ double br;
+ double fi;
+ double fr;
+ double PhDBconst;
+ double PhDCconst;
+ double PhDBAterm;
+} HMPhasePreComp;
+
+
+/**
  * Structure storing pre-determined quantities
  * complying to the conventions of the PhenomHM model.
  * convensions such as m1>=m2
@@ -61,14 +133,14 @@ typedef struct tagPhenomHMStorage
     REAL8 f_max;
     REAL8 f_ref;
     UINT4 freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
-    // REAL8 Inv1MinusEradRational0815;
-    // REAL8 finspin;
-    // REAL8 Mf_RD_22;
-    // REAL8 Mf_DM_22;
-    // REAL8 PhenomHMfring[L_MAX_PLUS_1][L_MAX_PLUS_1];
-    // REAL8 PhenomHMfdamp[L_MAX_PLUS_1][L_MAX_PLUS_1];
-    // REAL8 Rholm[L_MAX_PLUS_1][L_MAX_PLUS_1];
-    // REAL8 Taulm[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 finmass;
+    REAL8 finspin;
+    REAL8 Mf_RD_22;
+    REAL8 Mf_DM_22;
+    REAL8 PhenomHMfring[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 PhenomHMfdamp[L_MAX_PLUS_1][L_MAX_PLUS_1];
+    REAL8 Rholm[L_MAX_PLUS_1][L_MAX_PLUS_1]; /**< ratio of (2,2) mode to (l,m) mode ringdown frequency */
+    REAL8 Taulm[L_MAX_PLUS_1][L_MAX_PLUS_1]; /**< ratio of (l,m) mode to (2,2) mode damping time */
     REAL8 Blm_prefactor[L_MAX_PLUS_1][L_MAX_PLUS_1];
 }
 PhenomHMStorage;
@@ -84,7 +156,89 @@ static int init_PhenomHM_Storage(
     const REAL8 f_ref
 );
 
+double IMRPhenomHMTrd(
+    REAL8 Mf,
+    REAL8 Mf_RD_22,
+    REAL8 Mf_RD_lm,
+    const INT4 AmpFlag,
+    const INT4 ell,
+    const INT4 mm,
+    PhenomHMStorage* pHM
+);
 
+double IMRPhenomHMTi(
+    REAL8 Mf,
+    const INT4 mm
+);
+
+int IMRPhenomHMSlopeAmAndBm(
+    double *Am,
+    double *Bm,
+    const INT4 mm,
+    REAL8 fi,
+    REAL8 fr,
+    REAL8 Mf_RD_22,
+    REAL8 Mf_RD_lm,
+    const INT4 AmpFlag,
+    const INT4 ell,
+    PhenomHMStorage* pHM
+);
+
+int IMRPhenomHMMapParams(
+    REAL8 *a,
+    REAL8 *b,
+    REAL8 flm,
+    REAL8 fi,
+    REAL8 fr,
+    REAL8 Ai,
+    REAL8 Bi,
+    REAL8 Am,
+    REAL8 Bm,
+    REAL8 Ar,
+    REAL8 Br
+);
+
+int IMRPhenomHMFreqDomainMapParams(
+    REAL8 *a,
+    REAL8 *b,
+    REAL8 *fi,
+    REAL8 *fr,
+    REAL8 *f1,
+    const REAL8 flm,
+    const INT4 ell,
+    const INT4 mm,
+    PhenomHMStorage* pHM,
+    const int AmpFlag
+);
+
+double IMRPhenomHMFreqDomainMap(
+    REAL8 Mflm,
+    const INT4 ell,
+    const INT4 mm,
+    PhenomHMStorage* pHM,
+    const int AmpFlag
+);
+
+double IMRPhenomHMPNFrequencyScale(
+    PhenomHMUsefulPowers *p,
+    REAL8 Mf,
+    INT4 ell,
+    INT4 mm
+);
+
+double IMRPhenomHMPNAmplitudeLeadingOrderFpow(
+    INT4 ell,
+    INT4 mm,
+    REAL8 Mf
+);
+
+int IMRPhenomHMPhasePreComp(
+    HMPhasePreComp *q,
+    const INT4 ell,
+    const INT4 mm,
+    PhenomHMStorage *pHM,
+    LALDict *extraParams
+);
 
 int IMRPhenomHMCore(
     PhenomHMStorage *PhenomHMQuantities,
@@ -99,27 +253,43 @@ int IMRPhenomHMEvaluatehlmModes(
 );
 
 int IMRPhenomHMAmplitude(
-    UNUSED REAL8Sequence *amps,
-    UNUSED REAL8Sequence *freqs_geom,
-    UNUSED PhenomHMStorage *pHM,
-    UNUSED UINT4 ell,
-    UNUSED INT4 mm,
+    REAL8Sequence *amps,
+    REAL8Sequence *freqs_geom,
+    PhenomHMStorage *pHM,
+    UINT4 ell,
+    INT4 mm,
     size_t ind_min,
     size_t ind_max,
-    UNUSED LALDict *extraParams
+    LALDict *extraParams
 );
 
 int IMRPhenomHMPhase(
-    UNUSED REAL8Sequence *phases,
-    UNUSED REAL8Sequence *freqs_geom,
-    UNUSED PhenomHMStorage *pHM,
-    UNUSED UINT4 ell,
-    UNUSED INT4 mm,
+    REAL8Sequence *phases,
+    REAL8Sequence *freqs_geom,
+    PhenomHMStorage *pHM,
+    UINT4 ell,
+    INT4 mm,
     size_t ind_min,
     size_t ind_max,
-    UNUSED LALDict *extraParams
+    LALDict *extraParams
 );
 
+double IMRPhenomDPhase_OneFrequency(
+    REAL8 Mf,
+    PhenomHMStorage *pHM,
+    REAL8 Rholm,
+    REAL8 Taulm,
+    LALDict *extraParams
+);
+
+int IMRPhenomHMGetRingdownFrequency(
+    REAL8 *fringdown,
+    REAL8 *fdamp,
+    UINT4 ell,
+    INT4 mm,
+    REAL8 finalmass,
+    REAL8 finalspin
+);
 
 #ifdef __cplusplus
 }

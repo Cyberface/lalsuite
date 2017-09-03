@@ -575,11 +575,38 @@ double XLALSimIMRPhenomDFinalSpin(
 
 /* Here I need a function to setup and evaluate phenomD amplitude and phase */
 
+
+
+
+/**
+ * Helper function used in PhenomHM and PhenomPv3HM
+ * Returns the final mass from the fit used in PhenomD
+ */
+double IMRPhenomDFinalMass(
+    REAL8 m1, /**< mass of primary in solar masses */
+    REAL8 m2, /**< mass of secondary in solar masses */
+    REAL8 chi1z, /**< aligned-spin component on primary */
+    REAL8 chi2z /**< aligned-spin component on secondary */
+)
+{
+    int retcode = 0;
+    retcode = PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
+        &m1,
+        &m2,
+        &chi1z,
+        &chi2z
+    );
+    XLAL_CHECK(
+        XLAL_SUCCESS == retcode,
+        XLAL_EFUNC,
+        "PhenomInternal_AlignedSpinEnforcePrimaryIsm1 failed");
+    REAL8 Mtot = m1+m2;
+    REAL8 eta = m1*m2 / (Mtot*Mtot);
+    return ( 1.0 - EradRational0815(eta, chi1z, chi2z ) ) ;
+}
+
 /* IMRPhenomDSetupPhase */
 /* IMRPhenomDEvaluatePhaseFrequencySequence */
-
-
-
 
 /**
  * Helper function used in PhenomHM and PhenomPv3HM
@@ -653,7 +680,7 @@ int IMRPhenomDPhaseFrequencySequence(
     int status_in_for = XLAL_SUCCESS;
     /* Now generate the waveform */
     #pragma omp parallel for
-    for (size_t i = ind_min; i <= ind_max; i++)
+    for (size_t i = ind_min; i < ind_max; i++)
     {
       REAL8 Mf = freqs->data[i]; // geometric frequency
 
@@ -661,7 +688,7 @@ int IMRPhenomDPhaseFrequencySequence(
       status_in_for = init_useful_powers(&powers_of_f, Mf);
       if (XLAL_SUCCESS != status_in_for)
       {
-        XLALPrintError("init_useful_powers failed for Mf, status_in_for=%d", status_in_for);
+        XLALPrintError("init_useful_powers failed for Mf, status_in_for=%d\n", status_in_for);
         retcode = status_in_for;
       }
       else
