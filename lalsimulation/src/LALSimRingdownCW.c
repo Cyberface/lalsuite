@@ -33,22 +33,11 @@
 #include <complex.h>
 #include <stdlib.h>
 
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_bspline.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_min.h>
-#include <gsl/gsl_spline.h>
 #include <lal/Units.h>
-#include <lal/SeqFactories.h>
 #include <lal/LALConstants.h>
 #include <lal/XLALError.h>
-#include <lal/FrequencySeries.h>
-#include <lal/Date.h>
-#include <lal/StringInput.h>
-#include <lal/Sequence.h>
-#include <lal/LALStdio.h>
-#include <lal/FileIO.h>
-#include <lal/TimeSeries.h>
+
+#include "LALSimRingdownCW.h"
 
 /*
 * Basic NOTE(s):
@@ -67,7 +56,7 @@
 /*
 * Domain mapping for dimnesionless BH spin
 */
-static double KAPPA( double jf, int l, int m ){
+double SimRingdownCW_KAPPA( double jf, int l, int m ){
   /* */
   /* if ( jf > 1.0 ) XLAL_ERROR(XLAL_EDOM, "Spin (dimensionless Kerr parameter) must not be greater than 1.0\n"); */
   /**/
@@ -80,7 +69,7 @@ static double KAPPA( double jf, int l, int m ){
 * Dimensionless QNM Frequencies: Note that name encodes date of writing
 */
 /*TODO: Make the function arg comments compatible with doxygen*/
-static complex double CW07102016( double kappa,  /* Domain mapping for  remnant BH's spin (Dimensionless) */
+complex double SimRingdownCW_CW07102016( double kappa,  /* Domain mapping for  remnant BH's spin (Dimensionless) */
                           int l,        /* Polar eigenvalue */
                           int input_m,  /* Azimuthal eigenvalue*/
                           int n ) {     /* Overtone Number*/

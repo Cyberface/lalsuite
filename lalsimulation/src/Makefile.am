@@ -65,6 +65,7 @@ pkginclude_HEADERS = \
 	LALSimBlackHoleRingdown.h \
 	LALSimBurst.h \
 	LALSimIMR.h \
+    LALSimIMRPhenomUtils.h \
 	LALSimInspiral.h \
 	LALSimInspiralPrecess.h \
 	LALSimInspiralTestGRParams.h \
@@ -105,12 +106,14 @@ noinst_HEADERS = \
 	LALSimIMREOBNRv2.h \
 	LALSimIMREOBNRv2HMROMUtilities.c \
 	LALSimIMREOBNewtonianMultipole.c \
+    LALSimIMRPhenomInternalUtils.h \
 	LALSimIMRPhenomC_internals.c \
 	LALSimIMRPhenomC_internals.h \
 	LALSimIMRPhenomD.h \
 	LALSimIMRPhenomD_internals.c \
 	LALSimIMRPhenomD_internals.h \
 	LALSimIMRPhenomHM.h \
+    LALSimIMRPhenomHMv2.h \
 	LALSimIMRPhenomP.c \
 	LALSimIMRPhenomP.h \
 	LALSimIMRSEOBNRROMUtilities.c \
@@ -140,7 +143,8 @@ noinst_HEADERS = \
 	LALSimInspiraldEnergyFlux.c \
 	LALSimNeutronStarEOSPiecewisePolytrope.c \
 	LALSimNeutronStarEOSTabular.c \
-	LALSimIMRSpinEOBHamiltonian.h
+	LALSimIMRSpinEOBHamiltonian.h \
+    LALSimRingdownCW.h
 
 lib_LTLIBRARIES = liblalsimulation.la
 
@@ -165,7 +169,10 @@ liblalsimulation_la_SOURCES = \
 	LALSimIMRPhenomC.c \
 	LALSimIMRPhenomD.c \
 	LALSimIMRPhenomHM.c \
+    LALSimIMRPhenomHMv2.c \
 	LALSimIMRPhenomP.c \
+    LALSimIMRPhenomInternalUtils.c \
+    LALSimIMRPhenomUtils.c \
 	LALSimIMRPSpinInspiralRD.c \
 	LALSimPhenSpinRingDown.c \
 	LALSimInspiralWaveformFlags.c \
@@ -207,6 +214,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimSGWBORF.c \
 	LALSimSphHarmMode.c \
 	LALSimSphHarmSeries.c \
+    LALSimRingdownCW.c \
 	LALSimUnicorn.c \
 	LALSimUtils.c \
 	check_series_macros.h \

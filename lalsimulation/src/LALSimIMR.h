@@ -287,6 +287,23 @@ SphHarmTimeSeries *XLALSimInspiralNRSur7dq2Modes(
         int lmax                        /**< Evaluates (l, m) modes with l <= lmax */
 );
 
+/* in module LALSimIMRPhenomHMv2.c */
+int XLALSimIMRPhenomHM(
+    COMPLEX16FrequencySeries **hptilde,
+    COMPLEX16FrequencySeries **hctilde,
+    REAL8Sequence *freqs,
+    REAL8 m1_SI,
+    REAL8 m2_SI,
+    REAL8 chi1z,
+    REAL8 chi2z,
+    const REAL8 distance,
+    const REAL8 inclination,
+    const REAL8 phiRef,
+    const REAL8 deltaF,
+    REAL8 f_ref,
+    LALDict *extraParams
+);
+
 #if 0
 { /* so that editors will match succeeding brace */
 #elif defined(__cplusplus)

@@ -30,17 +30,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include <complex.h>
-/* LAL specific libs  */
-
-#include <lal/LALDatatypes.h>
-#include <lal/LALStdlib.h>
-#include <lal/LALSimInspiral.h>
-#include <lal/LALSimIMR.h>
-#include <lal/LALConfig.h>
-#include <lal/LALConstants.h>
-#include <lal/Date.h>
-#include <lal/FrequencySeries.h>
-#include <lal/Units.h>
 
 /*
 * Basic NOTE(s): Prototypes for LALSimRingdownCW.c
@@ -49,12 +38,12 @@
 /*
 * Domain mapping for dimnesionless BH spin
 */
-static double KAPPA( double jf, int l, int m );
+double SimRingdownCW_KAPPA( double jf, int l, int m );
 
 /*
 * Dimensionless QNM Frequencies: Note that name encodes date of writing
 */
-static complex double CW07102016( double kappa,  /* Domain mapping for  remnant BH's spin (Dimensionless) */
+complex double SimRingdownCW_CW07102016( double kappa,  /* Domain mapping for  remnant BH's spin (Dimensionless) */
                           int l,        /* Polar eigenvalue */
                           int input_m,  /* Azimuthal eigenvalue*/
                           int n );      /* Overtone Number*/

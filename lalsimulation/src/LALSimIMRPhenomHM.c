@@ -32,8 +32,10 @@
 
 /* This allows us to reuse internal IMRPhenomD functions without making those functions XLAL */
 #include "LALSimIMRPhenomD_internals.c"
-#include "LALSimRingdownCW.c"
+// #include "LALSimRingdownCW.c"
+#include "LALSimRingdownCW.h"
 
+#include "LALSimIMRPhenomInternalUtils.h"
 
 #include "LALSimIMRPhenomHM.h"
 
@@ -151,7 +153,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
     for( int j=0; j<NMODES; j++ ){
         int ell = ModeArray[j][0];
         int mm = ModeArray[j][1];
-        ZZ = CW07102016( KAPPA(p->finspin, ell, mm), ell, mm, 0 );
+        ZZ = SimRingdownCW_CW07102016( SimRingdownCW_KAPPA(p->finspin, ell, mm), ell, mm, 0 );
         /* lm mode ringdown frequency (real part of ringdown), geometric units */
         const REAL8 Mf_RD = inv2Pi * creal(ZZ); /* GW ringdown frequency, converted from angular frequency */
         p->PhenomHMfring[ell][mm] = Mf_RD * p->Inv1MinusEradRational0815; /* scale by predicted final mass */
@@ -1023,7 +1025,7 @@ int XLALIMRPhenomHMMultiModehlm(
     const REAL8 M_sec = M * LAL_MTSUN_SI;
 
     if (eta > 0.25)
-        nudge(&eta, 0.25, 1e-6);
+        PhenomInternal_nudge(&eta, 0.25, 1e-6);
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
@@ -1299,7 +1301,7 @@ int XLALIMRPhenomHMMultiModeStrain(
     REAL8 eta = m1 * m2 / (M * M);
 
     if (eta > 0.25)
-        nudge(&eta, 0.25, 1e-6);
+        PhenomInternal_nudge(&eta, 0.25, 1e-6);
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
@@ -1453,7 +1455,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
     REAL8 eta = PhenomDQuantities.eta;
 
     if (eta > 0.25)
-        nudge(&eta, 0.25, 1e-6);
+        PhenomInternal_nudge(&eta, 0.25, 1e-6);
     if (eta > 0.25 || eta < 0.0)
         XLAL_ERROR(XLAL_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
 
@@ -1633,30 +1635,4 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
      LALFree(pn);
 
     return XLAL_SUCCESS;
-}
-
-
-
-
-// Taken from LALSimIMRPhenomP.c
-// This function determines whether x and y are approximately equal to a relative accuracy epsilon.
-// Note that x and y are compared to relative accuracy, so this function is not suitable for testing whether a value is approximately zero.
-static bool approximately_equal(REAL8 x, REAL8 y, REAL8 epsilon) {
-  return !gsl_fcmp(x, y, epsilon);
-}
-
-// If x and X are approximately equal to relative accuracy epsilon then set x = X.
-// If X = 0 then use an absolute comparison.
-// Taken from LALSimIMRPhenomP.c
-static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon) {
-  if (X != 0.0) {
-    if (approximately_equal(*x, X, epsilon)) {
-      XLAL_PRINT_INFO("Nudging value %.15g to %.15g\n", *x, X);
-      *x = X;
-    }
-  }
-  else {
-    if (fabs(*x - X) < epsilon)
-      *x = X;
-  }
 }

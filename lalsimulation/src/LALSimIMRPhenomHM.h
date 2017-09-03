@@ -101,9 +101,4 @@ typedef struct tagHMPhasePreComp {
  double PhDBAterm;
 } HMPhasePreComp;
 
-// Taken from LALSimIMRPhenomP.h
-static bool approximately_equal(REAL8 x, REAL8 y, REAL8 epsilon);
-static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
-
-
 #endif /* _LALSIM_IMR_PHENOMHM_H */
