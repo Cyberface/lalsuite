@@ -7,6 +7,7 @@
 #include <lal/LALDict.h>
 #include <lal/LALConstants.h>
 #include <lal/XLALError.h>
+#include <lal/FrequencySeries.h>
 #include <math.h>
 
 #ifdef __cplusplus
@@ -127,12 +128,16 @@ typedef struct tagPhenomHMStorage
     REAL8 eta;  /**< symmetric mass-ratio */
     REAL8 chi1z; /**< dimensionless aligned component spin of larger body */
     REAL8 chi2z; /**< dimensionless aligned component spin of lighter body */
+    REAL8 inclination;
     REAL8Sequence *freqs;
     REAL8 deltaF;
     REAL8 f_min;
     REAL8 f_max;
     REAL8 f_ref;
     UINT4 freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
+    size_t npts; /**< number of points in waveform array */
+    size_t ind_min; /**< start index containing non-zero values */
+    size_t ind_max; /**< end index containing non-zero values */
     REAL8 finmass;
     REAL8 finspin;
     REAL8 Mf_RD_22;
@@ -153,7 +158,19 @@ static int init_PhenomHM_Storage(
     const REAL8 chi2z,
     REAL8Sequence *freqs,
     const REAL8 deltaF,
-    const REAL8 f_ref
+    const REAL8 f_ref,
+    const REAL8 inclination
+);
+
+int IMRPhenomHMFDAddMode(
+    COMPLEX16FrequencySeries *hptilde,
+    COMPLEX16FrequencySeries *hctilde,
+    COMPLEX16FrequencySeries *hlmtilde,
+    REAL8 theta,
+    REAL8 phi,
+    INT4 l,
+    INT4 m,
+    INT4 sym
 );
 
 double IMRPhenomHMTrd(
@@ -241,14 +258,26 @@ int IMRPhenomHMPhasePreComp(
 );
 
 int IMRPhenomHMCore(
-    PhenomHMStorage *PhenomHMQuantities,
+    COMPLEX16FrequencySeries **hptilde,
+    COMPLEX16FrequencySeries **hctilde,
+    PhenomHMStorage *pHM,
     LALDict *extraParams
 );
 
+int IMRPhenomHMEvaluateOnehlmMode(
+    COMPLEX16FrequencySeries **hlm,
+    REAL8Sequence *amps,
+    REAL8Sequence *phases,
+    REAL8Sequence *freqs_geom,
+    PhenomHMStorage *pHM,
+    UINT4 ell,
+    INT4 mm,
+    LALDict *extraParams
+);
 
 int IMRPhenomHMEvaluatehlmModes(
     SphHarmFrequencySeries **hlms,
-    PhenomHMStorage *PhenomHMQuantities,
+    PhenomHMStorage *pHM,
     LALDict *extraParams
 );
 
@@ -258,8 +287,6 @@ int IMRPhenomHMAmplitude(
     PhenomHMStorage *pHM,
     UINT4 ell,
     INT4 mm,
-    size_t ind_min,
-    size_t ind_max,
     LALDict *extraParams
 );
 
@@ -269,8 +296,6 @@ int IMRPhenomHMPhase(
     PhenomHMStorage *pHM,
     UINT4 ell,
     INT4 mm,
-    size_t ind_min,
-    size_t ind_max,
     LALDict *extraParams
 );
 
