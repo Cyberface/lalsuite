@@ -61,6 +61,66 @@ static const double cShift[7] = {0.0,
  * Need to rewrite parts of PhenomD code to make this nicer. */
 // #include "LALSimIMRPhenomD_internals.c"
 
+
+/**
+ * read in a LALDict.
+ * If ModeArray in LALDict is NULL then create a ModrArray
+ * with the default modes in PhenomHM.
+ * If ModeArray is not NULL then use the modes supplied by user.
+ */
+LALDict* IMRPhenomHM_setup_mode_array(
+    LALDict *extraParams
+)
+{
+
+    /* setup ModeArray */
+    if (extraParams==NULL)
+      extraParams=XLALCreateDict();
+    LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
+    if ( ModeArray == NULL )
+    {   /* Default behaviour */
+        /* TODO: Move this into a function */
+        XLAL_PRINT_INFO("Using default modes for PhenomHM.\n");
+        ModeArray = XLALSimInspiralCreateModeArray();
+        /* Only need to define the positive m modes/
+         * The negative m modes are automatically added.
+         */
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 2, 2);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 2, -2);
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 2, 1);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 2, -1);
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 3, 3);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 3, -3);
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 3, 2);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 3, -2);
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 4, 4);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 4, -4);
+        XLALSimInspiralModeArrayActivateMode(ModeArray, 4, 3);
+        // XLALSimInspiralModeArrayActivateMode(ModeArray, 4, -3);
+        // XLALSimInspiralModeArrayPrintModes(ModeArray);
+        /* Don't forget to insert ModeArray back into extraParams. */
+        XLALSimInspiralWaveformParamsInsertModeArray(extraParams, ModeArray);
+    }
+    else
+    {
+        XLAL_PRINT_INFO("Using custom modes for PhenomHM.\n");
+        /* TODO: loop over mode array and throw an error if
+         there is a mode that is not included in the model */
+        /* Have a variable that contains the list of modes currently
+        implemented and check against this. */
+        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
+        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
+        //FIXME: see above
+        //FIXME: for example if someone tries to add the (l,m)=(2,0)
+        //mode we need to throw an error.
+    }
+
+    LALFree(ModeArray);
+    /*TODO: Add an error check here somehow?*/
+
+    return extraParams;
+}
+
 /**
  *
  */
@@ -316,8 +376,6 @@ static int init_PhenomHM_Storage(
     REAL8Sequence *freqs,
     const REAL8 deltaF,
     const REAL8 f_ref,
-    const REAL8 inclination,
-    const REAL8 distance,
     const REAL8 phiRef
 )
 {
@@ -336,8 +394,6 @@ static int init_PhenomHM_Storage(
     p->eta = p->m1 * p->m2 / (p->Mtot*p->Mtot);
     p->chi1z = chi1z;
     p->chi2z = chi2z;
-    p->inclination = inclination;
-    p->distance = distance;
     p->phiRef = phiRef;
     p->deltaF = deltaF;
     p->freqs = freqs;
@@ -520,7 +576,7 @@ double IMRPhenomHMTrd(
 )
 {
     double ans = 0.0;
-    if ( AmpFlag==1 ) {
+    if ( AmpFlag==AmpFlagTrue ) {
         /* For amplitude */
         ans = Mf-Mf_RD_lm+Mf_RD_22; /*Used for the Amplitude as an approx fix for post merger powerlaw slope */
     } else {
@@ -629,7 +685,7 @@ int IMRPhenomHMFreqDomainMapParams(
 
     /* Account for different f1 definition between PhenomD Amplitude and Phase derivative models */
     REAL8 Mf_1_22  = 0.; /* initalise variable */
-    if ( AmpFlag==1 ) {
+    if ( AmpFlag==AmpFlagTrue ) {
         /* For amplitude */
         Mf_1_22  = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD [amplitude model], for the 22 mode */
     } else {
@@ -661,7 +717,7 @@ int IMRPhenomHMFreqDomainMapParams(
 
     REAL8 Ar = 1.0;
     REAL8 Br = 0.0;
-    if ( AmpFlag==1 ) {
+    if ( AmpFlag==AmpFlagTrue ) {
         /* For amplitude */
         Br = -Mf_RD_lm+Mf_RD_22;
     } else {
@@ -948,65 +1004,19 @@ UNUSED int XLALSimIMRPhenomHM(
 {
     /* define and init return code for this function */
     int retcode;
-    /* sanity checks on input parameters: check pointers, etc. */
 
-    /* Check inputs for sanity */
+    /* sanity checks on input parameters: check pointers, etc. */
+    /* NOTE: a lot of checks are done in the function
+     * XLALSimIMRPhenomHMGethlmModes because that can also be used
+     * as a standalone function. It gets called through IMRPhenomHMCore
+     * so to avoid doubling up on checks alot of the checks are done in
+     * XLALSimIMRPhenomHMGethlmModes.
+     */
     XLAL_CHECK(NULL != hptilde, XLAL_EFAULT);
     XLAL_CHECK(NULL != hctilde, XLAL_EFAULT);
     XLAL_CHECK(*hptilde == NULL, XLAL_EFAULT);
     XLAL_CHECK(*hctilde == NULL, XLAL_EFAULT);
-    XLAL_CHECK(m1_SI > 0, XLAL_EDOM, "m1 must be positive.\n");
-    XLAL_CHECK(m2_SI > 0, XLAL_EDOM, "m2 must be positive.\n");
-    XLAL_CHECK(fabs(chi1z) <= 1.0, XLAL_EDOM, "Aligned spin chi1z=%g \
-must be <= 1 in magnitude!\n", chi1z);
-    XLAL_CHECK(fabs(chi2z) <= 1.0, XLAL_EDOM, "Aligned spin chi2z=%g \
-must be <= 1 in magnitude!\n", chi2z);
     XLAL_CHECK(distance > 0, XLAL_EDOM, "distance must be positive.\n");
-    XLAL_CHECK(f_ref >= 0, XLAL_EDOM, "Reference frequency must be \
-positive.\n"); /* FIXME: check this one */
-
-    /* setup ModeArray */
-    if (extraParams==NULL)
-      extraParams=XLALCreateDict();
-    LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
-    if ( ModeArray == NULL )
-    {   /* Default behaviour */
-        /* TODO: Move this into a function */
-        XLAL_PRINT_INFO("Using default modes for PhenomHM.\n");
-        ModeArray = XLALSimInspiralCreateModeArray();
-        /* Only need to define the positive m modes/
-         * The negative m modes are automatically added.
-         */
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 2, 2);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 2, -2);
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 2, 1);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 2, -1);
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 3, 3);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 3, -3);
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 3, 2);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 3, -2);
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 4, 4);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 4, -4);
-        XLALSimInspiralModeArrayActivateMode(ModeArray, 4, 3);
-        // XLALSimInspiralModeArrayActivateMode(ModeArray, 4, -3);
-        // XLALSimInspiralModeArrayPrintModes(ModeArray);
-        /* Don't forget to insert ModeArray back into extraParams. */
-        XLALSimInspiralWaveformParamsInsertModeArray(extraParams, ModeArray);
-    }
-    else
-    {
-        XLAL_PRINT_INFO("Using custom modes for PhenomHM.\n");
-        /* TODO: loop over mode array and throw an error if
-         there is a mode that is not included in the model */
-        /* Have a variable that contains the list of modes currently
-        implemented and check against this. */
-        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
-        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
-        //FIXME: see above
-        //FIXME: for example if someone tries to add the (l,m)=(2,0)
-        //mode we need to throw an error.
-    }
-
 
      /* main: evaluate model at given frequencies */
      retcode = 0;
@@ -1030,7 +1040,6 @@ positive.\n"); /* FIXME: check this one */
 
      /* cleanup */
      /* XLALDestroy and XLALFree any pointers. */
-     LALFree(ModeArray);
 
     return XLAL_SUCCESS;
 }
@@ -1048,7 +1057,7 @@ int IMRPhenomHMCore(
     REAL8 m2_SI,
     REAL8 chi1z,
     REAL8 chi2z,
-    const REAL8 distance,
+    UNUSED const REAL8 distance,
     const REAL8 inclination,
     const REAL8 phiRef,
     const REAL8 deltaF,
@@ -1069,8 +1078,6 @@ int IMRPhenomHMCore(
                 m2_SI,
                 chi1z,
                 chi2z,
-                distance,
-                inclination,
                 phiRef,
                 deltaF,
                 f_ref,
@@ -1134,8 +1141,15 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
      * - use of a function that copies XLALSimAddMode but for Fourier domain structures */
     INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
 
-    /* loop over modes */
+
+    /* setup ModeArray */
+    if (extraParams==NULL){
+        extraParams=XLALCreateDict();
+    }
+    extraParams = IMRPhenomHM_setup_mode_array(extraParams);
     LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
+
+    /* loop over modes */
     /* at this point ModeArray should contain the list of modes
      * and therefore if NULL then something is wrong and abort.
      */
@@ -1219,8 +1233,6 @@ int XLALSimIMRPhenomHMGethlmModes(
     UNUSED REAL8 m2_SI,
     UNUSED REAL8 chi1z,
     UNUSED REAL8 chi2z,
-    UNUSED const REAL8 distance,
-    UNUSED const REAL8 inclination,
     UNUSED const REAL8 phiRef,
     UNUSED const REAL8 deltaF,
     UNUSED REAL8 f_ref,
@@ -1228,6 +1240,25 @@ int XLALSimIMRPhenomHMGethlmModes(
 )
 {
     UNUSED int retcode;
+
+    /* sanity checks on input parameters: check pointers, etc. */
+
+    /* Check inputs for sanity */
+    XLAL_CHECK(m1_SI > 0, XLAL_EDOM, "m1 must be positive.\n");
+    XLAL_CHECK(m2_SI > 0, XLAL_EDOM, "m2 must be positive.\n");
+    XLAL_CHECK(fabs(chi1z) <= 1.0, XLAL_EDOM, "Aligned spin chi1z=%g \
+must be <= 1 in magnitude!\n", chi1z);
+    XLAL_CHECK(fabs(chi2z) <= 1.0, XLAL_EDOM, "Aligned spin chi2z=%g \
+must be <= 1 in magnitude!\n", chi2z);
+    XLAL_CHECK(f_ref >= 0, XLAL_EDOM, "Reference frequency must be \
+positive.\n"); /* FIXME: check this one */
+
+    /* setup ModeArray */
+    if (extraParams==NULL)
+      extraParams=XLALCreateDict();
+     extraParams = IMRPhenomHM_setup_mode_array(extraParams);
+    LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
+
 
     /* HERE */
     /* move init_PhenomHM_Storage to HERE
@@ -1238,7 +1269,6 @@ int XLALSimIMRPhenomHMGethlmModes(
 
     REAL8Sequence *amps = NULL;
     REAL8Sequence *phases = NULL;
-    // REAL8Sequence *freqs = NULL; /* freqs is in Hz */
     REAL8Sequence *freqs_geom = NULL; /* freqs is in geometric units */
 
     LIGOTimeGPS tC = LIGOTIMEGPSZERO; // = {0, 0}
@@ -1257,8 +1287,6 @@ int XLALSimIMRPhenomHMGethlmModes(
                                    freqs,
                                    deltaF,
                                    f_ref,
-                                   inclination,
-                                   distance,
                                    phiRef
                                );
     XLAL_CHECK(XLAL_SUCCESS == retcode, XLAL_EFUNC, "init_PhenomHM_Storage \
@@ -1322,7 +1350,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
       */
 
     /* loop over modes */
-    LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
+    // LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
     /* at this point ModeArray should contain the list of modes
      * and therefore if NULL then something is wrong and abort.
      */

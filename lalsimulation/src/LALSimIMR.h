@@ -311,8 +311,6 @@ int XLALSimIMRPhenomHMGethlmModes(
     REAL8 m2_SI,
     REAL8 chi1z,
     REAL8 chi2z,
-    const REAL8 distance,
-    const REAL8 inclination,
     const REAL8 phiRef,
     const REAL8 deltaF,
     REAL8 f_ref,

@@ -43,6 +43,12 @@ extern "C" {
 #define AmpFlagTrue 1
 #define AmpFlagFalse 0
 
+
+LALDict* IMRPhenomHM_setup_mode_array(
+    LALDict *extraParams
+);
+
+
 /**
  * useful powers in GW waveforms: 1/6, 1/3, 2/3, 4/3, 5/3, 2, 7/3, 8/3, -1, -1/6, -7/6, -1/3, -2/3, -5/3
  * calculated using only one invocation of 'pow', the rest are just multiplications and divisions
@@ -160,8 +166,6 @@ typedef struct tagPhenomHMStorage
     REAL8 eta;  /**< symmetric mass-ratio */
     REAL8 chi1z; /**< dimensionless aligned component spin of larger body */
     REAL8 chi2z; /**< dimensionless aligned component spin of lighter body */
-    REAL8 distance;
-    REAL8 inclination;
     REAL8Sequence *freqs;
     REAL8 deltaF;
     REAL8 f_min;
@@ -193,8 +197,6 @@ static int init_PhenomHM_Storage(
     REAL8Sequence *freqs,
     const REAL8 deltaF,
     const REAL8 f_ref,
-    const REAL8 inclination,
-    const REAL8 distance,
     const REAL8 phiRef
 );
 
