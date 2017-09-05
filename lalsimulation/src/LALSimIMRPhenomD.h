@@ -524,4 +524,12 @@ int IMRPhenomDAmpFrequencySequence(
     REAL8 chi2z
 );
 
+REAL8 IMRPhenomDComputet0(
+    REAL8 eta,
+    REAL8 chi1z,
+    REAL8 chi2z,
+    REAL8 finspin,
+    LALDict *extraParams
+);
+
 #endif /* _LALSIM_IMR_PHENOMD_H */

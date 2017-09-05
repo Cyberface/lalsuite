@@ -171,6 +171,7 @@ typedef struct tagPhenomHMStorage
     REAL8 f_min;
     REAL8 f_max;
     REAL8 f_ref;
+    REAL8 Mf_ref; /**< reference frequnecy in geometric units */
     REAL8 phiRef;
     UINT4 freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
     size_t npts; /**< number of points in waveform array */
@@ -319,6 +320,7 @@ int IMRPhenomHMEvaluateOnehlmMode(
     PhenomHMStorage *pHM,
     UINT4 ell,
     INT4 mm,
+    REAL8 phi0,
     LALDict *extraParams
 );
 

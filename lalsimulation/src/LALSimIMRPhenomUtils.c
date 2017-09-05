@@ -81,3 +81,14 @@ double XLALSimPhenomUtilsHztoMf(
 {
     return fHz * ( LAL_MTSUN_SI * Mtot_Msun );
 }
+
+/**
+ * compute the frequency domain amplitude pre-factor
+ */
+double XLALSimPhenomUtilsFDamp0(
+    REAL8 Mtot_Msun, /**< total mass in solar masses */
+    REAL8 distance /**< distance (m) */
+)
+{
+    return Mtot_Msun * LAL_MRSUN_SI * Mtot_Msun * LAL_MTSUN_SI / distance;
+}

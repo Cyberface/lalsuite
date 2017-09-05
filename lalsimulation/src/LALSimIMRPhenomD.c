@@ -779,3 +779,43 @@ int IMRPhenomDAmpFrequencySequence(
 
     return XLAL_SUCCESS;
 }
+
+/**
+ * computes the time shift as the approximate time of the peak of the 22 mode.
+ */
+REAL8 IMRPhenomDComputet0(
+    REAL8 eta,
+    REAL8 chi1z,
+    REAL8 chi2z,
+    REAL8 finspin,
+    LALDict *extraParams
+)
+{
+
+    if (extraParams==NULL)
+      extraParams=XLALCreateDict();
+
+    IMRPhenomDPhaseCoefficients *pPhi;
+    pPhi = XLALMalloc(sizeof(IMRPhenomDPhaseCoefficients));
+    ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi1z, chi2z, finspin, extraParams);
+    if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
+
+    IMRPhenomDAmplitudeCoefficients *pAmp;
+    pAmp = XLALMalloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+    ComputeIMRPhenomDAmplitudeCoefficients(pAmp, eta, chi1z, chi2z, finspin);
+    if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+
+    // double Rholm = XLALSimIMRPhenomHMRholm(eta, chi1z, chi2z, ell, mm);
+    // double Taulm = XLALSimIMRPhenomHMTaulm(eta, chi1z, chi2z, ell, mm);
+
+    //time shift so that peak amplitude is approximately at t=0
+    //For details see https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/WaveformsReview/IMRPhenomDCodeReview/timedomain
+    //NOTE: All modes will have the same time offset. So we use the 22 mode.
+    //If we just use the 22 mode then we pass 1.0, 1.0 into DPhiMRD.
+    const REAL8 t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
+
+    LALFree(pPhi);
+    LALFree(pAmp);
+
+    return t0;
+}

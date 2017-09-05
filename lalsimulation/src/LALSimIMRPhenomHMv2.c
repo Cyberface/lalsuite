@@ -446,6 +446,7 @@ static int init_PhenomHM_Storage(
     p->ind_min = pHMFS.ind_min;
     p->ind_max = pHMFS.ind_max;
 
+    p->Mf_ref = XLALSimPhenomUtilsHztoMf( p->f_ref, p->Mtot );
 
     p->finmass = IMRPhenomDFinalMass(p->m1, p->m2, p->chi1z, p->chi2z);
     p->finspin = XLALSimIMRPhenomDFinalSpin(p->m1, p->m2, p->chi1z, p->chi2z); /* dimensionless final spin */
@@ -1057,7 +1058,7 @@ int IMRPhenomHMCore(
     REAL8 m2_SI,
     REAL8 chi1z,
     REAL8 chi2z,
-    UNUSED const REAL8 distance,
+    const REAL8 distance,
     const REAL8 inclination,
     const REAL8 phiRef,
     const REAL8 deltaF,
@@ -1188,12 +1189,14 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
 
     // NOTE: SK: HERE I SWAP hplus with hcross to conform with LAL phase convension
+    /* Compute the amplitude pre-factor */
+    const REAL8 amp0 = XLALSimPhenomUtilsFDamp0(Mtot, distance);
     // for (size_t i = 0; i < (*hptilde)->data->length; i++) //old code
     #pragma omp parallel for
     for (size_t i = pHMFS->ind_min; i < pHMFS->ind_max; i++)
     {
-       ((*hptilde)->data->data)[i] = I*((*hptilde)->data->data)[i];
-       ((*hctilde)->data->data)[i] = -I*((*hctilde)->data->data)[i];
+       ((*hptilde)->data->data)[i] = I*((*hptilde)->data->data)[i] * amp0;
+       ((*hctilde)->data->data)[i] = -I*((*hctilde)->data->data)[i] * amp0;
     }
 
 
@@ -1343,11 +1346,22 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
          freqs_geom->data[i] = XLALSimPhenomUtilsHztoMf(freqs->data[i], pHM->Mtot); /* initalise all phases to zero. */
      }
 
+
      /* Loop over ModeArray and if active then generate hlm for
      that mode and add it to **hlm */
      /* TODO: modify ind_min and ind_max
       * based on the (l,m) number to try and
       */
+
+
+    /* compute the reference phase shift need to align the waveform so that
+     the phase is equal to phiRef at the reference frequency f_ref. */
+    /* the phase shift is computed by evaluating the phase of the
+    (l,m)=(2,2) mode.
+    phi0 is the correction we need to add to each mode. */
+    REAL8 phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pHM,
+        1.0, 1.0, extraParams);
+    REAL8 phi0 = 0.5 * phi_22_at_f_ref - phiRef;
 
     /* loop over modes */
     // LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
@@ -1380,6 +1394,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
                             freqs_geom,
                             pHM,
                             ell, mm,
+                            phi0,
                             extraParams
                         );
             XLAL_CHECK(XLAL_SUCCESS == retcode,
@@ -1434,6 +1449,7 @@ int IMRPhenomHMEvaluateOnehlmMode(
     UNUSED PhenomHMStorage *pHM,
     UNUSED UINT4 ell,
     UNUSED INT4 mm,
+    UNUSED REAL8 phi0, /**< phase shift needed to align waveform to phiRef at f_ref. */
     UNUSED LALDict *extraParams
 )
 {
@@ -1463,17 +1479,25 @@ int IMRPhenomHMEvaluateOnehlmMode(
     XLAL_CHECK(XLAL_SUCCESS == retcode,
         XLAL_EFUNC, "IMRPhenomHMAmplitude failed");
 
+    /* compute time shift */
+    REAL8 t0 = IMRPhenomDComputet0(
+        pHM->eta, pHM->chi1z, pHM->chi2z,
+        pHM->finspin, extraParams);
+
+    REAL8 phase_term1 = 0.0;
+    REAL8 phase_term2 = 0.0;
+    REAL8 Mf = 0.0; /* geometric frequency */
     /* combine together to make hlm */
     //loop over hlm COMPLEX16FrequencySeries
     for(size_t i=pHM->ind_min; i<pHM->ind_max;i++)
     {
-        // (hlm->data->data)[i] = amp0 * amps->data[i] * cexp(-I*t0 * phases->data[i]);
-        //TODO: PLACEHOLDER!
-        //FIXME: missing  time shift
-        //FIXME: missing  time shift
-        //FIXME: missing  time shift
-        //FIXME: missing  time shift
-        ((*hlm)->data->data)[i] = amps->data[i] * cexp(-I*phases->data[i]);
+        Mf = freqs_geom->data[i];
+        phase_term1 = t0 * ( Mf - pHM->Mf_ref*0. );
+        phase_term2 = phases->data[i] - (mm * phi0);
+        ((*hlm)->data->data)[i] = amps->data[i] * cexp(-I*( phase_term1 + phase_term2 ));
+
+        // COMPLEX16 exponent = -I*(t0 + phases->data[i] * t0*(Mf-MfRef));
+        // ((*hlm)->data->data)[i] = amps->data[i] * cexp( -I phases->data[i] );
     }
 
     /* cleanup */
