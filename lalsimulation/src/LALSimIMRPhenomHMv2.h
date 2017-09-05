@@ -114,6 +114,36 @@ typedef struct tagHMPhasePreComp {
  double PhDBAterm;
 } HMPhasePreComp;
 
+/**
+ * Structure storing pre-determined quantities
+ * that describe the frequency array
+ * and tells you over which indices will contain non-zero values.
+ */
+typedef struct tagPhenomHMFrequencyBoundsStorage
+{
+    REAL8 deltaF;
+    REAL8 f_min;
+    REAL8 f_max;
+    REAL8 f_ref;
+    UINT4 freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
+    size_t npts; /**< number of points in waveform array */
+    size_t ind_min; /**< start index containing non-zero values */
+    size_t ind_max; /**< end index containing non-zero values */
+}
+PhenomHMFrequencyBoundsStorage;
+
+int init_IMRPhenomHMGet_FrequencyBounds_storage(
+    PhenomHMFrequencyBoundsStorage *p,
+    REAL8Sequence *freqs,
+    REAL8 Mtot,
+    REAL8 deltaF,
+    REAL8 f_ref_in
+);
+
+UINT4 IMRPhenomHM_is_freq_uniform(
+    REAL8Sequence *freqs,
+    REAL8 deltaF
+);
 
 /**
  * Structure storing pre-determined quantities
@@ -124,16 +154,20 @@ typedef struct tagPhenomHMStorage
 {
     REAL8 m1; /**< mass of larger body in solar masses */
     REAL8 m2; /**< mass of lighter body in solar masses */
+    REAL8 m1_SI; /**< mass of larger body in kg */
+    REAL8 m2_SI; /**< mass of lighter body in kg */
     REAL8 Mtot;  /**< total mass in solar masses */
     REAL8 eta;  /**< symmetric mass-ratio */
     REAL8 chi1z; /**< dimensionless aligned component spin of larger body */
     REAL8 chi2z; /**< dimensionless aligned component spin of lighter body */
+    REAL8 distance;
     REAL8 inclination;
     REAL8Sequence *freqs;
     REAL8 deltaF;
     REAL8 f_min;
     REAL8 f_max;
     REAL8 f_ref;
+    REAL8 phiRef;
     UINT4 freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
     size_t npts; /**< number of points in waveform array */
     size_t ind_min; /**< start index containing non-zero values */
@@ -159,7 +193,9 @@ static int init_PhenomHM_Storage(
     REAL8Sequence *freqs,
     const REAL8 deltaF,
     const REAL8 f_ref,
-    const REAL8 inclination
+    const REAL8 inclination,
+    const REAL8 distance,
+    const REAL8 phiRef
 );
 
 int IMRPhenomHMFDAddMode(
@@ -260,7 +296,16 @@ int IMRPhenomHMPhasePreComp(
 int IMRPhenomHMCore(
     COMPLEX16FrequencySeries **hptilde,
     COMPLEX16FrequencySeries **hctilde,
-    PhenomHMStorage *pHM,
+    REAL8Sequence *freqs,
+    REAL8 m1_SI,
+    REAL8 m2_SI,
+    REAL8 chi1z,
+    REAL8 chi2z,
+    const REAL8 distance,
+    const REAL8 inclination,
+    const REAL8 phiRef,
+    const REAL8 deltaF,
+    REAL8 f_ref,
     LALDict *extraParams
 );
 
@@ -272,12 +317,6 @@ int IMRPhenomHMEvaluateOnehlmMode(
     PhenomHMStorage *pHM,
     UINT4 ell,
     INT4 mm,
-    LALDict *extraParams
-);
-
-int IMRPhenomHMEvaluatehlmModes(
-    SphHarmFrequencySeries **hlms,
-    PhenomHMStorage *pHM,
     LALDict *extraParams
 );
 

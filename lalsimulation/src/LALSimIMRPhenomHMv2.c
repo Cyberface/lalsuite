@@ -189,6 +189,121 @@ int IMRPhenomHMGetRingdownFrequency(
 }
 
 /**
+ * helper function to easily check if the
+ * input frequency sequence is uniformly space
+ * or a user defined set of discrete frequencies.
+ */
+UINT4 IMRPhenomHM_is_freq_uniform(
+    REAL8Sequence *freqs,
+    REAL8 deltaF
+)
+{
+    UINT4 freq_is_uniform = 0;
+    if ( (freqs->length == 2 ) && ( deltaF > 0. ) )
+    {
+        freq_is_uniform = 1;
+    }
+    else if ( ( freqs->length != 2 ) && ( deltaF <= 0. ) )
+    {
+        freq_is_uniform = 0;
+    }
+
+    return freq_is_uniform;
+}
+
+/**
+ * derive frequency variables for PhenomHM based on input.
+ * used to set the index on arrays where we have non-zero values.
+ */
+int init_IMRPhenomHMGet_FrequencyBounds_storage(
+    PhenomHMFrequencyBoundsStorage *p, /**< [out] PhenomHMFrequencyBoundsStorage struct */
+    REAL8Sequence *freqs,
+    REAL8 Mtot, /**< total mass in solar masses */
+    REAL8 deltaF,
+    REAL8 f_ref_in
+)
+{
+    p->deltaF = deltaF;
+    /* determine how to populate frequency sequence */
+    /* if len(freqs_in) == 2 and deltaF > 0. then
+     * f_min = freqs_in[0]
+     * f_max = freqs_in[1]
+     * else if len(freqs_in) != 2 and deltaF <= 0. then
+     * user has given an arbitrary set of frequencies to evaluate the model at.
+     */
+
+     p->freq_is_uniform = IMRPhenomHM_is_freq_uniform( freqs, p->deltaF );
+
+
+    if ( p->freq_is_uniform == 1 )
+    { /* This case we use regularly spaced frequencies */
+        p->f_min = freqs->data[0];
+        p->f_max = freqs->data[1];
+
+        /* If p->f_max == 0. Then we default to the ending frequency
+         * for PhenomHM
+         * TODO: Check the ending frequency
+         * TODO: Want to implement variable ending frequency for each mode.
+         */
+        if ( p->f_max == 0. )
+        {
+            p->f_max = XLALSimPhenomUtilsMftoHz(
+                        PHENOMHM_DEFAULT_MF_MAX, Mtot
+                    );
+        }
+        /* we only need to evaluate the phase from
+         * f_min to f_max with a spacing of deltaF
+         */
+         p->npts = PhenomInternal_NextPow2(p->f_max / p->deltaF) + 1;
+         p->ind_min = (size_t) ceil(p->f_min / p->deltaF);
+         p->ind_max = (size_t) ceil(p->f_max / p->deltaF) + 1; /*TODO: SK - I found that I had to add +1 here so that the loop would include the last frequency point in the loops*/
+         XLAL_CHECK ( (p->ind_max <= p->npts) && (p->ind_min <= p->ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=npts=%zu.", p->ind_min, p->ind_max, p->npts);
+    }
+    else if ( p->freq_is_uniform == 0 )
+    { /* This case we possibly use irregularly spaced frequencies */
+        /* Check that the frequencies are always increasing */
+        for(UINT4 i=0; i < freqs->length - 1; i++){
+            XLAL_CHECK(
+                freqs->data[i] - freqs->data[i+1] < 0.,
+                XLAL_EFUNC,
+                "custom frequencies must be increasing."
+            );
+        }
+
+        XLAL_PRINT_INFO("Using custom frequency input.\n");
+        p->f_min = freqs->data[0];
+        p->f_max = freqs->data[ freqs->length - 1 ]; /* Last element */
+
+        p->npts = freqs->length;
+        p->ind_min = 0;
+        p->ind_max = p->npts;
+    }
+    else
+    { /* Throw an informative error. */
+        XLAL_PRINT_ERROR("Input sequence of frequencies and deltaF is not \
+    compatible.\nSpecify a f_min and f_max by using a REAL8Sequence of length = 2 \
+    along with a deltaF > 0.\
+    \nIf you want to supply an arbitrary list of frequencies to evaluate the with \
+    then supply those frequencies using a REAL8Sequence and also set deltaF <= 0.");
+    }
+
+    /* Fix default behaviour for f_ref */
+    /* If f_ref = 0. then set f_ref = f_min */
+    p->f_ref = f_ref_in;
+    if (p->f_ref == 0.)
+    {
+        p->f_ref = p->f_min;
+    }
+
+    return XLAL_SUCCESS;
+
+}
+
+
+
+
+
+/**
  * Precompute a bunch of PhenomHM related quantities and store them filling in a
  * PhenomHMStorage variable
  */
@@ -201,7 +316,9 @@ static int init_PhenomHM_Storage(
     REAL8Sequence *freqs,
     const REAL8 deltaF,
     const REAL8 f_ref,
-    const REAL8 inclination
+    const REAL8 inclination,
+    const REAL8 distance,
+    const REAL8 phiRef
 )
 {
     int retcode;
@@ -213,11 +330,17 @@ static int init_PhenomHM_Storage(
 
     p->m1 = m1_SI / LAL_MSUN_SI;
     p->m2 = m2_SI / LAL_MSUN_SI;
+    p->m1_SI = m1_SI;
+    p->m2_SI = m2_SI;
     p->Mtot = p->m1 + p->m2;
     p->eta = p->m1 * p->m2 / (p->Mtot*p->Mtot);
     p->chi1z = chi1z;
     p->chi2z = chi2z;
     p->inclination = inclination;
+    p->distance = distance;
+    p->phiRef = phiRef;
+    p->deltaF = deltaF;
+    p->freqs = freqs;
 
     if (p->eta > 0.25)
         PhenomInternal_nudge(&(p->eta), 0.25, 1e-6);
@@ -228,6 +351,7 @@ static int init_PhenomHM_Storage(
     /*XLAL_PRINT_INFO("before swap: m1 = %f, m2 = %f, chi1z = %f, chi2z = %f\n",
             p->m1, p->m2, p->chi1z, p->chi2z); */
 
+    retcode = 0;
     retcode = PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
         &(p->m1),
         &(p->m2),
@@ -243,76 +367,28 @@ static int init_PhenomHM_Storage(
             p->m1, p->m2, p->chi1z, p->chi2z); */
 
     /* sanity checks on frequencies */
-    /* determine how to populate frequency sequence */
-    /* if len(freqs) == 2 and deltaF > 0. then
-     * f_min = freqs[0]
-     * f_max = freqs[1]
-     * else if len(freqs) != 2 and deltaF <= 0. then
-     * user has given an arbitrary set of frequencies to evaluate the model at.
-     */
-    p->freqs = freqs;
-    p->deltaF = deltaF;
-    if ( (p->freqs->length == 2 ) && ( p->deltaF > 0. ) )
-    { /* This case we use regularly spaced frequencies */
-        p->freq_is_uniform = 1;
-        p->f_min = p->freqs->data[0];
-        p->f_max = p->freqs->data[1];
+    PhenomHMFrequencyBoundsStorage pHMFS;
+    retcode = 0;
+    retcode = init_IMRPhenomHMGet_FrequencyBounds_storage(
+        &pHMFS,
+        p->freqs,
+        p->Mtot,
+        p->deltaF,
+        f_ref
+    );
+    XLAL_CHECK(
+        XLAL_SUCCESS == retcode,
+        XLAL_EFUNC,
+        "init_IMRPhenomHMGet_FrequencyBounds_storage failed");
 
-        /* If p->f_max == 0. Then we default to the ending frequency
-         * for PhenomHM
-         * TODO: Check the ending frequency
-         * TODO: Want to implement variable ending frequency for each mode.
-         */
-        if ( p->f_max == 0. )
-        {
-            p->f_max = XLALSimPhenomUtilsMftoHz(
-                        PHENOMHM_DEFAULT_MF_MAX, p->Mtot
-                    );
-        }
-        /* we only need to evaluate the phase from
-         * f_min to f_max with a spacing of deltaF
-         */
-         p->npts = PhenomInternal_NextPow2(p->f_max / p->deltaF) + 1;
-         p->ind_min = (size_t) ceil(p->f_min / p->deltaF);
-         p->ind_max = (size_t) ceil(p->f_max / p->deltaF) + 1; /*TODO: SK - I found that I had to add +1 here so that the loop would include the last frequency point in the loops*/
-         XLAL_CHECK ( (p->ind_max<=p->npts) && (p->ind_min<=p->ind_max), XLAL_EDOM, "minimum freq index %zu and maximum freq index %zu do not fulfill 0<=ind_min<=ind_max<=npts=%zu.", p->ind_min, p->ind_max, p->npts);
-    }
-    else if ( ( p->freqs->length != 2 ) && ( p->deltaF <= 0. ) )
-    { /* This case we possibly use irregularly spaced frequencies */
-        /* Check that the frequencies are always increasing */
-        p->freq_is_uniform = 0;
-        for(UINT4 i=0; i < p->freqs->length - 1; i++){
-            XLAL_CHECK(
-                p->freqs->data[i] - p->freqs->data[i+1] < 0.,
-                XLAL_EFUNC,
-                "custom frequencies must be increasing."
-            );
-        }
-
-        XLAL_PRINT_INFO("Using custom frequency input.\n");
-        p->f_min = p->freqs->data[0];
-        p->f_max = p->freqs->data[ p->freqs->length - 1 ]; /* Last element */
-
-        p->npts = freqs->length;
-        p->ind_min = 0;
-        p->ind_max = p->npts;
-    }
-    else
-    { /* Throw an informative error. */
-        XLAL_PRINT_ERROR("Input sequence of frequencies and deltaF is not \
-compatible.\nSpecify a f_min and f_max by using a REAL8Sequence of length = 2 \
-along with a deltaF > 0.\
-\nIf you want to supply an arbitrary list of frequencies to evaluate the with \
-then supply those frequencies using a REAL8Sequence and also set deltaF <= 0.");
-    }
-
-    /* Fix default behaviour for f_ref */
-    /* If f_ref = 0. then set f_ref = f_min */
-    p->f_ref = f_ref;
-    if (p->f_ref == 0.)
-    {
-        p->f_ref = p->f_min;
-    }
+    /* redundent storage */
+    p->f_min = pHMFS.f_min;
+    p->f_max = pHMFS.f_max;
+    p->f_ref = pHMFS.f_ref;
+    p->freq_is_uniform = pHMFS.freq_is_uniform;
+    p->npts = pHMFS.npts;
+    p->ind_min = pHMFS.ind_min;
+    p->ind_max = pHMFS.ind_max;
 
 
     p->finmass = IMRPhenomDFinalMass(p->m1, p->m2, p->chi1z, p->chi2z);
@@ -924,32 +1000,29 @@ positive.\n"); /* FIXME: check this one */
          there is a mode that is not included in the model */
         /* Have a variable that contains the list of modes currently
         implemented and check against this. */
+        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
+        //FIXME://FIXME://FIXME://FIXME://FIXME://FIXME://FIXME:
+        //FIXME: see above
+        //FIXME: for example if someone tries to add the (l,m)=(2,0)
+        //mode we need to throw an error.
     }
 
-     /* setup PhenomHM model storage struct / structs */
-     /* Compute quantities/parameters related to PhenomD only once and store them */
-     PhenomHMStorage pHM;
-     retcode = 0;
-     retcode = init_PhenomHM_Storage(
-                                    &pHM,
-                                    m1_SI,
-                                    m2_SI,
-                                    chi1z,
-                                    chi2z,
-                                    freqs,
-                                    deltaF,
-                                    f_ref,
-                                    inclination
-                                );
-     XLAL_CHECK(XLAL_SUCCESS == retcode, XLAL_EFUNC, "init_PhenomHM_Storage \
-failed");
 
      /* main: evaluate model at given frequencies */
      retcode = 0;
      retcode = IMRPhenomHMCore(
                             hptilde,
                             hctilde,
-                            &pHM,
+                            freqs,
+                            m1_SI,
+                            m2_SI,
+                            chi1z,
+                            chi2z,
+                            distance,
+                            inclination,
+                            phiRef,
+                            deltaF,
+                            f_ref,
                             extraParams
                         );
      XLAL_CHECK(retcode == XLAL_SUCCESS,
@@ -957,6 +1030,7 @@ failed");
 
      /* cleanup */
      /* XLALDestroy and XLALFree any pointers. */
+     LALFree(ModeArray);
 
     return XLAL_SUCCESS;
 }
@@ -969,54 +1043,90 @@ failed");
 int IMRPhenomHMCore(
     UNUSED COMPLEX16FrequencySeries **hptilde, /**< [out] */
     UNUSED COMPLEX16FrequencySeries **hctilde, /**< [out] */
-    UNUSED PhenomHMStorage *pHM,
-    UNUSED LALDict *extraParams
+    REAL8Sequence *freqs,
+    REAL8 m1_SI,
+    REAL8 m2_SI,
+    REAL8 chi1z,
+    REAL8 chi2z,
+    const REAL8 distance,
+    const REAL8 inclination,
+    const REAL8 phiRef,
+    const REAL8 deltaF,
+    REAL8 f_ref,
+    LALDict *extraParams
 )
 {
     int retcode;
-    // printf("PhenomHMQuantities.m1 = %f\n", PhenomHMQuantities->m1);
-    /* precompute all frequency independent terms here. */
-
-    // for i, f in enumerate(PhenomHMQuantities.freqs):
-    //     hptilde[i], hctilde[i] = IMRPhenomHMOneFrequency(f, PhenomHMQuantities)
 
     /* evaluate all hlm modes */
     SphHarmFrequencySeries **hlms=XLALMalloc(sizeof(SphHarmFrequencySeries));
     *hlms=NULL;
     retcode = 0;
-    retcode = IMRPhenomHMEvaluatehlmModes(hlms,
-        pHM, extraParams);
+    retcode = XLALSimIMRPhenomHMGethlmModes(
+                hlms,
+                freqs,
+                m1_SI,
+                m2_SI,
+                chi1z,
+                chi2z,
+                distance,
+                inclination,
+                phiRef,
+                deltaF,
+                f_ref,
+                extraParams
+            );
     XLAL_CHECK(XLAL_SUCCESS == retcode,
-        XLAL_EFUNC, "IMRPhenomHMEvaluatehlmModes failed");
+        XLAL_EFUNC, "XLALSimIMRPhenomHMGethlmModes failed");
+
+
+    /* need to compute the frequency bounds again
+     * a little unfortunate to compute this again. */
+     //actually don't have to because at this point
+     // the 'freqs' array will be determined to be
+     // either uniformly or (potentially) not-uniformly spaced.
+     const REAL8 Mtot = (m1_SI + m2_SI) / LAL_MSUN_SI;
+     PhenomHMFrequencyBoundsStorage *pHMFS;
+     pHMFS = XLALMalloc(sizeof(PhenomHMFrequencyBoundsStorage));
+     retcode = 0;
+     retcode = init_IMRPhenomHMGet_FrequencyBounds_storage(
+         pHMFS,
+         freqs,
+         Mtot,
+         deltaF,
+         f_ref
+     );
+     XLAL_CHECK(XLAL_SUCCESS == retcode,
+         XLAL_EFUNC, "init_IMRPhenomHMGet_FrequencyBounds_storage failed");
 
     /* now we have generated all hlm modes we need to
      * multiply them with the Ylm's and sum them.
      */
 
     LIGOTimeGPS tC = LIGOTIMEGPSZERO; // = {0, 0}
-    if (pHM->freq_is_uniform==1)
+    if (pHMFS->freq_is_uniform==1)
     { /* 1. uniformly spaced */
         XLAL_PRINT_INFO("freq_is_uniform = True\n");
         /* coalesce at t=0 */
         /* Shift by overall length in time */
         XLAL_CHECK(
-            XLALGPSAdd(&tC, -1. / pHM->deltaF),
+            XLALGPSAdd(&tC, -1. / deltaF),
             XLAL_EFUNC,
             "Failed to shift coalescence time to t=0,\
 tried to apply shift of -1.0/deltaF with deltaF=%g.",
-            pHM->deltaF
+            deltaF
         );
     } /* else if 2. i.e. not uniformly spaced then we don't shift. */
 
     /* Allocate hptilde and hctilde */
-    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &tC, 0.0, pHM->deltaF, &lalStrainUnit, pHM->npts);
+    *hptilde = XLALCreateCOMPLEX16FrequencySeries("hptilde: FD waveform", &tC, 0.0, deltaF, &lalStrainUnit, pHMFS->npts);
     if (!(hptilde) ) XLAL_ERROR(XLAL_EFUNC);
-    memset((*hptilde)->data->data, 0, pHM->npts * sizeof(COMPLEX16));
+    memset((*hptilde)->data->data, 0, pHMFS->npts * sizeof(COMPLEX16));
     XLALUnitDivide(&(*hptilde)->sampleUnits, &(*hptilde)->sampleUnits, &lalSecondUnit);
 
-    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &tC, 0.0, pHM->deltaF, &lalStrainUnit, pHM->npts);
+    *hctilde = XLALCreateCOMPLEX16FrequencySeries("hctilde: FD waveform", &tC, 0.0, deltaF, &lalStrainUnit, pHMFS->npts);
     if (!(hctilde) ) XLAL_ERROR(XLAL_EFUNC);
-    memset((*hctilde)->data->data, 0, pHM->npts * sizeof(COMPLEX16));
+    memset((*hctilde)->data->data, 0, pHMFS->npts * sizeof(COMPLEX16));
     XLALUnitDivide(&(*hctilde)->sampleUnits, &(*hctilde)->sampleUnits, &lalSecondUnit);
 
 
@@ -1053,7 +1163,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
             } else {
                 sym = 1;
             }
-            IMRPhenomHMFDAddMode( *hptilde, *hctilde, hlm, pHM->inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
+            IMRPhenomHMFDAddMode( *hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 (or the first mode in the list), not for h = hplus-I hcross */
             // FDAddMode( *hptilde, *hctilde, hlm, inclination, phi0, ell, mm, sym); /* Added phi0 here as a quick fix for the reference phase. not sure if it should be m * phi0 or m/2*phi0 . */
 
         }
@@ -1066,7 +1176,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     // NOTE: SK: HERE I SWAP hplus with hcross to conform with LAL phase convension
     // for (size_t i = 0; i < (*hptilde)->data->length; i++) //old code
     #pragma omp parallel for
-    for (size_t i = pHM->ind_min; i < pHM->ind_max; i++)
+    for (size_t i = pHMFS->ind_min; i < pHMFS->ind_max; i++)
     {
        ((*hptilde)->data->data)[i] = I*((*hptilde)->data->data)[i];
        ((*hctilde)->data->data)[i] = -I*((*hctilde)->data->data)[i];
@@ -1075,90 +1185,85 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
     /* cleanup */
     LALFree(ModeArray);
+    LALFree(pHMFS);
 
 
 
-    return XLAL_SUCCESS;
-}
-
-
-/**
- * Function to compute the one hlm mode.
- * Note this is not static so that IMRPhenomPv3HM
- * can also use this function
- */
-int IMRPhenomHMEvaluateOnehlmMode(
-    UNUSED COMPLEX16FrequencySeries **hlm, /**< [out] */
-    UNUSED REAL8Sequence *amps,
-    UNUSED REAL8Sequence *phases,
-    UNUSED REAL8Sequence *freqs_geom,
-    UNUSED PhenomHMStorage *pHM,
-    UNUSED UINT4 ell,
-    UNUSED INT4 mm,
-    UNUSED LALDict *extraParams
-)
-{
-    int retcode;
-
-    /* generate phase */
-    retcode = 0;
-    retcode = IMRPhenomHMPhase(
-        phases,
-        freqs_geom,
-        pHM,
-        ell, mm,
-        extraParams
-    );
-    XLAL_CHECK(XLAL_SUCCESS == retcode,
-        XLAL_EFUNC, "IMRPhenomHMPhase failed");
-
-    /* generate amplitude */
-    retcode = 0;
-    retcode = IMRPhenomHMAmplitude(
-        amps,
-        freqs_geom,
-        pHM,
-        ell, mm,
-        extraParams
-    );
-    XLAL_CHECK(XLAL_SUCCESS == retcode,
-        XLAL_EFUNC, "IMRPhenomHMAmplitude failed");
-
-    /* combine together to make hlm */
-    //loop over hlm COMPLEX16FrequencySeries
-    for(size_t i=pHM->ind_min; i<pHM->ind_max;i++)
-    {
-        // (hlm->data->data)[i] = amp0 * amps->data[i] * cexp(-I*t0 * phases->data[i]);
-        //TODO: PLACEHOLDER!
-        ((*hlm)->data->data)[i] = amps->data[i] * cexp(-I*phases->data[i]);
-    }
-
-    /* cleanup */
 
     return XLAL_SUCCESS;
 }
 
+
+
+
 /**
+ * XLAL function that returns
+ * a SphHarmFrequencySeries object
+ * containing all the hlm modes
+ * requested.
+ * These have the correct relative phases between modes.
+ * Note this has a similar interface to XLALSimIMRPhenomHM
+ * because it is designed so it can be used independently.
  * Function to compute the hlm modes.
  * Note this is not static so that IMRPhenomPv3HM
  * can also use this function
+ * TODO: add documention on how to use the freqs and deltaF together
+ * to either generate a uniform frequency array from f_min to f_max
+ * with spacing deltaF or to an arbitrary frequency array
+ * that is monotonic.
  */
-int IMRPhenomHMEvaluatehlmModes(
+int XLALSimIMRPhenomHMGethlmModes(
     UNUSED SphHarmFrequencySeries **hlms,
-    UNUSED PhenomHMStorage *pHM,
+    UNUSED REAL8Sequence *freqs, /**< frequency sequency in Hz */
+    UNUSED REAL8 m1_SI,
+    UNUSED REAL8 m2_SI,
+    UNUSED REAL8 chi1z,
+    UNUSED REAL8 chi2z,
+    UNUSED const REAL8 distance,
+    UNUSED const REAL8 inclination,
+    UNUSED const REAL8 phiRef,
+    UNUSED const REAL8 deltaF,
+    UNUSED REAL8 f_ref,
     UNUSED LALDict *extraParams
 )
 {
     UNUSED int retcode;
 
+    /* HERE */
+    /* move init_PhenomHM_Storage to HERE
+    and remove the function init_IMRPhenomHMGet_FrequencyBounds_storage
+    to fix all problems :) */
+
     /* setup frequency sequency */
 
     REAL8Sequence *amps = NULL;
     REAL8Sequence *phases = NULL;
-    REAL8Sequence *freqs = NULL; /* freqs is in Hz */
+    // REAL8Sequence *freqs = NULL; /* freqs is in Hz */
     REAL8Sequence *freqs_geom = NULL; /* freqs is in geometric units */
 
     LIGOTimeGPS tC = LIGOTIMEGPSZERO; // = {0, 0}
+
+    /* setup PhenomHM model storage struct / structs */
+    /* Compute quantities/parameters related to PhenomD only once and store them */
+    PhenomHMStorage *pHM;
+    pHM = XLALMalloc(sizeof(PhenomHMStorage));
+    retcode = 0;
+    retcode = init_PhenomHM_Storage(
+                                   pHM,
+                                   m1_SI,
+                                   m2_SI,
+                                   chi1z,
+                                   chi2z,
+                                   freqs,
+                                   deltaF,
+                                   f_ref,
+                                   inclination,
+                                   distance,
+                                   phiRef
+                               );
+    XLAL_CHECK(XLAL_SUCCESS == retcode, XLAL_EFUNC, "init_PhenomHM_Storage \
+failed");
+
 
     /* Two possibilities */
     if (pHM->freq_is_uniform==1)
@@ -1215,49 +1320,6 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
      /* TODO: modify ind_min and ind_max
       * based on the (l,m) number to try and
       */
-      /*
-  for l,m in mode_array:
-    COMPLEX16FrequencySeries *hlm = XLALCreateCOMPLEX16FrequencySeries("name", ..., npts);
-    retcode = IMRPhenomHMEvaluateOnehlmMode( hlm, ... );
-    *hlms = XLALSphHarmFrequencySeriesAddMode(*hlms, hlm, freqs_geom, ell, mm);
-    //Destroy hlm in (l,m) loop
-    XLALDestroyCOMPLEX16FrequencySeries(hlm);
-  */
-
-    // retcode = 0;
-    // retcode = IMRPhenomDPhaseFrequencySequence(
-    //     phases,
-    //     freqs_geom,
-    //     ind_min, ind_max,
-    //     pHM->m1, pHM->m2,
-    //     pHM->chi1z, pHM->chi2z,
-    //     1., 1.,
-    //     extraParams
-    // );
-    // XLAL_CHECK(XLAL_SUCCESS == retcode,
-    //     XLAL_EFUNC, "IMRPhenomDPhaseFrequencySequence failed");
-
-
-
-    // retcode = 0;
-    // retcode = IMRPhenomHMPhase(
-    //     phases,
-    //     freqs_geom,
-    //     pHM,
-    //     2, 2,
-    //     ind_min,
-    //     ind_max,
-    //     extraParams
-    // );
-    // XLAL_CHECK(XLAL_SUCCESS == retcode,
-    //     XLAL_EFUNC, "IMRPhenomHMPhase failed");
-    //
-    //
-    // for(UINT4 i=0; i < phases->length; i++)
-    // {
-    //     printf("freqs->data[%i] = %f, freqs_geom->data[%i] = %f, phases->data[%i] = %.8f\n", i, freqs->data[i], i, freqs_geom->data[i], i, phases->data[i]);
-    // }
-
 
     /* loop over modes */
     LALValue* ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(extraParams);
@@ -1310,6 +1372,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     /* cleanup */
     XLALDestroyREAL8Sequence(freqs_geom);
     LALFree(ModeArray);
+    LALFree(pHM);
 
     if (pHM->freq_is_uniform==1)
     { /* 1. uniformly spaced */
@@ -1330,7 +1393,65 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     return XLAL_SUCCESS;
 }
 
+/**
+ * Function to compute the one hlm mode.
+ * Note this is not static so that IMRPhenomPv3HM
+ * can also use this function
+ */
+int IMRPhenomHMEvaluateOnehlmMode(
+    UNUSED COMPLEX16FrequencySeries **hlm, /**< [out] */
+    UNUSED REAL8Sequence *amps,
+    UNUSED REAL8Sequence *phases,
+    UNUSED REAL8Sequence *freqs_geom,
+    UNUSED PhenomHMStorage *pHM,
+    UNUSED UINT4 ell,
+    UNUSED INT4 mm,
+    UNUSED LALDict *extraParams
+)
+{
+    int retcode;
 
+    /* generate phase */
+    retcode = 0;
+    retcode = IMRPhenomHMPhase(
+        phases,
+        freqs_geom,
+        pHM,
+        ell, mm,
+        extraParams
+    );
+    XLAL_CHECK(XLAL_SUCCESS == retcode,
+        XLAL_EFUNC, "IMRPhenomHMPhase failed");
+
+    /* generate amplitude */
+    retcode = 0;
+    retcode = IMRPhenomHMAmplitude(
+        amps,
+        freqs_geom,
+        pHM,
+        ell, mm,
+        extraParams
+    );
+    XLAL_CHECK(XLAL_SUCCESS == retcode,
+        XLAL_EFUNC, "IMRPhenomHMAmplitude failed");
+
+    /* combine together to make hlm */
+    //loop over hlm COMPLEX16FrequencySeries
+    for(size_t i=pHM->ind_min; i<pHM->ind_max;i++)
+    {
+        // (hlm->data->data)[i] = amp0 * amps->data[i] * cexp(-I*t0 * phases->data[i]);
+        //TODO: PLACEHOLDER!
+        //FIXME: missing  time shift
+        //FIXME: missing  time shift
+        //FIXME: missing  time shift
+        //FIXME: missing  time shift
+        ((*hlm)->data->data)[i] = amps->data[i] * cexp(-I*phases->data[i]);
+    }
+
+    /* cleanup */
+
+    return XLAL_SUCCESS;
+}
 
 /**
  * returns IMRPhenomHM amplitude evaluated at a set of input frequencies
@@ -1396,8 +1517,7 @@ int IMRPhenomHMAmplitude(
     }
 
     /* cleanup */
-    // XLALDestroyREAL8Sequence(freqs_amp);
-
+    XLALDestroyREAL8Sequence(freqs_amp);
 
     return XLAL_SUCCESS;
 }
