@@ -1299,7 +1299,7 @@ failed");
     /* Two possibilities */
     if (pHM->freq_is_uniform==1)
     { /* 1. uniformly spaced */
-        printf("freq_is_uniform = True\n");
+        XLAL_PRINT_INFO("freq_is_uniform = True\n");
 
          freqs = XLALCreateREAL8Sequence( pHM->npts );
          phases = XLALCreateREAL8Sequence( pHM->npts );
@@ -1324,7 +1324,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
     else if (pHM->freq_is_uniform==0)
     { /* 2. arbitrarily space */
-        printf("freq_is_uniform = False\n");
+        XLAL_PRINT_INFO("freq_is_uniform = False\n");
         freqs = pHM->freqs; /* This is in Hz */
         phases = XLALCreateREAL8Sequence( freqs->length );
         amps = XLALCreateREAL8Sequence( freqs->length );
