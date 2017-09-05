@@ -42,25 +42,6 @@
 // }
 
 /**
- * Tests the PhenomInternal_nudge function
- */
-void XLALSimPhenomUtilsTestNudge(){
-    REAL8 eta = 0.25 + 1e-5;
-    REAL8 target = 0.25;
-    REAL8 epsilon = 1e-3;
-
-    if (eta > target)
-    {
-        printf("eta = %.15f is greater than target = %.15f.\n\
-Nudging eta by epsilon = %.15f\n", eta, target, epsilon);
-    }
-
-    printf("before nudge: eta = %.15f\n", eta);
-    PhenomInternal_nudge(&eta, target, epsilon);
-    printf("after nudge: eta = %.15f\n", eta);
-}
-
-/**
  * Convert from geometric frequency to frequency in Hz
  */
 double XLALSimPhenomUtilsMftoHz(
