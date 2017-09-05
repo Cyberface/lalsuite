@@ -82,7 +82,6 @@ const char * usage =
 "                             IMRPhenomB\n"
 "                             IMRPhenomC\n"
 "                             IMRPhenomD\n"
-"                             IMRPhenomHM\n"
 "                             IMRPhenomPv2\n"
 "                             EOBNRv2\n"
 "                             EOBNRv2HM\n"
@@ -103,6 +102,7 @@ const char * usage =
 "                             IMRPhenomB\n"
 "                             IMRPhenomC\n"
 "                             IMRPhenomD\n"
+"                             IMRPhenomHMv2\n"
 "                             IMRPhenomP\n"
 "                             IMRPhenomPv2\n"
 "                             EOBNRv2_ROM\n"
@@ -439,7 +439,7 @@ static int dump_TD(FILE *f, REAL8TimeSeries *hplus, REAL8TimeSeries *hcross) {
 
     fprintf(f, "# t hplus hcross\n");
     for (i=0; i < hplus->data->length; i++)
-        fprintf(f, "%.16e %.16e %.16e\n", t0 + i * hplus->deltaT, 
+        fprintf(f, "%.16e %.16e %.16e\n", t0 + i * hplus->deltaT,
                 hplus->data->data[i], hcross->data->data[i]);
     return 0;
 }
@@ -485,7 +485,7 @@ int main (int argc , char **argv) {
     REAL8TimeSeries *hplus = NULL;
     REAL8TimeSeries *hcross = NULL;
     GSParams *params;
-	
+
     /* set us up to fail hard */
     XLALSetErrorHandler(XLALAbortErrorHandler);
 
@@ -518,7 +518,7 @@ int main (int argc , char **argv) {
             XLALPrintError("Error: domain must be either TD or FD\n");
     }
     if (params->verbose)
-        XLALPrintInfo("Generation took %.0f seconds\n", 
+        XLALPrintInfo("Generation took %.0f seconds\n",
                 difftime(time(NULL), start_time));
     if (((params->domain == LAL_SIM_DOMAIN_FREQUENCY) && (!hptilde || !hctilde)) ||
         ((params->domain == LAL_SIM_DOMAIN_TIME) && (!hplus || !hcross))) {
