@@ -4436,6 +4436,7 @@ int XLALSimInspiralImplementedTDApproximants(
         case IMRPhenomC:
 	case IMRPhenomD:
 	case IMRPhenomPv2:
+	case IMRPhenomPv3:
         case PhenSpinTaylorRD:
         case SEOBNRv1:
         case SpinDominatedWf:
