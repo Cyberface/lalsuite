@@ -333,6 +333,7 @@ int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
       L0 = M*M * L2PNR_v1(v_ref, eta); /* Use 2PN approximation for L. */
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv3_V:
       L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
       break;
     default:
@@ -1732,7 +1733,7 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
         &chi1_l, &chi2_l, &(p->chip), &(p->thetaJN), &(p->alpha0), &(p->phi_aligned), &(p->zeta_polariz),
         p->m1_SI, p->m2_SI, p->f_ref, p->phiRef, p->inclination,
         p->chi1x, p->chi1y, p->chi1z,
-        p->chi2x, p->chi2y, p->chi2z, IMRPhenomPv2_V); /* hardcoded to PhenomPv2 because PhenomPv3 uses the same rotations */
+        p->chi2x, p->chi2y, p->chi2z, IMRPhenomPv3_V); /* hardcoded to PhenomPv2 because PhenomPv3 uses the same rotations */
     XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame failed");
 
     /* compute spins in polar coordinates */

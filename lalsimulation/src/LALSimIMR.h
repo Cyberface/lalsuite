@@ -61,8 +61,9 @@ extern "C" {
 #define EOB_RD_EFOLDS 10.0
 
 typedef enum tagIMRPhenomP_version_type {
- IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
- IMRPhenomPv2_V  /**< version 2: based on IMRPhenomD */
+  IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
+  IMRPhenomPv2_V, /**< version 2: based on IMRPhenomD */
+  IMRPhenomPv3_V  /**< version 3: based on IMRPhenomD and the precession angles from Katerina Chatziioannou PhysRevD.95.104004 */
 } IMRPhenomP_version_type;
 
 /** @} */
