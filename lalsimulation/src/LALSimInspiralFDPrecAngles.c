@@ -45,9 +45,10 @@ int XLALComputeAngles(
     const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
     const double ph2, /**< Azimuthal angle of secondary spin  */
     const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-    const double f_0 /**< Reference Gravitational Wave frequency (Hz) */
+    const double f_0, /**< Reference Gravitational Wave frequency (Hz) */
+    const int ExpansionOrder /**< Keep terms upto ExpansionOrder in precession angles phi_z and zeta (1,2,3,4,5 or -1 for all orders) */
 ){
-    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
+    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0, ExpansionOrder);
 
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;
@@ -84,9 +85,10 @@ int XLALComputeAngles3PN(
     const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
     const double ph2, /**< Azimuthal angle of secondary spin  */
     const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-    const double f_0 /**< Reference Gravitational Wave frequency (Hz) */
+    const double f_0, /**< Reference Gravitational Wave frequency (Hz) */
+    const int ExpansionOrder /**< Keep terms upto ExpansionOrder in precession angles phi_z and zeta (1,2,3,4,5 or -1 for all orders) */
 ){
-    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0);
+    sysq system  = InitializeSystem(m1,m2,mul,phl,mu1,ph1,ch1,mu2,ph2,ch2,f_0, ExpansionOrder);
 
     double xi;
     const double twopiGM_over_cthree = LAL_TWOPI*LAL_G_SI*(m1+m2)/LAL_C_SI/LAL_C_SI/LAL_C_SI;

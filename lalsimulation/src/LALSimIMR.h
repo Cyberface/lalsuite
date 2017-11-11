@@ -99,8 +99,8 @@ int XLALSimIMRPhenomPv3(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySe
 
 /* LALSimInspiralFDPrecAngles functions */
 
-int XLALComputeAngles3PN(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
-int XLALComputeAngles(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0);
+int XLALComputeAngles3PN(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0, const int ExpansionOrder);
+int XLALComputeAngles(REAL8Sequence *phiz_of_f, REAL8Sequence *zeta_of_f, REAL8Sequence *costhetaL_of_f, const REAL8Sequence *f, const double m1, const double m2, const double mul, const double phl, const double mu1, const double ph1, const double ch1, const double mu2, const double ph2, double ch2, const double f_0, const int ExpansionOrder);
 
 /* in module LALSimIMREOBNRv2.c */
 

@@ -46,7 +46,8 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
                              const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
                              const double ph2, /**< Azimuthal angle of secondary spin  */
                              const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-                             const double f_0  /**< Reference orbital frequency (Hz) */
+                             const double f_0, /**< Reference Gravitational Wave frequency (Hz) */
+                             const int ExpansionOrder /**< Keep terms upto ExpansionOrder in precession angles phi_z and zeta */
                          );
 
 static double DotProd(const vector vec1, const vector vec2);

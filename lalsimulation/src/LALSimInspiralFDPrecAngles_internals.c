@@ -19,6 +19,11 @@
 
 #include "LALSimInspiralFDPrecAngles_internals.h"
 
+
+/**
+ * InitializeSystem computes all the prefactors needed to generate precession angles
+ * from Chatziioannou et al., arXiv 1703.03967 [gr-qc]
+ */
 static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
                              const double m2,  /**< Secondary mass in SI (kg) */
                              const double mul, /**< Cosine of Polar angle of orbital angular momentum */
@@ -29,7 +34,8 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
                              const double mu2, /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
                              const double ph2, /**< Azimuthal angle of secondary spin  */
                              const double ch2, /**< Dimensionless spin magnitude of secondary spin */
-                             const double f_0  /**< Reference Gravitational Wave frequency (Hz) */
+                             const double f_0, /**< Reference Gravitational Wave frequency (Hz) */
+                             const int ExpansionOrder /**< Keep terms upto ExpansionOrder in precession angles phi_z and zeta (1,2,3,4,5 or -1 for all orders) */
                          )
 {
     sysq system = {0.,{0.},{0.},{0.},{0.},0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
@@ -186,10 +192,6 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
     system.constants_phiz[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
     system.constants_phiz[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
 
-    /*TODO: Add an input argument to choose the order */
-    /*NOTE: SK: Manually setting to zero highest order term */
-    system.constants_phiz[5] *= 0.;
-
     const double gw = 3./16./nu_2/nu*Rm_2*(c_1 - nu_2*Seff);
     const double gd = gw/dw;
 
@@ -206,9 +208,34 @@ static sysq InitializeSystem(const double m1,  /**< Primary mass in SI (kg) */
     system.constants_zeta[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
     system.constants_zeta[5] = 3.*(Omegaz0*c5 + Omegaz1*c4 + Omegaz2*c3 + Omegaz3*c2 + Omegaz5*c0);
 
-    /*TODO: Add an input argument to choose the order */
-    /*NOTE: SK: Manually setting to zero highest order term */
-    system.constants_zeta[5] *= 0.;
+    switch (ExpansionOrder)
+    {
+    case -1:
+        /* default case, generate all orders.s */
+        break;
+    case 1:
+        /* Only keep 1st order term, i.e. only keep system.constants_phiz[0] and system.constants_zeta[0] */
+        system.constants_phiz[1] *= 0.;
+        system.constants_zeta[1] *= 0.;
+    case 2:
+        system.constants_phiz[2] *= 0.;
+        system.constants_zeta[2] *= 0.;
+    case 3:
+        system.constants_phiz[3] *= 0.;
+        system.constants_zeta[3] *= 0.;
+    case 4:
+        system.constants_phiz[4] *= 0.;
+        system.constants_zeta[4] *= 0.;
+    case 5:
+        system.constants_phiz[5] *= 0.;
+        system.constants_zeta[5] *= 0.;
+        break;
+    default:
+        /* TODO: Cannot use XLAL_ERROR here because the return type of this function is sysq i.e. not int. If changed to int then can use XLAL_ERROR. SK */
+        XLALPrintError("ExpansionOrder = %i not recognised. \
+Defaulting to keeping all orders in expansion. \
+In future please choose from [1,2,3,4,5,-1]. \n", ExpansionOrder);
+    }
 
     double m, B, volumeellement;
     int sign_num;

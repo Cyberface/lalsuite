@@ -1765,11 +1765,15 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
                                              p->f_ref);
 */
 
+    /* ExpansionOrder specifies how many terms in the PN expansion of the precession angles to use.
+     * In PhenomP3 we set this to 5, i.e. all but the highest order terms.
+     * */
+    int ExpansionOrder = 5;
     *pAngles = InitializeSystem(p->m1_SI, p->m2_SI,
                         LHAT_COS_THETA, LHAT_PHI,
                         cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
                         cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
-                        p->f_ref);
+                        p->f_ref, ExpansionOrder);
 
     /* convert from orbital frequency to PN parameter */
     p->twopi_Msec = LAL_TWOPI * p->Msec;
