@@ -1780,11 +1780,13 @@ static int init_PhenomPv3_Storage(PhenomPv3Storage *p, /**< [out] PhenomPv3Stora
     vector angles;
     /* xi uses the Orbital frequency */
     REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
-    angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
+    // angles = compute_phiz_zeta_costhetaL3PN(xi,pAngles);
+    angles = compute_phiz_zeta_costhetaL2PNNonSpinning(xi, pAngles);
 
     /* checking for nans */
-    if ( isnan(angles.x) || isnan(angles.y) || isnan(angles.z)  ){
-        printf("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
+    if (isnan(angles.x) || isnan(angles.y) || isnan(angles.z))
+    {
+      printf("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
     }
 
     p->alphaRef = angles.x;
@@ -2352,7 +2354,8 @@ static int PhenomPv3CoreOneFrequency(
     /* convert gravitational wave frequency to orbital frequency */
     REAL8 f_Orb_Hz = 0.5 * fHz;
     REAL8 xi = pow(f_Orb_Hz * (pv3->twopi_Msec), pAngles->onethird);
-    angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+    // angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
+    angles = compute_phiz_zeta_costhetaL2PNNonSpinning(xi, pAngles);
 
     // printf("frequency = %.4f, angles.z = %.16f, acos(angles.z) = %.16f\n", fHz, angles.z, acos(angles.z));
 

@@ -278,7 +278,7 @@ In future please choose from [1,2,3,4,5,-1]. \n", ExpansionOrder);
 /* Internal function that computes phiz, zeta, and costhetaL at 3PN                */
 /* *********************************************************************************/
 
-static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system)
+UNUSED static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system)
 {
     vector angles;
     const double xi_2 = xi*xi;
@@ -297,6 +297,34 @@ static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system
     angles.x = phiz_of_xi(xi,xi_2,J_norm,system) + MScorrections.x;
     angles.y = zeta_of_xi(xi,xi_2,system) + MScorrections.y;
     angles.z = costhetaL(J_norm3PN,L_norm3PN,S_norm);//costhetaL 3PN
+
+    return angles;
+}
+
+/* *********************************************************************************/
+/* Internal function that computes phiz, zeta, and costhetaL at 2PN NonSpinning    */
+/* *********************************************************************************/
+
+UNUSED static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, const sysq *system)
+{
+    vector angles;
+    const double xi_2 = xi * xi;
+    const double L_norm = ((*system).nu) / xi;
+    const double L_norm3PN = L_norm_2PN_NonSpinning_of_xi(xi_2, L_norm, system);
+    const double J_norm3PN = J_norm_of_xi(L_norm3PN, system);
+    const double J_norm = J_norm_of_xi(L_norm, system);
+    const vector roots = Roots(L_norm, J_norm, system);
+    const double S_norm = S_norm_of_xi(xi, xi_2, roots, system);
+
+    vector MScorrections = {0., 0., 0.};
+    if (fabs(roots.y - roots.z) > 1.e-5)
+    {
+        MScorrections = computeMScorrections(xi, xi_2, L_norm, J_norm, roots, system);
+    }
+
+    angles.x = phiz_of_xi(xi, xi_2, J_norm, system) + MScorrections.x;
+    angles.y = zeta_of_xi(xi, xi_2, system) + MScorrections.y;
+    angles.z = costhetaL(J_norm3PN, L_norm3PN, S_norm); //costhetaL 3PN
 
     return angles;
 }
@@ -434,12 +462,27 @@ static double S_norm_of_xi(const double xi, const double xi_2, const vector root
 
 /* *********************************************************************************/
 /* Internal function that returns the magnitude of L divided by GMsquare_over_c to */
+/* 2PN order, non-spinning terms                                                   */
+/* *********************************************************************************/
+
+static double L_norm_2PN_NonSpinning_of_xi(const double xi_2, const double L_norm, const sysq *system)
+{
+    //from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
+    return L_norm * \
+                (1. + xi_2 * \
+                    ((*system).constants_L[0] \
+                    + xi_2 * ((*system).constants_L[2])) \
+                );
+}
+
+/* *********************************************************************************/
+/* Internal function that returns the magnitude of L divided by GMsquare_over_c to */
 /* 3PN order                                                                       */
 /* *********************************************************************************/
 
 static double L_norm_3PN_of_xi(const double xi, const double xi_2, const double L_norm, const sysq *system)
 {
-    //from 0605140 and Blanchet LRR
+    //from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
     return L_norm*(1. + xi_2*((*system).constants_L[0] + xi*(*system).constants_L[1] + xi_2*((*system).constants_L[2] + xi*(*system).constants_L[3] + xi_2*((*system).constants_L[4]))));
 }
 

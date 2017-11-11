@@ -67,6 +67,48 @@ int XLALComputeAngles(
 }
 
 /* *********************************************************************************/
+/* XLAL function that does everything at 2PN non-spinning                          */
+/* *********************************************************************************/
+
+int XLALComputeAngles2PNNonSpinning(
+    REAL8Sequence *phiz_of_f,      /**< [out] azimuthal angle of L around J */
+    REAL8Sequence *zeta_of_f,      /**< [out] Third euler angle to describe L w.r.t. J  */
+    REAL8Sequence *costhetaL_of_f, /**< [out] Cosine of polar angle between L and J */
+    const REAL8Sequence *f,        /**< list of input Orbtial frequencies (Hz) */
+    const double m1,               /**< Primary mass in SI (kg) */
+    const double m2,               /**< Secondary mass in SI (kg) */
+    const double mul,              /**< Cosine of Polar angle of orbital angular momentum */
+    const double phl,              /**< Azimuthal angle of orbital angular momentum  */
+    const double mu1,              /**< Cosine of Polar angle of primary spin w.r.t. orbital angular momentum */
+    const double ph1,              /**< Azimuthal angle of primary spin  */
+    const double ch1,              /**< Dimensionless spin magnitude of primary spin */
+    const double mu2,              /**< Cosine of Polar angle of secondary spin w.r.t. orbital angular momentum */
+    const double ph2,              /**< Azimuthal angle of secondary spin  */
+    const double ch2,              /**< Dimensionless spin magnitude of secondary spin */
+    const double f_0,              /**< Reference Gravitational Wave frequency (Hz) */
+    const int ExpansionOrder       /**< Keep terms upto ExpansionOrder in precession angles phi_z and zeta (1,2,3,4,5 or -1 for all orders) */
+)
+{
+    sysq system = InitializeSystem(m1, m2, mul, phl, mu1, ph1, ch1, mu2, ph2, ch2, f_0, ExpansionOrder);
+
+    double xi;
+    const double twopiGM_over_cthree = LAL_TWOPI * LAL_G_SI * (m1 + m2) / LAL_C_SI / LAL_C_SI / LAL_C_SI;
+    /* twopiGM_over_cthree is the same as -> LAL_TWOPI * LAL_MTSUN_SI * (m1+m2) / LAL_MSUN_SI */
+
+    vector angles;
+
+    for (UINT4 i = 0; i < (*f).length; i++)
+    {
+        xi = pow(((*f).data[i]) * twopiGM_over_cthree, system.onethird);
+        angles = compute_phiz_zeta_costhetaL2PNNonSpinning(xi, &system);
+        (*phiz_of_f).data[i] = angles.x;
+        (*zeta_of_f).data[i] = angles.y;
+        (*costhetaL_of_f).data[i] = angles.z;
+    }
+    return XLAL_SUCCESS;
+}
+
+/* *********************************************************************************/
 /* XLAL function that does everything at 3PN.                                             */
 /* *********************************************************************************/
 

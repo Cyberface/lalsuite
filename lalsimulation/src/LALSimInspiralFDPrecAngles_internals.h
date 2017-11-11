@@ -66,11 +66,13 @@ static double tau(const double a, const double b, const sysq *system);
 
 static double J_norm_of_xi(const double L_norm, const sysq *system);
 static double S_norm_of_xi(const double xi, const double xi_2, const vector roots, const sysq *system);
+static double L_norm_2PN_NonSpinning_of_xi(const double xi_2, const double L_norm, const sysq *system);
 static double L_norm_3PN_of_xi(const double xi, const double xi_2, const double L_norm, const sysq *system);
 
 static vector c(const double xi, const double xi_2, const double J_norm, const vector roots, const sysq *system);
 static vector d(const double L_norm, const double J_norm, const vector roots);
 
+static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, const sysq *system);
 static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system);
 static vector compute_phiz_zeta_costhetaL(const double xi, const sysq *system);
 
