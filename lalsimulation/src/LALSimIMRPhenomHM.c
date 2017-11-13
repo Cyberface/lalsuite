@@ -189,11 +189,11 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
         if (mm==2 ) {
           Blm_ans = 1.0;
         } else { // mm==1
-          Blm_ans = delta * pow(LAL_PI, 1.0/3.0) /  3.0;
+          Blm_ans = pow(2, -1.0/3.0) * delta * pow(LAL_PI, 1.0/3.0) /  3.0;
         }
     } else if ( ell==3 ) {
         if ( mm==3 ) {
-            Blm_ans = (3.0/4.0) * sqrt(15.0/14.0) * pow(LAL_PI, 1.0/3.0) * delta;
+          Blm_ans = pow(3.0/2.0, 1.0/3.0) * (3.0/4.0) * sqrt(15.0/14.0) * pow(LAL_PI, 1.0/3.0) * delta;
         }
         else { // mm==2
           Blm_ans = sqrt(5.0/63.0) * pow(LAL_PI, 2.0/3.0) * (delta2 + p->eta);
@@ -202,12 +202,12 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
         if ( mm==4 ) {
           Blm_ans = sqrt(320.0/567.0) * pow(LAL_PI, 2.0/3.0) * (delta2 + p->eta);
         } else { // mm==3
-          Blm_ans = sqrt(81.0/1120.0) * LAL_PI * (delta2 + 2*p->eta) * delta;
+          Blm_ans = pow(2.0/3.0, 1.0/3.0) * sqrt(81.0/1120.0) * LAL_PI * (delta2 + 2*p->eta) * delta;
         }
     } else if ( ell==5 ) {
         if ( mm==5 ) {
-          //CHECK ME
-          Blm_ans = (625.0/96.0) * (1.0 / sqrt(66.0)) * LAL_PI * (delta2 + 2*p->eta) * delta;
+          //NOT IMPLEMENTED
+          Blm_ans = 0.0;
         }
         else { // mm==4
           //NOT IMPLEMENTED
@@ -215,8 +215,8 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
         }
     } else if ( ell==6 ) {
         if ( mm==6 ) {
-          //CHECK ME
-          Blm_ans = (9.0/5.0) * sqrt(6.0) * pow(LAL_PI, 1.0/6.0) / sqrteta;
+          //NOT IMPLEMENTED
+          Blm_ans = 0.0;
         }
         else { // mm==5
           //NOT IMPLEMENTED
