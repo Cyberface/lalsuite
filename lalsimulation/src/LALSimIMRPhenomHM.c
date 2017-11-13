@@ -176,7 +176,7 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
   /* note The factors of pi's normally multiplying with the frequency are factored into these terms. */
   /* note delta == sqrt(1. - 4.*eta) */
   /* note delta2 == 1. - 4.*eta */
-  REAL8 sqrteta = sqrt(p->eta);
+  // REAL8 sqrteta = sqrt(p->eta);
   REAL8 Seta = sqrt( 1.0 - 4.0 * p->eta );
   REAL8 delta = Seta;
   REAL8 delta2 = 1.0 - 4.0 * p->eta ;
