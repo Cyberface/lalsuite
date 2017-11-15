@@ -523,80 +523,18 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(INT4 ell, INT4 mm, REAL8 Mf
     return ans;
 }
 
-
-/*
-Define function for leading order FD PN amplitudes
-REFERENCE:  https://arxiv.org/pdf/1601.05588.pdf
-*/
-COMPLEX16 XLALSimIMRPhenomHMLeadingOrderPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2 ){
-
-  // Define effective intinsic parameters
-  COMPLEX16 Hlm_LeadingOrder = 0;
-  REAL8 M = M1+M2;
-  REAL8 eta = M1*M2 / ( M*M );
-  REAL8 delta = sqrt( 1.0 - 4*eta );
-  REAL8 ans = 0;
-
-  // Define PN parameter and realed powers
-  REAL8 v = pow( M*2.0*LAL_PI*fM / m, 1.0/3.0 );
-  REAL8 v2 = v*v;
-  REAL8 v3 = v*v2;
-
-  // Define Leading Order Ampitude for each supported multipole
-  if ( l==2 && m==2 ) {
-
-    // (l,m) = (2,2)
-    Hlm_LeadingOrder = 1.0;
-
-  } else if ( l==2 && m==1 ) {
-
-    // (l,m) = (2,1)
-    Hlm_LeadingOrder = (sqrt(2.0)/3) * v * delta;
-
-  } else if ( l==3 && m==3 ) {
-
-    // (l,m) = (3,3)
-    Hlm_LeadingOrder = 0.75 * sqrt(5.0/7.0) * v * delta;
-
-  } else if ( l==3 && m==2 ) {
-
-    // (l,m) = (3,2)
-    Hlm_LeadingOrder = (1.0/3.0) * sqrt(5.0/7.0) * v2 * (1.0-3.0*eta);
-
-  } else if ( l==4 && m==4 ) {
-
-    // (l,m) = (4,4)
-    Hlm_LeadingOrder = (4.0/9.0) * sqrt(10.0/7.0) * v2 * (1.0-3.0*eta);
-
-  } else if ( l==4 && m==3 ) {
-
-    // (l,m) = (2,1)
-    Hlm_LeadingOrder = 0.75 * sqrt(3.0/35.0) * v3 * delta * (1.0-2.0*eta);
-
-  } else {
-
-    // Let the people know
-    XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
-    XLAL_ERROR(XLAL_EDOM);
-
-  }
-
-  // Compute the final PN Amplitude at Leading Order in fM
-  ans = LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm_LeadingOrder;
-  // ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm_LeadingOrder;
-
-  //
-  return ans;
-
-}
-
 /*
 Define function for FD PN amplitudes up to and including v^3 terms
 */
 COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2, REAL8 X1z, REAL8 X2z ){
 
+  // LLondon 2017
+
   // Define effective intinsic parameters
   COMPLEX16 Hlm = 0;
+  REAL8 M_INPUT = M1+M2;
+  M1 = M1 / (M_INPUT);
+  M2 = M2 / (M_INPUT);
   REAL8 M = M1+M2;
   REAL8 eta = M1*M2 / ( M*M );
   REAL8 delta = sqrt( 1.0 - 4*eta );
@@ -632,7 +570,7 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
 
     // (l,m) = (3,3)
     // THIS IS LEADING ORDER
-    Hlm = 0.75 * sqrt(5.0/7.0) * v * delta;
+    Hlm = 0.75 * sqrt(5.0/7.0) * ( v * delta );
 
   } else if ( l==3 && m==2 ) {
 
@@ -661,8 +599,7 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
   }
 
   // Compute the final PN Amplitude at Leading Order in fM
-  ans = LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
-  // ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
+  ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
 
   //
   return ans;
@@ -670,13 +607,14 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
 }
 
 
-double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities);
+double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities, UINT4 USESPIN);
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
                                     int mm,
                                     IMRPhenomDAmplitudeCoefficients *pAmp,
                                     AmpInsPrefactors * amp_prefactors,
-                                    PhenomDStorage * PhenomDQuantities
+                                    PhenomDStorage * PhenomDQuantities,
+                                    UINT4 USESPIN
                                   )
 {
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
@@ -704,9 +642,12 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     //
     // double HMamp = PhenDamp * betalm;
 
-    REAL8 HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->X1, PhenomDQuantities->X2 ) * PhenDamp / XLALSimIMRPhenomHMLeadingOrderPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2 );
+    // double HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->X1, PhenomDQuantities->X2 ) * PhenDamp / XLALSimIMRPhenomHMLeadingOrderPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2 );
 
+    /* NOTE that XLALSimIMRPhenomHMOnePointFiveSpinPN evaluated with l=m returns leading order PN */
+    double HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
 
+    //
     return HMamp;
 
 }
@@ -988,7 +929,8 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
         double Rholm,
         double Taulm,
         double phi_precalc, /**< 0.5*phi22(fref) - phi0*/
-        PhenomDStorage *PhenomDQuantities
+        PhenomDStorage *PhenomDQuantities,
+        UINT4 USESPIN
 ) {
 
     /*
@@ -1001,7 +943,7 @@ static COMPLEX16 IMRPhenomHMSingleModehlm(
     //FP: is all of PhenomDQuantities necessary?
     //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
     //FP: pow_Mf_wf_prefactor[ell][mm]
-    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities );
+    double HMamp = XLALSimIMRPhenomHMAmplitude( Mf, ell, mm, pAmp, amp_prefactors, PhenomDQuantities, USESPIN );
     double HMphase = XLALSimIMRPhenomHMPhase( Mf, mm, z, pn, pPhi, phi_prefactors, Rholm, Taulm );
 
     // printf("f(Hz) = %f, Mf = %f, HMamp = %.10e, HMphase = %f\n", Mf / (PhenomDQuantities->Mtot * LAL_MTSUN_SI), Mf, HMamp, HMphase);
@@ -1356,7 +1298,7 @@ int XLALIMRPhenomHMMultiModehlm(
     //FP: is all of PhenomDQuantities necessary?
     //FP: PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22,
     //FP: pow_Mf_wf_prefactor[ell][mm]
-            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities);
+            (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities, 1);
             /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
             /* NOTE: normally the t0 term is multiplied by 2pi but the 2pi has been absorbed into the t0. */
             // (hlm->data->data)[i] *= cexp(-I * LAL_PI*t0*(Mf-MfRef)*(2.0-mm) );
@@ -1563,7 +1505,8 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
                                     REAL8 phi0,
                                     REAL8 distance,
                                     INT4 ell,
-                                    INT4 mm){
+                                    INT4 mm,
+                                    UINT4 USESPIN ){
 
     int errcode = XLAL_SUCCESS;
     errcode = init_useful_powers(&powers_of_pi, LAL_PI);
@@ -1740,7 +1683,7 @@ int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, /**< [o
         /* construct hlm at single frequency point and return */
         // (hlm->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(eta, chi1z, chi2z, ell, mm, Mf, MfRef, phi0, &z);
 
-        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities);
+        ((*hlmtilde)->data->data)[i] = amp0 * IMRPhenomHMSingleModehlm(ell, mm, Mf, &z, pAmp, &amp_prefactors, pn, pPhi, &phi_prefactors, Rholm, Taulm, phi_const, &PhenomDQuantities, USESPIN);
 
         /* NOTE: The frequency used in the time shift term is the fourier variable of the gravitational wave frequency. i.e., Not rescaled. */
         // ((*hlmtilde)->data->data)[i] *= cexp(-It0*(Mf-MfRef)*(2.0-mm) );
