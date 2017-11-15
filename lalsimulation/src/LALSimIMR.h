@@ -108,6 +108,10 @@ int XLALIMRPhenomHMMapParams(REAL8 *a, REAL8 *b, REAL8 flm, REAL8 fi, REAL8 fr, 
 //double XLALSimIMRPhenomHMTaulm(const INT4 ell, const INT4 mm, PhenomDStorage* PhenomDQuantities);
 int XLALSimIMRPhenomHMSingleModehlm(COMPLEX16FrequencySeries **hlmtilde, REAL8 m1Msun, REAL8 m2Msun, REAL8 chi1z, REAL8 chi2z, REAL8 deltaF, REAL8 f_min, REAL8 f_max, REAL8 fRef_in, REAL8 phi0, REAL8 distance, INT4 ell, INT4 mm);
 
+COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2, REAL8 X1z, REAL8 X2z );
+
+COMPLEX16 XLALSimIMRPhenomHMLeadingOrderPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2 );
+
 
 int XLALSimIMRPhenomP(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, const REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 deltaF, const REAL8 f_min, const REAL8 f_max, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, const LALSimInspiralTestGRParam *extraParams);
 int XLALSimIMRPhenomPFrequencySequence(COMPLEX16FrequencySeries **hptilde, COMPLEX16FrequencySeries **hctilde, const REAL8Sequence *freqs, const REAL8 chi1_l, const REAL8 chi2_l, const REAL8 chip, const REAL8 thetaJ, REAL8 m1_SI, const REAL8 m2_SI, const REAL8 distance, const REAL8 alpha0, const REAL8 phic, const REAL8 f_ref, IMRPhenomP_version_type IMRPhenomP_version, const LALSimInspiralTestGRParam *extraParams);

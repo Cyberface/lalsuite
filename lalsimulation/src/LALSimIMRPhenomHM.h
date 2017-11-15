@@ -66,6 +66,8 @@ typedef struct tagPhenomDStorage
 {
     REAL8 m1;
     REAL8 m2;
+    REAL8 X1;
+    REAL8 X2;
     REAL8 Mtot;
     REAL8 eta;
     REAL8 Inv1MinusEradRational0815;

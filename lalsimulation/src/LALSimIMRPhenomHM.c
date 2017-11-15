@@ -135,6 +135,8 @@ int init_PhenomD_Storage(PhenomDStorage* p, const REAL8 m1, const REAL8 m2, cons
 
   p->m1 = m1; /* Inherits units from m1 in function arguments */
   p->m2 = m2; /* Inherits units from m2 in function arguments */
+  p->X1 = chi1z;
+  p->X2 = chi2z;
   p->Mtot = m1+m2; /* Inherits units from m1 and m2 in function arguments */
   p->eta = m1*m2/(p->Mtot*p->Mtot);
   p->Inv1MinusEradRational0815 = 1.0/(1.0-EradRational0815(p->eta, chi1z, chi2z));
@@ -521,6 +523,153 @@ double XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(INT4 ell, INT4 mm, REAL8 Mf
     return ans;
 }
 
+
+/*
+Define function for leading order FD PN amplitudes
+REFERENCE:  https://arxiv.org/pdf/1601.05588.pdf
+*/
+COMPLEX16 XLALSimIMRPhenomHMLeadingOrderPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2 ){
+
+  // Define effective intinsic parameters
+  COMPLEX16 Hlm_LeadingOrder = 0;
+  REAL8 M = M1+M2;
+  REAL8 eta = M1*M2 / ( M*M );
+  REAL8 delta = sqrt( 1.0 - 4*eta );
+  REAL8 ans = 0;
+
+  // Define PN parameter and realed powers
+  REAL8 v = pow( M*2.0*LAL_PI*fM / m, 1.0/3.0 );
+  REAL8 v2 = v*v;
+  REAL8 v3 = v*v2;
+
+  // Define Leading Order Ampitude for each supported multipole
+  if ( l==2 && m==2 ) {
+
+    // (l,m) = (2,2)
+    Hlm_LeadingOrder = 1.0;
+
+  } else if ( l==2 && m==1 ) {
+
+    // (l,m) = (2,1)
+    Hlm_LeadingOrder = (sqrt(2.0)/3) * v * delta;
+
+  } else if ( l==3 && m==3 ) {
+
+    // (l,m) = (3,3)
+    Hlm_LeadingOrder = 0.75 * sqrt(5.0/7.0) * v * delta;
+
+  } else if ( l==3 && m==2 ) {
+
+    // (l,m) = (3,2)
+    Hlm_LeadingOrder = (1.0/3.0) * sqrt(5.0/7.0) * v2 * (1.0-3.0*eta);
+
+  } else if ( l==4 && m==4 ) {
+
+    // (l,m) = (4,4)
+    Hlm_LeadingOrder = (4.0/9.0) * sqrt(10.0/7.0) * v2 * (1.0-3.0*eta);
+
+  } else if ( l==4 && m==3 ) {
+
+    // (l,m) = (2,1)
+    Hlm_LeadingOrder = 0.75 * sqrt(3.0/35.0) * v3 * delta * (1.0-2.0*eta);
+
+  } else {
+
+    // Let the people know
+    XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
+    XLAL_ERROR(XLAL_EDOM);
+
+  }
+
+  // Compute the final PN Amplitude at Leading Order in fM
+  ans = LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm_LeadingOrder;
+  // ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm_LeadingOrder;
+
+  //
+  return ans;
+
+}
+
+/*
+Define function for FD PN amplitudes up to and including v^3 terms
+*/
+COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 M1, REAL8 M2, REAL8 X1z, REAL8 X2z ){
+
+  // Define effective intinsic parameters
+  COMPLEX16 Hlm = 0;
+  REAL8 M = M1+M2;
+  REAL8 eta = M1*M2 / ( M*M );
+  REAL8 delta = sqrt( 1.0 - 4*eta );
+  REAL8 Xs = 0.5 * (X1z+X2z);
+  REAL8 Xa = 0.5 * (X1z-X2z);
+  COMPLEX16 ans = 0;
+
+  /*
+  NOTE:
+   - The prescription here is to keep leading order for l=m
+   - But keep up to v^3 terms when l = m+1
+  */
+
+  // Define PN parameter and realed powers
+  REAL8 v = pow( M*2.0*LAL_PI*fM / m, 1.0/3.0 );
+  REAL8 v2 = v*v;
+  REAL8 v3 = v*v2;
+
+  // Define Leading Order Ampitude for each supported multipole
+  if ( l==2 && m==2 ) {
+
+    // (l,m) = (2,2)
+    // THIS IS LEADING ORDER
+    Hlm = 1.0;
+
+  } else if ( l==2 && m==1 ) {
+
+    // (l,m) = (2,1)
+    // SPIN TERMS ADDED
+    Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs )+ v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
+
+  } else if ( l==3 && m==3 ) {
+
+    // (l,m) = (3,3)
+    // THIS IS LEADING ORDER
+    Hlm = 0.75 * sqrt(5.0/7.0) * v * delta;
+
+  } else if ( l==3 && m==2 ) {
+
+    // (l,m) = (3,2)
+    // SPIN TERMS ADDED
+    Hlm = (1.0/3.0) * sqrt(5.0/7.0) * ( v2 * (1.0-3.0*eta) + v3 * 4.0*eta*Xs );
+
+  } else if ( l==4 && m==4 ) {
+
+    // (l,m) = (4,4)
+    // THIS IS LEADING ORDER
+    Hlm = (4.0/9.0) * sqrt(10.0/7.0) * v2 * (1.0-3.0*eta);
+
+  } else if ( l==4 && m==3 ) {
+
+    // (l,m) = (4,3)
+    // NO SPIN TERMS TO ADD AT DESIRED ORDER
+    Hlm = 0.75 * sqrt(3.0/35.0) * v3 * delta * (1.0-2.0*eta);
+
+  } else {
+
+    // Let the people know
+    XLALPrintError("XLAL Error - requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
+    XLAL_ERROR(XLAL_EDOM);
+
+  }
+
+  // Compute the final PN Amplitude at Leading Order in fM
+  ans = LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
+  // ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
+
+  //
+  return ans;
+
+}
+
+
 double XLALSimIMRPhenomHMAmplitude(double Mf_wf, int ell, int mm, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors * amp_prefactors, PhenomDStorage * PhenomDQuantities);
 double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     int ell,
@@ -539,21 +688,25 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    /* coefficients of leading order PN amplitude */
-    double Blm_prefac = PhenomDQuantities->Blm_prefactor[ell][mm];
+    // /* coefficients of leading order PN amplitude */
+    // double Blm_prefac = PhenomDQuantities->Blm_prefactor[ell][mm];
+    //
+    // /* ratio of frequency term in leadering order PN */
+    // /* at the scaled frequency */
+    // double f_frac = XLALSimIMRPhenomHMPNFrequencyScale( &powers_of_Mf_22, Mf_22, ell, mm);
+    //
+    // double Blm = Blm_prefac * f_frac;
+    //
+    // /* (m/2)^klm NOTE in the paper this is (2/m)^(-klm) i.e. inverted. */
+    // double m_over_2_pow_klm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, mm/2.0);
+    //
+    // double betalm = Blm * m_over_2_pow_klm;
+    //
+    // double HMamp = PhenDamp * betalm;
 
-    /* ratio of frequency term in leadering order PN */
-    /* at the scaled frequency */
-    double f_frac = XLALSimIMRPhenomHMPNFrequencyScale( &powers_of_Mf_22, Mf_22, ell, mm);
+    REAL8 HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->X1, PhenomDQuantities->X2 ) * PhenDamp / XLALSimIMRPhenomHMLeadingOrderPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2 );
 
-    double Blm = Blm_prefac * f_frac;
 
-    /* (m/2)^klm NOTE in the paper this is (2/m)^(-klm) i.e. inverted. */
-    double m_over_2_pow_klm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, mm/2.0);
-
-    double betalm = Blm * m_over_2_pow_klm;
-
-    double HMamp = PhenDamp * betalm;
     return HMamp;
 
 }
