@@ -617,6 +617,8 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
                                     UINT4 USESPIN
                                   )
 {
+
+    /* LL: Map the ijnput domain (frequencies) for this ell mm multipole to those appropirate for the ell=|mm| multipole */
     double Mf_22 =  XLALSimIMRPhenomHMFreqDomainMap(Mf_wf, ell, mm, PhenomDQuantities, AmpFlagTrue);//FP PhenomHMfring[ell][mm], Rholm[ell][mm], Mf_RD_22
 
     UsefulPowers powers_of_Mf_22;
@@ -624,15 +626,22 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     errcode = init_useful_powers(&powers_of_Mf_22, Mf_22);
     XLAL_CHECK(errcode == XLAL_SUCCESS, errcode, "init_useful_powers failed for Mf_22");
 
+    /* LL: Compute the PhenomD Amplitude at the mapped l=m=2 fequencies */
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    /**/
+    /*
+    LL: Here we map the ampliude's range using two steps:
+    (1) We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest. NOTE that this step is done at the mapped frequencies, which results in smooth behavior despite the sharp featured of the domain map. THere are other (perhaps more intuitive) options for mapping the amplitudes, but these do not have the desired smooth features.
+    (2) An additional scaling is needed to recover the desired PN ampitude. This is needed becuase only frequencies appropriate for the dominant quadrupole have been used thusly, so the current answer does not conform to PN expectations for inspiral. This is trikier than descurbed here, so please give it a deeper think.
+    */
 
-    /* NOTE: Eval  */
+    /* LL: Calculate the corrective factor for step #2 */
     double beta = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) / XLALSimIMRPhenomHMOnePointFiveSpinPN( 2.0*Mf_wf/mm, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) );
+
+    /* LL: Apply steps #1 and #2 */
     double HMamp = beta * XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
 
-    //
+    /* Return the answer */
     return HMamp;
 
 }
