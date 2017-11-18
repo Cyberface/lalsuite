@@ -626,26 +626,11 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
-    // /* coefficients of leading order PN amplitude */
-    // double Blm_prefac = PhenomDQuantities->Blm_prefactor[ell][mm];
-    //
-    // /* ratio of frequency term in leadering order PN */
-    // /* at the scaled frequency */
-    // double f_frac = XLALSimIMRPhenomHMPNFrequencyScale( &powers_of_Mf_22, Mf_22, ell, mm);
-    //
-    // double Blm = Blm_prefac * f_frac;
-    //
-    // /* (m/2)^klm NOTE in the paper this is (2/m)^(-klm) i.e. inverted. */
-    // double m_over_2_pow_klm = XLALSimIMRPhenomHMPNAmplitudeLeadingOrderFpow(ell, mm, mm/2.0);
-    //
-    // double betalm = Blm * m_over_2_pow_klm;
-    //
-    // double HMamp = PhenDamp * betalm;
+    /**/
 
-    // double HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, PhenomDQuantities->X1, PhenomDQuantities->X2 ) * PhenDamp / XLALSimIMRPhenomHMLeadingOrderPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2 );
-
-    /* NOTE that XLALSimIMRPhenomHMOnePointFiveSpinPN evaluated with l=m returns leading order PN */
-    double HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
+    /* NOTE: Eval  */
+    double beta = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) / XLALSimIMRPhenomHMOnePointFiveSpinPN( 2.0*Mf_wf/mm, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) );
+    double HMamp = beta * XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
 
     //
     return HMamp;
