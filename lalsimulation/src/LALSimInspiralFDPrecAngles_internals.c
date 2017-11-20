@@ -310,8 +310,8 @@ UNUSED static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, 
     vector angles;
     const double xi_2 = xi * xi;
     const double L_norm = ((*system).nu) / xi;
-    const double L_norm3PN = L_norm_2PN_NonSpinning_of_xi(xi_2, L_norm, system);
-    const double J_norm3PN = J_norm_of_xi(L_norm3PN, system);
+    const double L_norm2PN = L_norm_2PN_NonSpinning_of_xi(xi_2, L_norm, system);
+    const double J_norm2PN = J_norm_of_xi(L_norm2PN, system);
     const double J_norm = J_norm_of_xi(L_norm, system);
     const vector roots = Roots(L_norm, J_norm, system);
     const double S_norm = S_norm_of_xi(xi, xi_2, roots, system);
@@ -324,7 +324,7 @@ UNUSED static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, 
 
     angles.x = phiz_of_xi(xi, xi_2, J_norm, system) + MScorrections.x;
     angles.y = zeta_of_xi(xi, xi_2, system) + MScorrections.y;
-    angles.z = costhetaL(J_norm3PN, L_norm3PN, S_norm); //costhetaL 3PN
+    angles.z = costhetaL(J_norm2PN, L_norm2PN, S_norm); //costhetaL 3PN
 
     return angles;
 }
