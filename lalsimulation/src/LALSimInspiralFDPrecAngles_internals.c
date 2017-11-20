@@ -376,7 +376,8 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
     const double theta = ((*system).onethird)*acos(acosarg);
 
 
-
+    //TODO: Are these equalities to integers too strick?
+    //TODO: Replace with floats and tolerances?
     if(theta!=theta || sqrtarg!=sqrtarg || (*system).dot1n == 1 || (*system).dot2n == 1 || (*system).dot1n == -1 || (*system).dot2n == -1|| (*system).S1_norm_2 == 0 || (*system).S2_norm_2 == 0) {
         out.x = 0;
         out.y = ((*system).S0_norm)*((*system).S0_norm);
