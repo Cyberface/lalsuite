@@ -630,16 +630,24 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     double PhenDamp = IMRPhenDAmplitude(Mf_22, pAmp, &powers_of_Mf_22, amp_prefactors);
 
     /*
-    LL: Here we map the ampliude's range using two steps:
-    (1) We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest. NOTE that this step is done at the mapped frequencies, which results in smooth behavior despite the sharp featured of the domain map. THere are other (perhaps more intuitive) options for mapping the amplitudes, but these do not have the desired smooth features.
-    (2) An additional scaling is needed to recover the desired PN ampitude. This is needed becuase only frequencies appropriate for the dominant quadrupole have been used thusly, so the current answer does not conform to PN expectations for inspiral. This is trikier than descurbed here, so please give it a deeper think.
+    LL: Here we use different mappings depending on the spin
     */
 
-    /* LL: Calculate the corrective factor for step #2 */
-    double beta = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) / XLALSimIMRPhenomHMOnePointFiveSpinPN( 2.0*Mf_wf/mm, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) );
+    /* Use one type of map for alinged, and another for antialigned */
+    double HMamp = 0;
+    if ( (PhenomDQuantities->X1 + PhenomDQuantities->X2) < 0 ) {
 
-    /* LL: Apply steps #1 and #2 */
-    double HMamp = beta * XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
+      /* LL: Calculate the corrective factor for step #2 */
+      double beta = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) / XLALSimIMRPhenomHMOnePointFiveSpinPN( 2.0*Mf_wf/mm, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) );
+
+      /* LL: Apply steps #1 and #2 */
+      HMamp = beta * XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
+
+    } else {
+
+      HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
+
+    }
 
     /* Return the answer */
     return HMamp;
