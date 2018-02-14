@@ -381,7 +381,7 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
     if(theta!=theta || sqrtarg!=sqrtarg || (*system).dot1n == 1 || (*system).dot2n == 1 || (*system).dot1n == -1 || (*system).dot2n == -1|| (*system).S1_norm_2 == 0 || (*system).S2_norm_2 == 0) {
         out.x = 0;
         out.y = ((*system).S0_norm)*((*system).S0_norm);
-        out.z = out.y;
+        out.z = out.y + 1e-9;
     }
     else{
 //        if(acosarg>0){
