@@ -632,7 +632,7 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
     /*
     LL: Here we map the ampliude's range using two steps:
     (1) We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest. NOTE that this step is done at the mapped frequencies, which results in smooth behavior despite the sharp featured of the domain map. THere are other (perhaps more intuitive) options for mapping the amplitudes, but these do not have the desired smooth features.
-    (2) An additional scaling is needed to recover the desired PN ampitude. This is needed becuase only frequencies appropriate for the dominant quadrupole have been used thusly, so the current answer does not conform to PN expectations for inspiral. This is trikier than descurbed here, so please give it a deeper think.
+    (2) An additional scaling is needed to recover the desired PN ampitude. This is needed becuase only frequencies appropriate for the dominant quadrupole have been used thusly, so the current answer does not conform to PN expectations for inspiral. This is trikier than described here, so please give it a deeper think.
     */
 
     /* LL: Calculate the corrective factor for step #2 */
