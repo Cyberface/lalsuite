@@ -564,7 +564,8 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
 
     // (l,m) = (2,1)
     // SPIN TERMS ADDED
-    Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs )+ v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
+    // NOTE that turning off delta*Xs appears to fix divergence issues
+    Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs*0 )+ v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
 
   } else if ( l==3 && m==3 ) {
 
