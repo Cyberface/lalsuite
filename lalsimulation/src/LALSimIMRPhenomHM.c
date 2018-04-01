@@ -532,12 +532,17 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
 
   // Define effective intinsic parameters
   COMPLEX16 Hlm = 0;
+  // COMPLEX16 Hlm_NoSpin = 0;
+  // COMPLEX16 Hlm_Spin = 0;
+  // COMPLEX16 Hlm_Full = 0;
+  // REAL8 PreFactor = 0;
   REAL8 M_INPUT = M1+M2;
   M1 = M1 / (M_INPUT);
   M2 = M2 / (M_INPUT);
   REAL8 M = M1+M2;
   REAL8 eta = M1*M2 / ( M*M );
-  REAL8 delta = sqrt( 1.0 - 4*eta );
+  // REAL8 delta = sqrt( 1.0 - 4*eta );
+  REAL8 delta = (M1-M2) / (M1+M2);
   REAL8 Xs = 0.5 * (X1z+X2z);
   REAL8 Xa = 0.5 * (X1z-X2z);
   COMPLEX16 ans = 0;
@@ -564,8 +569,104 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
 
     // (l,m) = (2,1)
     // SPIN TERMS ADDED
-    // NOTE that turning off delta*Xs appears to fix divergence issues
-    Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs*0 )+ v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
+    // Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs ) );
+
+    // // OLD CODE WITH 3PN NONSPINNING TERM
+    // Hlm = (sqrt(2.0)/3.0) * ( v * delta - v2 * 1.5*( Xa+delta*Xs )+ v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
+
+    // UP TO 4PN
+    REAL8 v4 = v*v3;
+    Hlm = (sqrt(2.0)/3.0) * ( v * delta - \
+                              v2 * 1.5*( Xa+delta*Xs ) + \
+                              v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) ) + \
+                              v4 * (  Xa*(4771.0/1344 - eta*11941.0/336) + delta*Xs*(4771.0/1344 - eta*2549/336) + delta*(-I*0.5 - LAL_PI - 2*I*0.69314718056)  );
+
+    /**/ // Making the root complex /**/
+    // REAL8 delta0 = 0.00005;
+    // REAL8 k = 1 + (9/(16*delta0*delta0)) * ( Xa + delta0*Xs ) * ( Xa + delta0*Xs );
+    // REAL8 croot = delta + (9*pow(Xa,2) + 18*delta*Xa*Xs + 9*pow(delta,2)*pow(Xs,2))/(16.*delta);
+    // // NOTE that the 1/delta dependence above is problematic for delta->0; so below we will impose a phenomenological maximum for croot
+    // if ( delta<delta0 ) {
+    //   croot = delta*k;
+    // }
+    // //croot = delta * (9*pow(Xa,2) + 18*delta*Xa*Xs + 9*pow(delta,2)*pow(Xs,2))/(16.0);
+    // Hlm = Hlm + 0*(sqrt(2.0)/3.0) * v3 * croot ; //
+
+    // // Psuedo 4PN // Still a bit bendy, fewer/no relevant roots
+    // REAL8 v4 = v*v3;
+    // Hlm = (sqrt(2)*I*(delta*v + ((335*delta)/672. + (117*delta*eta)/56.)*v3 + v2*((-3*Xa)/2. - \
+    // (3*delta*Xs)/2.) + v4*((-1344*delta*I - 2688*delta*LAL_PI + delta*(4099 - 672*I)*X1z + \
+    // delta*eta*(-7028 + 3168*I)*X1z + delta*(4099 - 672*I)*X2z + delta*eta*(-7028 + 3168*I)*X2z +\
+    //  (-17114 - 1344*I)*Xa + eta*(45080 + 39360*I)*Xa)/2688. - (delta*I*log(16))/2.)))/3.;
+
+    // // Root shifting term // NOTE that if n is large enough, then the added term vanishes! hence no net effect
+    // REAL8 n = 1.5;
+    // REAL8 wroot = n*0.6;
+    // REAL8 vroot = pow(wroot/m,1.0/3);
+    // COMPLEX16 croot = (-2*sqrt(2)*delta + 3*sqrt(2)*vroot*Xa + 3*sqrt(2)*delta*vroot*Xs)/(6.0*vroot*vroot);
+    // Hlm = Hlm + v3 * croot ; // NOTE that the 2/3 prefactor is already included in croot
+
+    //
+    // Hlm = (sqrt(2.0)*(delta*v + ((335.0*delta)/672.0 + (117.0*delta*eta)/56.0)*v3 + v2*((-3.0*Xa)/2.0 - (3.0*delta*Xs)/2.0)))/3.0 ;
+
+    //
+    // PreFactor  = sqrt(2.0)/3.0;
+    // Hlm_NoSpin = PreFactor * ( v * delta + v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) );
+    // Hlm_Spin   = PreFactor * ( - v2 * 1.5*( Xa+delta*Xs ) );
+    // Hlm_Full   = Hlm_NoSpin + Hlm_Spin;
+    // Hlm        = ( cabs(Hlm_Full)*7 + Hlm_NoSpin*1 ) / 8 ;
+
+    // NOTE -- Also doesnt work
+    // Hlm = cabs( (2*sqrt(2)*delta*sqrt(eta)*I*v)/ \
+    //       (3.*sqrt(1 - delta*delta)*(1 + (3*v*((1 + delta)*X1z + (-1 + delta)*X2z))/(4.*sqrt(1 - 4*eta)) + \
+    //       (v*v*(335 - 5616*eta*eta - 756*(1 + delta)*X1z*X1z + \
+    //       756*(-1 + delta)*X2z*X2z + 8*eta*(8 + 189*pow(X1z + X2z,2))))/(672.*(-1 + 4*eta)))) );
+
+    //
+   //  Hlm = cabs( (sqrt(eta)*I*v*(-2*v*(6547 + 672*I + pow(eta,2)*(123856 + 78720*I) + 4536*pow(X1z,2) + \
+   //        4536*X1z*X2z + 4536*pow(X2z,2) - \
+   //        8*eta*(7144 + 2796*I + 1701*pow(X1z,2) + 3402*X1z*X2z + 1701*pow(X2z,2)))*Xa - \
+   //     64*pow(delta,2)*Xa*((-236 - 21*I + eta*(836 + 615*I))*v - 189*Xs) + \
+   //     16*pow(delta,3)*v*(84*I + 168*LAL_PI + (-319 + eta*(176 - 198*I) + 42*I)*X1z + \
+   //        eta*(176 - 198*I)*X2z + (-319 + 42*I)*X2z + 336*I*log(2)) + \
+   //     delta*(4*(-335 + 5616*pow(eta,2) + 756*pow(X1z,2) + 756*pow(X2z,2) - \
+   //           8*eta*(8 + 189*pow(X1z,2) + 378*X1z*X2z + 189*pow(X2z,2))) + \
+   //        v*(-1344*I + 2688*(-1 + 4*eta)*LAL_PI + (6109 - 672*I)*X1z - 4536*pow(X1z,3) + \
+   //           (6109 - 672*I)*X2z - 4536*pow(X2z,3) + pow(eta,2)*(-11168 - 25344*I)*Xs - \
+   //           5376*I*log(2) + 24*eta*(189*pow(X1z,3) + (-960 + 244*I)*X2z + 567*pow(X1z,2)*X2z + \
+   //              189*pow(X2z,3) + X1z*(-960 + 244*I + 567*pow(X2z,2)) + 224*I*(1 + log(16)))))))/ \
+   // (3.*sqrt(2 - 2*pow(delta,2))*(-335 + 5616*pow(eta,2) + 756*(1 + delta)*pow(X1z,2) + \
+   //     756*pow(X2z,2) - 756*delta*pow(X2z,2) - \
+   //     8*eta*(8 + 189*pow(X1z,2) + 378*X1z*X2z + 189*pow(X2z,2)))) );
+
+    // NOTE the rational approx below doesn't work
+     //  Hlm = cabs( (112*sqrt(2)*sqrt(eta)*I*v*(-3024*delta*delta*(X1z*X1z - X2z*X2z) - \
+     //     2*v*(-6547 + eta*eta*(-123856 - 78720*I) - 672*I - 4536*X1z*X1z - 4536*X1z*X2z - \
+     //        4536*X2z*X2z + 8*eta*(7144 + 2796*I + 1701*X1z*X1z + 3402*X1z*X2z + \
+     //           1701*X2z*X2z))*Xa + delta*\
+     //      (-4*(-335 + 5616*eta*eta + 756*X1z*X1z + 756*X2z*X2z - \
+     //           8*eta*(8 + 189*X1z*X1z + 378*X1z*X2z + 189*X2z*X2z)) + \
+     //        v*(1344*I - 2688*(-1 + 4*eta)*LAL_PI + (-6109 + 672*I)*X1z + 4536*pow(X1z,3) + \
+     //           (-6109 + 672*I)*X2z + 4536*pow(X2z,3) + eta*eta*(11168 + 25344*I)*Xs + \
+     //           5376*I*log(2) - 24*eta*(189*pow(X1z,3) + (-960 + 244*I)*X2z + 567*X1z*X1z*X2z + \
+     //              189*pow(X2z,3) + X1z*(-960 + 244*I + 567*X2z*X2z) + 224*I*(1 + log(16)))))))/\
+     // (sqrt(1 - delta*delta)*(-672*(-335 + 5616*eta*eta + 756*(1 + delta)*X1z*X1z + \
+     //        756*X2z*X2z - 756*delta*X2z*X2z - \
+     //        8*eta*(8 + 189*X1z*X1z + 378*X1z*X2z + 189*X2z*X2z)) + \
+     //     2688*delta*v*(-4*(-236 - 21*I + eta*(836 + 615*I))*Xa + \
+     //        delta*(84*I + 168*LAL_PI + eta*(176 - 198*I)*X1z + (-319 + 42*I)*X1z + eta*(176 - 198*I)*X2z + \
+     //           (-319 + 42*I)*X2z + 336*I*log(2))) + \
+     //     pow(v,2)*(-112225 + 7884864*pow(eta,3) + (1 + delta)*(561708 + 169344*I)*X1z*X1z + \
+     //        169344*I*X2z - 169344*delta*I*X2z + 338688*LAL_PI*X2z - 338688*delta*LAL_PI*X2z + \
+     //        delta*(-561708 - 169344*I)*X2z*X2z + (561708 + 169344*I)*X2z*X2z + \
+     //        144*eta*eta*(12441 + (-24598 + 11088*I)*X1z*X1z + (-49196 + 22176*I)*X1z*X2z + \
+     //           (-24598 + 11088*I)*X2z*X2z) + 677376*I*X2z*log(2) - 677376*delta*I*X2z*log(2) + \
+     //        28224*X1z*(12*(1 + delta)*LAL_PI + I*(6 + 113*I*X2z + 24*log(2) + 6*delta*(1 + log(16)))) - \
+     //        4*eta*(122945 + 126*(-221 + 6384*I + delta*(3878 + 5712*I))*X1z*X1z - \
+     //           126*(221 - 6384*I + delta*(3878 + 5712*I))*X2z*X2z + \
+     //           169344*X2z*(2*LAL_PI + I*(1 + log(16))) + \
+     //           252*X1z*(1344*LAL_PI + (-11491 - 3456*I)*X2z + 672*I*(1 + log(16))))))) );
+
 
   } else if ( l==3 && m==3 ) {
 
@@ -576,8 +677,12 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
   } else if ( l==3 && m==2 ) {
 
     // (l,m) = (3,2)
-    // SPIN TERMS ADDED
-    Hlm = (1.0/3.0) * sqrt(5.0/7.0) * ( v2 * (1.0-3.0*eta) + v3 * 4.0*eta*Xs );
+
+    // // SPIN TERMS ADDED
+    // Hlm = (1.0/3.0) * sqrt(5.0/7.0) * ( v2 * (1.0-3.0*eta) );
+
+    // NO SPIN TERMS to avoid roots
+    Hlm = (1.0/3.0) * sqrt(5.0/7.0) * ( v2 * (1.0-3.0*eta) );
 
   } else if ( l==4 && m==4 ) {
 
@@ -600,7 +705,7 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
   }
 
   // Compute the final PN Amplitude at Leading Order in fM
-  ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * Hlm;
+  ans = M*M * LAL_PI * sqrt(eta*2.0/3) * pow(v,-3.5) * cabs(Hlm);
 
   //
   return ans;
@@ -641,6 +746,9 @@ double XLALSimIMRPhenomHMAmplitude( double Mf_wf,
 
     /* LL: Apply steps #1 and #2 */
     double HMamp = beta * XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
+
+    // /* LL: Use alternate mapping */
+    // double HMamp = XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_wf, ell, mm, PhenomDQuantities->m1, PhenomDQuantities->m2, USESPIN*(PhenomDQuantities->X1), USESPIN*(PhenomDQuantities->X2) ) * PhenDamp / XLALSimIMRPhenomHMOnePointFiveSpinPN( Mf_22, 2, 2, PhenomDQuantities->m1, PhenomDQuantities->m2, 0.0, 0.0 );
 
     /* Return the answer */
     return HMamp;
