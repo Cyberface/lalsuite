@@ -578,8 +578,8 @@ COMPLEX16 XLALSimIMRPhenomHMOnePointFiveSpinPN( REAL8 fM, INT4 l, INT4 m, REAL8 
     REAL8 v4 = v*v3;
     Hlm = (sqrt(2.0)/3.0) * ( v * delta - \
                               v2 * 1.5*( Xa+delta*Xs ) + \
-                              v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) ) + \
-                              v4 * (  Xa*(4771.0/1344 - eta*11941.0/336) + delta*Xs*(4771.0/1344 - eta*2549/336) + delta*(-I*0.5 - LAL_PI - 2*I*0.69314718056)  );
+                              v3 * delta * ( (335.0/672.0)+(eta*117.0/56.0) ) + \
+                              v4 * (  Xa*(4771.0/1344 - eta*11941.0/336) + delta*Xs*(4771.0/1344 - eta*2549/336) + delta*(-I*0.5 - LAL_PI - 2*I*0.69314718056)  )   );
 
     /**/ // Making the root complex /**/
     // REAL8 delta0 = 0.00005;
